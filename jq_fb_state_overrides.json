@@ -1,0 +1,12 @@
+{
+  "20221122": {
+    "first_board_perf": 0.01756313704751912,
+    "fb_pct": 0.6,
+    "source": "jq_probe_fb_pct_batch TARGET_PERF_DATE=2022-11-21"
+  },
+  "20221223": {
+    "first_board_perf": 0.003152521361764445,
+    "fb_pct": 0.316667,
+    "source": "jq_probe_fb_pct_batch TARGET_PERF_DATE=2022-12-22"
+  }
+}

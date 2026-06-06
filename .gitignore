@@ -1,0 +1,70 @@
+# Python/runtime caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local tool/session state
+.claude/
+.workbuddy/
+_backtest_pid.json
+
+# Generated backtest/probe outputs
+output/
+project_cache/
+bare_runs_analysis/
+rebuild_*/
+rebuild_full_*/
+rebuild_probe_*/
+rebuild_jan_probe/
+repair_jan_probe/
+probe_*/
+jq_sm_force_v227_2020_unzip/
+handoff_snapshot_*/
+repair_local_quant/
+
+# Generated compare/audit/result files
+*.csv
+*.parquet
+*.log
+*.err
+*.txt
+compare_*.csv
+tmp_*.csv
+_tmp_*.csv
+research_train_*.csv
+run_*_stdout.log
+run_*_stderr.log
+backtest_run.log
+backtest_yijin_result.png
+trades_*.csv
+_cand_log.csv
+diag_*
+DIAG.txt
+debug_*
+explain_*
+history_*
+jq_*_parsed.csv
+jq_*_state*.csv
+jq_*_trade*.csv
+local_*_state*.csv
+local_*_only*.csv
+out_*_equity.csv
+out_*_trades.csv
+
+# Analysis generated outputs
+codex_strategy_dissection/branch_runs/
+codex_strategy_dissection/outputs/
+
+# Archives and large logs
+*.zip
+母版2020-2026日志/
+母版2020-2026日志.zip
+20200101-20201231状态机日志.zip
+
+# Keep source directories tracked even though similarly named output dirs are ignored.
+!rebuild_from_archive/
+!rebuild_from_archive/**
+rebuild_from_archive/**/__pycache__/
+rebuild_from_archive/**/*.pyc
