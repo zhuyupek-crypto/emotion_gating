@@ -72,9 +72,11 @@ Validation helper:
 
 ```powershell
 python scripts/validate_master_prepare_index.py 2021
+python scripts/validate_scan_all_board_fastpath.py 2021-01-04 2021-01-05 2021-04-23 2020-07-15 2020-08-27 2020-12-18
 ```
 
 Current check: 2020 and 2021 both validate cleanly against `board_snapshot` for 243 days each.
+The `_scan_all` board-cache fast path validates cleanly on the sampled dates above.
 
 ## Guardrails
 
@@ -88,7 +90,7 @@ Current check: 2020 and 2021 both validate cleanly against `board_snapshot` for 
 
 1. Build or verify `master_prepare_index` for 2020 and 2021. 2020 and 2021 have been generated and validated.
 2. Add a read API in `DataAPI`, for example `get_project_master_prepare_index(date)`. Done in current workspace.
-3. Add an opt-in fast path for mother `_scan_all` / `_scan_boards_for_prev` that consumes the daily index and falls back to the current logic when missing.
+3. Add an opt-in fast path for mother `_scan_all` / `_scan_boards_for_prev` that consumes the daily index and falls back to the current logic when missing. The current `母版-20260506-Clone.py` checkpoint uses `board_snapshot` inside `_scan_all` for market-wide limit-up and board-count facts, with fallback to the old full-market `history` scan if the cache is missing.
 4. Validate the fast path against current logic for 2020:
    - `prev_first_boards`
    - `_today_max_boards`

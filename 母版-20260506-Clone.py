@@ -648,12 +648,6 @@ def _scan_all(context):
     )
     invalid_stocks = set(secs[mask_invalid].index)
 
-    high_limits = history(3, field='high_limit', security_list=all_stocks, df=False, fq=None)
-    closes_raw = history(3, field='close', security_list=all_stocks, df=False, fq=None)
-    opens_raw = history(3, field='open', security_list=all_stocks, df=False, fq=None)
-    moneys = history(1, field='money', security_list=all_stocks, df=False)
-    volumes = history(1, field='volume', security_list=all_stocks, df=False)  # v134: 为 avg_chg 准备
-
     q = query(valuation.code, valuation.circulating_market_cap).filter(
         valuation.circulating_market_cap > 30, valuation.circulating_market_cap < 500)
     val_df = get_fundamentals(q, date=context.previous_date)
@@ -661,48 +655,97 @@ def _scan_all(context):
 
     first_boards = []
     max_b = 0
-    for s in all_stocks:
-        hl = high_limits.get(s)
-        cr = closes_raw.get(s)
-        if hl is None or cr is None or len(hl) < 3 or len(cr) < 3:
-            continue
-        if hl[-1] <= 0 or abs(cr[-1] - hl[-1]) > 0.02:
-            continue
-        boards = 1
-        if hl[-2] > 0 and abs(cr[-2] - hl[-2]) <= 0.02:
-            boards = 2
-            if hl[-3] > 0 and abs(cr[-3] - hl[-3]) <= 0.02:
-                boards = 3
-        if boards > max_b:
-            max_b = boards
-        if boards >= 3:
-            g.leader_candidates_for_tag.append((s, boards))
-        is_first = boards == 1
-        if is_first:
-            first_boards.append(s)
+    closes_raw = {}
+    try:
+        board_df = get_project_board_snapshot(context.previous_date)
+    except Exception:
+        board_df = pd.DataFrame()
 
-        if s in invalid_stocks:
-            continue
-        if s not in valid_caps:
-            continue
-        m = moneys.get(s)
-        if m is None or len(m) == 0 or m[-1] < 6e8:
-            continue
-        if g.market_mode == 'bull' and m[-1] > 20e8:
-            continue
-        # v134: 均价涨幅过滤（摘自 INS002 趋势高点首板接力）
-        # 昨日首板: close = prev_close × 1.1 → prev_close = close / 1.1
-        # avg_chg = (money/volume) / (close/1.1) − 1 = money/volume/close × 1.1 − 1
-        # >7% 表示全天均价涨幅>7%，排除"尾盘拉涨停"的假强势
-        if is_first:
-            v_arr = volumes.get(s)
-            if v_arr is not None and len(v_arr) > 0 and v_arr[-1] > 0 and cr[-1] > 0:
-                avg_chg = m[-1] / v_arr[-1] / cr[-1] * 1.1 - 1
-                if avg_chg < 0.07:
-                    continue
-        g.yjj_yclose[s] = cr[-1]
-        if is_first:
-            g.yjj_candidates.append(s)
+    if board_df is not None and not board_df.empty:
+        board_df = board_df[
+            (~board_df['code'].astype(str).map(_excluded_market_code)) &
+            (board_df['code'].isin(all_stocks))
+        ].copy()
+        board_by_code = {row.code: row for row in board_df.itertuples(index=False)}
+        max_b = int(board_df['max_board_count_market'].max()) if 'max_board_count_market' in board_df.columns else 0
+        for s in all_stocks:
+            row = board_by_code.get(s)
+            if row is None:
+                continue
+            boards = int(row.board_count)
+            if boards >= 3:
+                g.leader_candidates_for_tag.append((s, boards))
+            is_first = bool(row.is_first_board)
+            if is_first:
+                first_boards.append(s)
+
+            if s in invalid_stocks:
+                continue
+            if s not in valid_caps:
+                continue
+            m = float(row.money)
+            if m < 6e8:
+                continue
+            if g.market_mode == 'bull' and m > 20e8:
+                continue
+            close_val = float(row.close)
+            if is_first:
+                volume_val = float(row.volume)
+                if volume_val > 0 and close_val > 0:
+                    avg_chg = m / volume_val / close_val * 1.1 - 1
+                    if avg_chg < 0.07:
+                        continue
+            g.yjj_yclose[s] = close_val
+            if is_first:
+                g.yjj_candidates.append(s)
+    else:
+        high_limits = history(3, field='high_limit', security_list=all_stocks, df=False, fq=None)
+        closes_raw = history(3, field='close', security_list=all_stocks, df=False, fq=None)
+        moneys = history(1, field='money', security_list=all_stocks, df=False)
+        volumes = history(1, field='volume', security_list=all_stocks, df=False)  # v134: 为 avg_chg 准备
+
+        for s in all_stocks:
+            hl = high_limits.get(s)
+            cr = closes_raw.get(s)
+            if hl is None or cr is None or len(hl) < 3 or len(cr) < 3:
+                continue
+            if hl[-1] <= 0 or abs(cr[-1] - hl[-1]) > 0.02:
+                continue
+            boards = 1
+            if hl[-2] > 0 and abs(cr[-2] - hl[-2]) <= 0.02:
+                boards = 2
+                if hl[-3] > 0 and abs(cr[-3] - hl[-3]) <= 0.02:
+                    boards = 3
+            if boards > max_b:
+                max_b = boards
+            if boards >= 3:
+                g.leader_candidates_for_tag.append((s, boards))
+            is_first = boards == 1
+            if is_first:
+                first_boards.append(s)
+
+            if s in invalid_stocks:
+                continue
+            if s not in valid_caps:
+                continue
+            m = moneys.get(s)
+            if m is None or len(m) == 0 or m[-1] < 6e8:
+                continue
+            if g.market_mode == 'bull' and m[-1] > 20e8:
+                continue
+            # v134: 均价涨幅过滤（摘自 INS002 趋势高点首板接力）
+            # 昨日首板: close = prev_close × 1.1 → prev_close = close / 1.1
+            # avg_chg = (money/volume) / (close/1.1) − 1 = money/volume/close × 1.1 − 1
+            # >7% 表示全天均价涨幅>7%，排除"尾盘拉涨停"的假强势
+            if is_first:
+                v_arr = volumes.get(s)
+                if v_arr is not None and len(v_arr) > 0 and v_arr[-1] > 0 and cr[-1] > 0:
+                    avg_chg = m[-1] / v_arr[-1] / cr[-1] * 1.1 - 1
+                    if avg_chg < 0.07:
+                        continue
+            g.yjj_yclose[s] = cr[-1]
+            if is_first:
+                g.yjj_candidates.append(s)
 
     print(f'[DEBUG] _scan_all on {context.current_dt}. Found {len(first_boards)} FBs.')
     g.prev_first_boards = first_boards
