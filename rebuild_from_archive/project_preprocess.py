@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 from pathlib import Path
 
 import numpy as np
@@ -189,3 +190,101 @@ def build_call_auction_by_date(year: int, hdata_root: Path = DEFAULT_HDATA_ROOT,
         out = sub.drop(columns=["_date_key"]).reset_index(drop=True)
         out.to_parquet(out_dir / f"{date_key}.parquet", index=False)
     return out_dir
+
+
+def build_master_prepare_index(year: int, hdata_root: Path = DEFAULT_HDATA_ROOT, cache_root: Path = DEFAULT_CACHE_ROOT) -> Path:
+    """Build a compact daily index for the mother strategy prepare phase.
+
+    This is intentionally narrower than a full strategy feature table.  It
+    caches the market-wide board facts that `_scan_all` and
+    `_scan_boards_for_prev` recompute every morning, while leaving candidate
+    ranking and JQ compatibility behavior in the strategy/engine until parity
+    checks prove a wider replacement is safe.
+    """
+    cache_root = Path(cache_root)
+    board_path = cache_root / "board_snapshot" / f"{year}.parquet"
+    if not board_path.exists():
+        build_board_snapshot(year, hdata_root, cache_root)
+
+    boards = pd.read_parquet(board_path)
+    if boards.empty:
+        result = pd.DataFrame(
+            columns=[
+                "date",
+                "limit_up_close_n",
+                "first_board_n",
+                "max_board_count_market",
+                "first_board_codes",
+                "leader_codes",
+            ]
+        )
+    else:
+        rows = []
+        for date_int, sub in boards.groupby("date", sort=True):
+            first = sub[sub["is_first_board"]].copy()
+            leaders = sub[sub["board_count"].astype(int) >= 3].copy()
+            first_codes = "|".join(first["code"].astype(str).sort_values().tolist())
+            leader_parts = []
+            for row in leaders.sort_values(["board_count", "code"], ascending=[False, True]).itertuples(index=False):
+                leader_parts.append(f"{row.code}:{int(row.board_count)}")
+            rows.append(
+                {
+                    "date": int(date_int),
+                    "limit_up_close_n": int(len(sub)),
+                    "first_board_n": int(len(first)),
+                    "max_board_count_market": int(sub["max_board_count_market"].max()),
+                    "first_board_codes": first_codes,
+                    "leader_codes": "|".join(leader_parts),
+                }
+            )
+        result = pd.DataFrame(rows)
+
+    out_dir = cache_root / "master_prepare_index"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out_path = out_dir / f"{year}.parquet"
+    result.to_parquet(out_path, index=False)
+    return out_path
+
+
+def build_year_bundle(year: int, hdata_root: Path = DEFAULT_HDATA_ROOT, cache_root: Path = DEFAULT_CACHE_ROOT) -> list[Path]:
+    outputs = [
+        build_board_snapshot(year, hdata_root, cache_root),
+        build_first_seal_time(year, hdata_root, cache_root),
+        build_master_prepare_index(year, hdata_root, cache_root),
+    ]
+    call_auction_dir = build_call_auction_by_date(year, hdata_root, cache_root)
+    outputs.append(Path(call_auction_dir))
+    return outputs
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Build project-local preprocessing features.")
+    parser.add_argument("years", nargs="+", type=int, help="Years to build, e.g. 2020 2021")
+    parser.add_argument("--hdata-root", type=Path, default=DEFAULT_HDATA_ROOT)
+    parser.add_argument("--cache-root", type=Path, default=DEFAULT_CACHE_ROOT)
+    parser.add_argument(
+        "--only",
+        choices=["bundle", "board", "first-seal", "auction", "index"],
+        default="bundle",
+        help="Build only one feature family. Use index for the lightweight mother prepare daily index.",
+    )
+    args = parser.parse_args()
+
+    for year in args.years:
+        print(f"BUILD year={year}")
+        if args.only == "bundle":
+            outputs = build_year_bundle(year, args.hdata_root, args.cache_root)
+        elif args.only == "board":
+            outputs = [build_board_snapshot(year, args.hdata_root, args.cache_root)]
+        elif args.only == "first-seal":
+            outputs = [build_first_seal_time(year, args.hdata_root, args.cache_root)]
+        elif args.only == "auction":
+            outputs = [Path(build_call_auction_by_date(year, args.hdata_root, args.cache_root))]
+        else:
+            outputs = [build_master_prepare_index(year, args.hdata_root, args.cache_root)]
+        for path in outputs:
+            print(f"  {path}")
+
+
+if __name__ == "__main__":
+    main()
