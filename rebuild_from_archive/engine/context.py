@@ -28,7 +28,11 @@ class Portfolio:
 
     @property
     def positions_value(self):
-        return sum(p.price * p.total_amount for p in self.positions.values())
+        total = 0.0
+        for p in self.positions.values():
+            pending = getattr(p, "_pending_buy_amount", 0)
+            total += p.price * max(p.total_amount - pending, 0)
+        return total
 
     @property
     def total_value(self):

@@ -369,6 +369,7 @@ class Engine:
                     self.context.portfolio.locked_cash += frozen_cash
                     order._frozen_cash = frozen_cash
                     order._reference_price = ref_price
+                    self._reserve_pre_open_buy_position(order, ref_price)
                 self._pending_orders.append(order)
             else:
                 # Market order executes immediately
@@ -403,6 +404,43 @@ class Engine:
             self._pending_orders.append(order)
 
         return order
+
+    def _reserve_pre_open_buy_position(self, order, ref_price):
+        if order.amount <= 0 or getattr(order, "_reserved_position_amount", 0):
+            return
+        from .context import Position
+
+        pos = self.context.portfolio.positions.get(order.security)
+        if pos is None:
+            pos = Position(order.security, ref_price, 0)
+            self.context.portfolio.positions[order.security] = pos
+        pos.total_amount += order.amount
+        pos.price = ref_price
+        pos._pending_buy_amount = getattr(pos, "_pending_buy_amount", 0) + order.amount
+        order._reserved_position_amount = order.amount
+
+    def _release_pre_open_buy_position(self, order):
+        reserved = getattr(order, "_reserved_position_amount", 0)
+        if not reserved:
+            return
+        pos = self.context.portfolio.positions.get(order.security)
+        if pos is not None:
+            pos.total_amount -= reserved
+            pos._pending_buy_amount = max(0, getattr(pos, "_pending_buy_amount", 0) - reserved)
+            if pos.total_amount <= 0:
+                del self.context.portfolio.positions[order.security]
+        order._reserved_position_amount = 0
+
+    def _release_pre_open_buy_cash(self, order):
+        frozen_cash = getattr(order, "_frozen_cash", 0)
+        if frozen_cash > 0:
+            self.context.portfolio.locked_cash -= frozen_cash
+            self.context.portfolio.available_cash += frozen_cash
+            order._frozen_cash = 0
+
+    def _release_pre_open_buy_resources(self, order):
+        self._release_pre_open_buy_cash(order)
+        self._release_pre_open_buy_position(order)
 
     def order(self, security, amount, style=None):
         """聚宽兼容 order — 当前持仓 + 变动量计算目标股数"""
@@ -500,11 +538,7 @@ class Engine:
             self._pending_orders.remove(order)
 
         if order.amount > 0:
-            frozen_cash = getattr(order, "_frozen_cash", 0)
-            if frozen_cash > 0:
-                self.context.portfolio.locked_cash -= frozen_cash
-                self.context.portfolio.available_cash += frozen_cash
-                order._frozen_cash = 0
+            self._release_pre_open_buy_resources(order)
         else:
             pos = self.context.portfolio.positions.get(order.security)
             if pos:
@@ -574,11 +608,13 @@ class Engine:
         if curr_price <= 0 or paused:
             if not isinstance(order.style, LimitOrderStyle):
                 order.status = OrderStatus("rejected")
+                self._release_pre_open_buy_resources(order)
             return
 
         if not isinstance(order.style, LimitOrderStyle):
             if amount > 0 and curr_price >= high_limit:
                 order.status = OrderStatus("rejected")
+                self._release_pre_open_buy_resources(order)
                 self.info(f"Rejected market buy for {security} due to limit up")
                 return
             if amount < 0 and curr_price <= low_limit:
@@ -689,6 +725,13 @@ class Engine:
 
         # Deduct or adjust cash
         if order.amount > 0:
+            reserved_amount = getattr(order, "_reserved_position_amount", 0)
+            base_amount = 0
+            base_cost = 0.0
+            p_existing = self.context.portfolio.positions.get(security)
+            if reserved_amount and p_existing is not None:
+                base_amount = max(0, p_existing.total_amount - reserved_amount)
+                base_cost = p_existing.avg_cost
             if getattr(order, 'is_pre_open_market', False):
                 frozen = getattr(order, "_frozen_cash", 0.0)
                 if frozen > 0:
@@ -716,14 +759,25 @@ class Engine:
             self.context.portfolio.positions[security] = Position(security, trade_price, 0)
 
         p_obj = self.context.portfolio.positions[security]
-        fill_amount = fill_amount_abs if order.amount > 0 else -fill_amount_abs
+        trade_amount = fill_amount_abs if order.amount > 0 else -fill_amount_abs
+        position_delta = trade_amount
         if order.amount > 0:
-            if p_obj.total_amount > 0:
-                p_obj.avg_cost = (p_obj.total_amount * p_obj.avg_cost + fill_amount * trade_price) / (p_obj.total_amount + fill_amount)
+            reserved_amount = getattr(order, "_reserved_position_amount", 0)
+            if reserved_amount:
+                if base_amount > 0:
+                    p_obj.avg_cost = (base_amount * base_cost + trade_amount * trade_price) / (base_amount + trade_amount)
+                else:
+                    p_obj.avg_cost = trade_price
+                p_obj.total_amount = base_amount + trade_amount
+                p_obj._pending_buy_amount = max(0, getattr(p_obj, "_pending_buy_amount", 0) - reserved_amount)
+                order._reserved_position_amount = 0
+                position_delta = 0
+            elif p_obj.total_amount > 0:
+                p_obj.avg_cost = (p_obj.total_amount * p_obj.avg_cost + trade_amount * trade_price) / (p_obj.total_amount + trade_amount)
             else:
                 p_obj.avg_cost = trade_price
 
-        p_obj.total_amount += fill_amount
+        p_obj.total_amount += position_delta
         p_obj.price = trade_price
 
         if p_obj.total_amount <= 0:
@@ -769,14 +823,14 @@ class Engine:
         self.trades.append({
             'time': trade_time,
             'code': security,
-            'amount': fill_amount,
+            'amount': trade_amount,
             'price': trade_price,
             'commission': commission,
             'tax': tax,
             'trade_id': trade_id,
             'order_id': order.order_id,
         })
-        self.info(f"Order {order.order_id} matched/executed: filled {fill_amount} of {security} at {trade_price:.2f}")
+        self.info(f"Order {order.order_id} matched/executed: filled {trade_amount} of {security} at {trade_price:.2f}")
 
     def rollover_day(self):
         for pos in self.context.portfolio.positions.values():

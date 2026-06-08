@@ -105,3 +105,35 @@ Keep this as a targeted JQ compatibility exception:
 - execution price override: `('20200820', '09:30', '600027.XSHG', 'buy') -> 4.30`
 
 Do not generalize this into broad price rounding or auction-price replacement unless a wider JQ-vs-hdata harness proves the rule.
+
+## ENG-001: Pre-Open Pending Buy Visibility
+
+- Status: implemented locally, pending full-year validation
+- Severity: P1 for duplicate same-stock buys across handlers scheduled at the same pre-open minute
+- First observed: 2021 trade alignment, `002120.XSHE` on `2021-04-26`
+- Current location: `rebuild_from_archive/engine/core.py`
+
+### Problem
+
+The strategy registers both `buy_auction_yiqian` and `buy_v227_一进二` at `09:26`. On `2021-04-26`, local selected `002120.XSHE` in both sleeves. JQ produced one observed buy for `002120.XSHE` through `v227买`; local produced two pre-open orders for the same stock and filled both at `09:30`.
+
+This is an engine timing issue, not a stock-specific exception. The strategy's second handler checks:
+
+- `stock in context.portfolio.positions`
+- `context.portfolio.positions[stock].total_amount > 0`
+
+Local pre-open market orders were previously frozen in cash only and did not become visible in `context.portfolio.positions` until the `09:30` match. That made later handlers in the same minute unable to see earlier pending buys.
+
+### Compatibility Rule
+
+For pre-open market buy orders, reserve a temporary position amount immediately when the order is accepted. Keep the amount non-closeable, exclude the pending amount from portfolio market value, release it if the order is canceled/rejected, and reconcile it to the actual filled amount when the `09:30` match executes.
+
+This mirrors the observed JQ behavior that same-minute later handlers can treat an earlier pending buy as an occupied position. It should not be replaced with a hardcoded `002120.XSHE` filter.
+
+### Local Check
+
+A minimal two-handler local harness now shows:
+
+- first `09:26` handler creates a pending buy and a visible position reservation
+- second `09:26` handler sees `total_amount > 0` and skips
+- `09:30` match records one trade with the correct filled amount

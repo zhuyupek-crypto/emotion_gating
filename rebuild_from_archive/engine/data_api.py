@@ -57,6 +57,7 @@ class DataAPI:
         self._project_board_cache = {}
         self._st_day_cache = {}
         self._st_year_cache = {}
+        self._all_securities_cache = {}
 
     def _st_day_frame(self, date):
         ds = pd.to_datetime(date).strftime('%Y%m%d')
@@ -1038,6 +1039,13 @@ class DataAPI:
         self._price_records[year] = df_tmp
 
     def get_all_securities(self, types=['stock'], date=None):
+        types_key = tuple(types) if isinstance(types, (list, tuple, pd.Index, pd.Series)) else (types,)
+        date_key = pd.to_datetime(date).strftime('%Y-%m-%d') if date else None
+        cache_key = (types_key, date_key)
+        cached = self._all_securities_cache.get(cache_key)
+        if cached is not None:
+            return cached.copy()
+
         if self._stock_basic is None:
             basic_path = os.path.join(self.data_root, 'stock_basic.parquet')
             if not os.path.exists(basic_path):
@@ -1115,7 +1123,10 @@ class DataAPI:
             if pd.to_datetime(date) >= pd.to_datetime('2020-05-07') and '600856.XSHG' in out.index:
                 out.loc['600856.XSHG', 'display_name'] = '*ST中天'
         out['start_date'] = pd.to_datetime(out['start_date'], errors='coerce').dt.date
-        return out
+        if len(self._all_securities_cache) > 2048:
+            self._all_securities_cache.pop(next(iter(self._all_securities_cache)))
+        self._all_securities_cache[cache_key] = out
+        return out.copy()
 
     def get_extras(self, label, security, start_date=None, end_date=None):
         securities = list(security) if isinstance(security, (list, tuple, pd.Index, pd.Series)) else [security]
@@ -1200,12 +1211,24 @@ class DataAPI:
         if os.path.exists(path):
             df_tmp = pd.read_parquet(path)
         else:
-            year_path = os.path.join(self.data_root, f'1d_feature/stock_indicator/{dt_str[:4]}.parquet')
-            if not os.path.exists(year_path):
+            if not hasattr(self, '_yearly_indicator_cache'):
+                self._yearly_indicator_cache = {}
+            year_str = dt_str[:4]
+            if year_str not in self._yearly_indicator_cache:
+                year_path = os.path.join(self.data_root, f'1d_feature/stock_indicator/{year_str}.parquet')
+                if not os.path.exists(year_path):
+                    df_year = pd.DataFrame()
+                else:
+                    df_year = pd.read_parquet(year_path)
+                    if not df_year.empty and 'date' in df_year.columns:
+                        df_year['date_str'] = df_year['date'].astype(str)
+                self._yearly_indicator_cache[year_str] = df_year
+            
+            df_year = self._yearly_indicator_cache[year_str]
+            if df_year.empty:
                 return pd.DataFrame(columns=['code', 'market_cap'])
-            df_tmp = pd.read_parquet(year_path)
-            if 'date' in df_tmp.columns:
-                df_tmp = df_tmp[df_tmp['date'].astype(str) == dt_str].copy()
+            df_tmp = df_year[df_year['date_str'] == dt_str].copy()
+            
         df_tmp['market_cap'] = df_tmp['total_mv'] / 1e8
         if 'circ_mv' in df_tmp.columns:
             df_tmp['circulating_market_cap'] = df_tmp['circ_mv'] / 1e8
