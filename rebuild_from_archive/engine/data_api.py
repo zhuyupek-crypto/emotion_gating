@@ -55,6 +55,7 @@ class DataAPI:
         self._history_cache = {}
         self._project_first_seal_cache = {}
         self._project_board_cache = {}
+        self._project_master_prepare_cache = {}
         self._st_day_cache = {}
         self._st_year_cache = {}
         self._all_securities_cache = {}
@@ -910,6 +911,22 @@ class DataAPI:
             else:
                 self._project_board_cache[year] = pd.read_parquet(path)
         df = self._project_board_cache.get(year)
+        if df is None or df.empty:
+            return pd.DataFrame()
+        date_int = int(day.strftime('%Y%m%d'))
+        return df[df['date'].astype(int) == date_int].copy()
+
+    def get_project_master_prepare_index(self, date):
+        day = pd.to_datetime(date)
+        year = day.year
+        if year not in self._project_master_prepare_cache:
+            root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+            path = os.path.join(root, 'project_cache', 'features', 'master_prepare_index', f'{year}.parquet')
+            if not os.path.exists(path):
+                self._project_master_prepare_cache[year] = None
+            else:
+                self._project_master_prepare_cache[year] = pd.read_parquet(path)
+        df = self._project_master_prepare_cache.get(year)
         if df is None or df.empty:
             return pd.DataFrame()
         date_int = int(day.strftime('%Y%m%d'))

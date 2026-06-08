@@ -178,6 +178,7 @@ class Engine:
             'get_call_auction': lambda *a, **kw: self._wrap_pandas(self.data_api.get_call_auction(*a, **kw)),
             'get_batch_sealing_points': self.data_api.get_batch_sealing_points,
             'get_project_board_snapshot': lambda *a, **kw: self._wrap_pandas(self.data_api.get_project_board_snapshot(*a, **kw)),
+            'get_project_master_prepare_index': lambda *a, **kw: self._wrap_pandas(self.data_api.get_project_master_prepare_index(*a, **kw)),
             'get_extras':       lambda *a, **kw: self.data_api.get_extras(*a, **kw),
             'get_industry_stocks': self.data_api.get_industry_stocks,
             'get_index_stocks': self.data_api.get_index_stocks,

@@ -37,6 +37,7 @@ Use it as a reference only. Do not modify files under `bare_runs_analysis/strate
 `rebuild_from_archive/engine/data_api.py` already reads those caches through:
 
 - `get_project_board_snapshot(date)`
+- `get_project_master_prepare_index(date)`
 - `_load_project_first_seal_year(year)`
 - `_load_project_call_auction_day(day)`
 
@@ -67,6 +68,14 @@ The new `master_prepare_index/YYYY.parquet` is intentionally narrow:
 
 It is a daily index for `_scan_all` / `_scan_boards_for_prev`, not a full candidate replacement yet.
 
+Validation helper:
+
+```powershell
+python scripts/validate_master_prepare_index.py 2021
+```
+
+Current check: 2020 and 2021 both validate cleanly against `board_snapshot` for 243 days each.
+
 ## Guardrails
 
 - Do not hardcode individual trades to improve speed or alignment.
@@ -77,8 +86,8 @@ It is a daily index for `_scan_all` / `_scan_boards_for_prev`, not a full candid
 
 ## Next Steps
 
-1. Build or verify `master_prepare_index` for 2020 and 2021.
-2. Add a read API in `DataAPI`, for example `get_project_master_prepare_index(date)`.
+1. Build or verify `master_prepare_index` for 2020 and 2021. 2020 and 2021 have been generated and validated.
+2. Add a read API in `DataAPI`, for example `get_project_master_prepare_index(date)`. Done in current workspace.
 3. Add an opt-in fast path for mother `_scan_all` / `_scan_boards_for_prev` that consumes the daily index and falls back to the current logic when missing.
 4. Validate the fast path against current logic for 2020:
    - `prev_first_boards`
