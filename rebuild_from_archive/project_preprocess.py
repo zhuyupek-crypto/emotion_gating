@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -27,6 +28,15 @@ def _load_pivot(hdata_root: Path, year: int, field: str) -> pd.DataFrame:
     if not path.exists():
         raise FileNotFoundError(path)
     return pd.read_parquet(path)
+
+
+def _load_pivot_with_prev(hdata_root: Path, year: int, field: str, prev_tail: int = 110) -> pd.DataFrame:
+    frames = []
+    prev_path = hdata_root / "pivot_cache" / str(year - 1) / f"{field}.parquet"
+    if prev_path.exists():
+        frames.append(pd.read_parquet(prev_path).tail(prev_tail))
+    frames.append(_load_pivot(hdata_root, year, field))
+    return pd.concat(frames).sort_index()
 
 
 def build_board_snapshot(year: int, hdata_root: Path = DEFAULT_HDATA_ROOT, cache_root: Path = DEFAULT_CACHE_ROOT) -> Path:
@@ -246,6 +256,206 @@ def build_master_prepare_index(year: int, hdata_root: Path = DEFAULT_HDATA_ROOT,
     return out_path
 
 
+def _auction_yiqian_batch_left_pressure_api(api, candidates: list[str], previous_date: pd.Timestamp) -> dict[str, bool]:
+    result = {}
+    if not candidates:
+        return result
+    try:
+        df = api.get_price(
+            candidates,
+            count=101,
+            end_date=previous_date,
+            frequency="daily",
+            fields=["high", "volume"],
+            panel=False,
+            fill_paused=False,
+        )
+    except Exception:
+        return result
+    if df is None or df.empty:
+        return result
+    if "time" not in df.columns:
+        df = df.reset_index()
+    for code, sub in df.groupby("code"):
+        sub = sub.sort_values("time").dropna(subset=["high", "volume"])
+        if len(sub) < 20:
+            result[code] = False
+            continue
+        highs = list(sub["high"].iloc[-101:])
+        vols_all = list(sub["volume"].iloc[-101:])
+        prev_high = highs[-1]
+        zyts_0 = 100
+        for offset, high in enumerate(reversed(highs[:-2]), 2):
+            if high >= prev_high:
+                zyts_0 = offset - 1
+                break
+        zyts = zyts_0 + 5
+        vols = vols_all[-zyts:]
+        if len(vols) < 2:
+            result[code] = False
+            continue
+        result[code] = bool(vols[-1] > max(vols[:-1]) * 0.9)
+    return result
+
+
+def build_auction_yiqian_prepare(
+    year: int,
+    hdata_root: Path = DEFAULT_HDATA_ROOT,
+    cache_root: Path = DEFAULT_CACHE_ROOT,
+    ipo_days: int = 250,
+    candidate_cap: int = 40,
+) -> Path:
+    """Build daily cache for mother `_auction_yiqian_prepare`.
+
+    The cache is not consumed by the strategy yet.  It is a validation target:
+    compare it against the live prepare function before enabling any fast path.
+    """
+    hdata_root = Path(hdata_root)
+    cache_root = Path(cache_root)
+
+    engine_root = PROJECT_ROOT / "rebuild_from_archive"
+    if str(engine_root) not in sys.path:
+        sys.path.insert(0, str(engine_root))
+    from engine.data_api import DataAPI
+
+    api = DataAPI(str(hdata_root))
+    close = _load_pivot_with_prev(hdata_root, year, "close", prev_tail=110)
+    dates = list(close.index)
+    date_pos = {int(d): i for i, d in enumerate(dates)}
+    target_dates = [int(d) for d in dates if int(str(d)[:4]) == year]
+
+    rows = []
+    for date_int in target_dates:
+        pos = date_pos[date_int]
+        if pos < 4:
+            continue
+        prev_date_int = int(dates[pos - 1])
+        curr_date = pd.to_datetime(str(date_int))
+        prev_date = pd.to_datetime(str(prev_date_int))
+
+        secs = api.get_all_securities(["stock"], date=prev_date)
+        if secs is None or secs.empty:
+            continue
+        codes = secs.index.astype(str)
+        mask_code = codes.str.startswith("60") | codes.str.startswith("00")
+        mask_name = ~secs["display_name"].astype(str).str.contains(r"ST|st|\*|退", regex=True, na=True)
+        start_dates = pd.to_datetime(secs["start_date"], errors="coerce")
+        mask_ipo = (curr_date - start_dates).dt.days >= ipo_days
+        pool_jq = list(secs[mask_code & mask_name & mask_ipo].index.astype(str))
+        if not pool_jq:
+            continue
+
+        try:
+            df = api.get_price(
+                pool_jq,
+                count=4,
+                end_date=prev_date,
+                frequency="daily",
+                fields=["open", "close", "high", "high_limit", "money", "volume"],
+                panel=True,
+                fill_paused=False,
+            )
+        except Exception:
+            continue
+        if df is None or df.empty or len(df["close"]) < 4:
+            continue
+
+        open1 = df["open"].iloc[-1]
+        close1 = df["close"].iloc[-1]
+        high1 = df["high"].iloc[-1]
+        high_limit1 = df["high_limit"].iloc[-1]
+        money1 = df["money"].iloc[-1]
+        volume1 = df["volume"].iloc[-1]
+        close2 = df["close"].iloc[-2]
+        high2 = df["high"].iloc[-2]
+        high_limit2 = df["high_limit"].iloc[-2]
+        high3 = df["high"].iloc[-3]
+        high_limit3 = df["high_limit"].iloc[-3]
+        close4 = df["close"].iloc[-4]
+
+        valid_mask = (
+            (high_limit1 > 0) & (close1 > 0) & (open1 > 0) &
+            (volume1 > 0) & (close4 > 0) &
+            high_limit1.notna() & close1.notna() & open1.notna() &
+            volume1.notna() & close4.notna() &
+            close2.notna() & high2.notna() & high_limit2.notna() &
+            high3.notna() & high_limit3.notna()
+        )
+        valid_codes = list(valid_mask[valid_mask].index)
+        if not valid_codes:
+            continue
+
+        open1 = open1[valid_codes]
+        close1 = close1[valid_codes]
+        high1 = high1[valid_codes]
+        high_limit1 = high_limit1[valid_codes]
+        money1 = money1[valid_codes]
+        volume1 = volume1[valid_codes]
+        close2 = close2[valid_codes]
+        high2 = high2[valid_codes]
+        high_limit2 = high_limit2[valid_codes]
+        high3 = high3[valid_codes]
+        high_limit3 = high_limit3[valid_codes]
+        close4 = close4[valid_codes]
+
+        avg_raw = money1 / volume1 / close1
+        inc4 = (close1 - close4) / close4
+        y_limit = (close1 - high_limit1).abs() <= 0.02
+        y_ever_limit = (high1 - high_limit1).abs() <= 0.02
+        y_bomb = y_ever_limit & (close1 < high_limit1 * 0.999)
+        prev2_limit = (close2 - high_limit2).abs() <= 0.02
+        prev2_ever_limit = (high2 - high_limit2).abs() <= 0.02
+        prev3_ever_limit = (high3 - high_limit3).abs() <= 0.02
+
+        avg_inc_y2 = avg_raw * 1.1 - 1
+        mask_y2 = (
+            y_limit & (~prev2_ever_limit) & (~prev3_ever_limit) &
+            (avg_inc_y2 >= 0.07) & (money1 >= 5e8) & (money1 <= 20e8) & (inc4 <= 0.25)
+        )
+        avg_inc_rzq = avg_raw - 1
+        oc_ratio = (close1 - open1) / open1
+        mask_rzq = (
+            y_bomb & (~prev2_limit) & (~mask_y2) &
+            (avg_inc_rzq >= -0.04) & (money1 >= 3e8) & (money1 <= 19e8) &
+            (oc_ratio >= -0.05) & (inc4 <= 0.18)
+        )
+
+        day_rows = []
+        for code in list(mask_y2[mask_y2].index):
+            day_rows.append((code, float(money1[code]), "y2", float(close1[code]), float(volume1[code]), float(avg_inc_y2[code]), float(inc4[code])))
+        for code in list(mask_rzq[mask_rzq].index):
+            day_rows.append((code, float(money1[code]), "rzq", float(close1[code]), float(volume1[code]), float(avg_inc_rzq[code]), float(inc4[code])))
+        if not day_rows:
+            continue
+        day_rows.sort(key=lambda x: (0 if x[2] == "y2" else 1, -x[1]))
+        day_rows = day_rows[:candidate_cap]
+        day_candidates = [code for code, *_ in day_rows]
+        left_ok = _auction_yiqian_batch_left_pressure_api(api, day_candidates, prev_date)
+        for rank, (code, money, kind, close_val, volume_val, avg_inc, inc4_val) in enumerate(day_rows, 1):
+            rows.append(
+                {
+                    "date": date_int,
+                    "previous_date": prev_date_int,
+                    "rank": rank,
+                    "code": code,
+                    "kind": kind,
+                    "prev_money": money,
+                    "prev_close": close_val,
+                    "prev_volume": volume_val,
+                    "avg_inc": avg_inc,
+                    "inc4": inc4_val,
+                    "left_ok": bool(left_ok.get(code, False)),
+                }
+            )
+
+    result = pd.DataFrame(rows)
+    out_dir = cache_root / "auction_yiqian_prepare"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out_path = out_dir / f"{year}.parquet"
+    result.to_parquet(out_path, index=False)
+    return out_path
+
+
 def build_year_bundle(year: int, hdata_root: Path = DEFAULT_HDATA_ROOT, cache_root: Path = DEFAULT_CACHE_ROOT) -> list[Path]:
     outputs = [
         build_board_snapshot(year, hdata_root, cache_root),
@@ -264,7 +474,7 @@ def main() -> None:
     parser.add_argument("--cache-root", type=Path, default=DEFAULT_CACHE_ROOT)
     parser.add_argument(
         "--only",
-        choices=["bundle", "board", "first-seal", "auction", "index"],
+        choices=["bundle", "board", "first-seal", "auction", "index", "auction-yq"],
         default="bundle",
         help="Build only one feature family. Use index for the lightweight mother prepare daily index.",
     )
@@ -280,6 +490,8 @@ def main() -> None:
             outputs = [build_first_seal_time(year, args.hdata_root, args.cache_root)]
         elif args.only == "auction":
             outputs = [Path(build_call_auction_by_date(year, args.hdata_root, args.cache_root))]
+        elif args.only == "auction-yq":
+            outputs = [build_auction_yiqian_prepare(year, args.hdata_root, args.cache_root)]
         else:
             outputs = [build_master_prepare_index(year, args.hdata_root, args.cache_root)]
         for path in outputs:

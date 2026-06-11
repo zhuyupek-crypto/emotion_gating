@@ -161,3 +161,18 @@ Most promising next preprocessing target:
   - `left_ok`
 - Validate first with a comparison script against the live strategy function over 2020 and 2021 before wiring it into `母版-20260506-Clone.py`.
 - Keep the fallback path to the current calculation whenever cache is absent or validation finds a mismatch.
+
+Status update:
+
+- `rebuild_from_archive/project_preprocess.py --only auction-yq YEAR` now generates `project_cache/features/auction_yiqian_prepare/YEAR.parquet`.
+- The builder intentionally uses `DataAPI.get_price(..., fq='pre')` for the 4-day candidate window and the 101-day left-pressure window.  Do not replace this with raw pivot arithmetic without a new validation run; raw pivot arithmetic failed on adjusted-price and threshold-boundary cases such as `000733.XSHE` on 2021-07-19.
+- Validation helper:
+
+```powershell
+python scripts/validate_auction_yiqian_prepare_cache.py 2020
+python scripts/validate_auction_yiqian_prepare_cache.py 2021
+```
+
+- Current validation:
+  - 2020: `OK checked=243 year=2020`
+  - 2021: `OK checked=243 year=2021`
