@@ -1627,28 +1627,10 @@ class Engine:
                     h, m = map(int, time_str.split(':'))
                     self.context.current_dt = dt.replace(hour=h, minute=m)
 
-                    t0 = time.perf_counter()
-                    self._refresh_portfolio_prices()
-                    profile['refresh_sec'] += time.perf_counter() - t0
-                    # 1. Match pending orders
-                    t0 = time.perf_counter()
-                    self._match_pending_orders()
-                    profile['match_sec'] += time.perf_counter() - t0
-
-                    # 2. Execute handle_data if defined (only during trading minutes)
-                    if time_str in trading_minutes and 'handle_data' in self.namespace:
-                        t0 = time.perf_counter()
-                        try:
-                            self.namespace['handle_data'](self.context)
-                        except Exception as e:
-                            self.info(f"执行 handle_data 出错: {e}")
-                        profile['handle_data_sec'] += time.perf_counter() - t0
-
-                    # 3. Execute scheduled daily handlers for this minute
                     handlers_to_run = []
                     if time_str in scheduled_handlers:
                         handlers_to_run.extend(scheduled_handlers[time_str])
-                    
+
                     # Match special JQ time keywords
                     for handler_func, t_opt in self.handlers:
                         if t_opt in ('every_bar', 'every_minute') and time_str in trading_minutes:
@@ -1658,6 +1640,28 @@ class Engine:
                         elif t_opt in ('close', 'after_close') and time_str == '15:00':
                             handlers_to_run.append(handler_func)
 
+                    should_handle_data = time_str in trading_minutes and 'handle_data' in self.namespace
+                    if not handlers_to_run and not should_handle_data and not self._pending_orders:
+                        continue
+
+                    t0 = time.perf_counter()
+                    self._refresh_portfolio_prices()
+                    profile['refresh_sec'] += time.perf_counter() - t0
+                    # 1. Match pending orders
+                    t0 = time.perf_counter()
+                    self._match_pending_orders()
+                    profile['match_sec'] += time.perf_counter() - t0
+
+                    # 2. Execute handle_data if defined (only during trading minutes)
+                    if should_handle_data:
+                        t0 = time.perf_counter()
+                        try:
+                            self.namespace['handle_data'](self.context)
+                        except Exception as e:
+                            self.info(f"执行 handle_data 出错: {e}")
+                        profile['handle_data_sec'] += time.perf_counter() - t0
+
+                    # 3. Execute scheduled daily handlers for this minute
                     for handler_func in handlers_to_run:
                         t0 = time.perf_counter()
                         try:
