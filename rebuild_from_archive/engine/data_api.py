@@ -56,6 +56,7 @@ class DataAPI:
         self._project_first_seal_cache = {}
         self._project_board_cache = {}
         self._project_master_prepare_cache = {}
+        self._project_auction_yiqian_cache = {}
         self._st_day_cache = {}
         self._st_year_cache = {}
         self._all_securities_cache = {}
@@ -932,6 +933,25 @@ class DataAPI:
             return pd.DataFrame()
         date_int = int(day.strftime('%Y%m%d'))
         return df[df['date'].astype(int) == date_int].copy()
+
+    def get_project_auction_yiqian_prepare(self, date):
+        day = pd.to_datetime(date)
+        year = day.year
+        if year not in self._project_auction_yiqian_cache:
+            root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+            path = os.path.join(root, 'project_cache', 'features', 'auction_yiqian_prepare', f'{year}.parquet')
+            if not os.path.exists(path):
+                self._project_auction_yiqian_cache[year] = None
+            else:
+                self._project_auction_yiqian_cache[year] = pd.read_parquet(path)
+        df = self._project_auction_yiqian_cache.get(year)
+        if df is None:
+            return None
+        date_int = int(day.strftime('%Y%m%d'))
+        rows = df[df['date'].astype(int) == date_int]
+        if rows.empty:
+            return pd.DataFrame(columns=df.columns)
+        return rows.copy().sort_values('rank').reset_index(drop=True)
 
     def get_batch_sealing_points(self, securities, date):
         securities = securities if isinstance(securities, (list, tuple, pd.Index, pd.Series)) else [securities]

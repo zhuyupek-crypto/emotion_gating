@@ -1048,6 +1048,46 @@ def _auction_yiqian_dynamic_value(context):
 
 def _auction_yiqian_prepare(context):
     """一年千倍竞价模块：昨日首板一进二 + 昨日曾涨停未封弱转强。"""
+    try:
+        cached = get_project_auction_yiqian_prepare(context.current_dt)
+    except Exception:
+        cached = None
+    if cached is not None:
+        if cached.empty:
+            return
+        cached = cached.sort_values('rank')
+        candidates = []
+        yclose = {}
+        kind = {}
+        prev_money = {}
+        prev_volume = {}
+        avg_inc_map = {}
+        inc4_map = {}
+        left_ok = {}
+        for _, row in cached.iterrows():
+            code = row['code']
+            candidates.append(code)
+            yclose[code] = float(row.get('prev_close', 0))
+            kind[code] = row.get('kind')
+            prev_money[code] = float(row.get('prev_money', 0))
+            prev_volume[code] = float(row.get('prev_volume', 0))
+            avg_inc_map[code] = float(row.get('avg_inc', 0))
+            inc4_map[code] = float(row.get('inc4', 0))
+            left_ok[code] = bool(row.get('left_ok', False))
+        g.auction_yiqian_candidates = candidates
+        g.auction_yiqian_yclose = yclose
+        g.auction_yiqian_kind = kind
+        g.auction_yiqian_prev_money = prev_money
+        g.auction_yiqian_prev_volume = prev_volume
+        g.auction_yiqian_avg_inc = avg_inc_map
+        g.auction_yiqian_inc4 = inc4_map
+        g.auction_yiqian_left_ok = left_ok
+        log.info('[竞价分仓] 一进二%d 弱转强%d' % (
+            len([s for s in candidates if kind.get(s) == 'y2']),
+            len([s for s in candidates if kind.get(s) == 'rzq']),
+        ))
+        return
+
     secs = get_all_securities(['stock'], date=context.previous_date)
     codes = secs.index
     mask_code = codes.str.startswith('60') | codes.str.startswith('00')

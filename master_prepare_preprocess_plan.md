@@ -176,3 +176,6 @@ python scripts/validate_auction_yiqian_prepare_cache.py 2021
 - Current validation:
   - 2020: `OK checked=243 year=2020`
   - 2021: `OK checked=243 year=2021`
+- The cache is now wired into `母版-20260506-Clone.py` with fallback to the old calculation when the cache file is missing.
+- 2021 warm-to-2021-01-15 probe stayed identical after wiring: final value `983184.66`, trades `7`; `prepare_all` was about `3.72s` over 10 days.
+- 2021 warm-to-2021-02-28 probe stayed identical after wiring: final value `1048896.80`, trades `38`; one run showed `prepare_all` about `9.78s` over 35 days, though total wall/engine time still needs more repeat measurements because refresh and buy-auction timings were noisy.
