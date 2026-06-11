@@ -8,13 +8,15 @@ import traceback
 ROOT = os.path.dirname(os.path.abspath(__file__))
 WORK = os.path.join(ROOT, "rebuild_from_archive")
 STRATEGY = os.path.join(ROOT, "母版-20260506-Clone.py")
+HDATA_SCRIPTS = r"D:\work space\hdata\scripts"
 
 sys.path.insert(0, WORK)
-sys.path.insert(1, ROOT)
+sys.path.insert(1, HDATA_SCRIPTS)
 sys.path.insert(2, r"D:\work space\hdata")
+sys.path.insert(3, ROOT)
 sys.modules["jqdata"] = importlib.import_module("jqdata_compat")
 
-from scripts.core import hdata_reader
+from core import hdata_reader
 from engine.core import Engine
 
 

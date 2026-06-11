@@ -7,10 +7,10 @@ import sys
 try:
     from scripts.core import hdata_reader
 except Exception:
-    hdata_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'hdata'))
-    if hdata_root not in sys.path:
-        sys.path.insert(0, hdata_root)
-    from scripts.core import hdata_reader
+    hdata_scripts = os.path.join(os.environ.get('LOCALQUANT_HDATA_ROOT', r"D:\work space\hdata"), "scripts")
+    if hdata_scripts not in sys.path:
+        sys.path.insert(0, hdata_scripts)
+    from core import hdata_reader
 
 class JQMockResult:
     def __init__(self, data_dict): self.data = data_dict

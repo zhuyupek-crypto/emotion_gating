@@ -137,6 +137,7 @@ class Engine:
         self._current_data_cache = {}
         self._daily_current_snapshot_cache = {}
         self._daily_trade_snapshot_cache = {}
+        self._pre_open_mark_cache = {}
 
         # 聚宽查询表
         valuation = type('Valuation', (), {
@@ -1341,13 +1342,19 @@ class Engine:
         codes = list(self.context.portfolio.positions.keys())
         if time_val < 930:
             end_date = getattr(self.context, 'previous_date', self.context.current_dt)
-            try:
-                prices = self.data_api.get_price(
-                    codes, end_date=end_date, count=1,
-                    fields=['close'], frequency='daily', fq=None,
-                )
-            except Exception:
-                prices = pd.DataFrame()
+            mark_key = (pd.Timestamp(end_date).strftime('%Y%m%d'), tuple(sorted(codes)))
+            prices = self._pre_open_mark_cache.get(mark_key)
+            if prices is None:
+                try:
+                    prices = self.data_api.get_price(
+                        codes, end_date=end_date, count=1,
+                        fields=['close'], frequency='daily', fq=None,
+                    )
+                except Exception:
+                    prices = pd.DataFrame()
+                if len(self._pre_open_mark_cache) > 1024:
+                    self._pre_open_mark_cache.pop(next(iter(self._pre_open_mark_cache)))
+                self._pre_open_mark_cache[mark_key] = prices
             for code, pos in self.context.portfolio.positions.items():
                 try:
                     if isinstance(prices.columns, pd.MultiIndex):
