@@ -118,3 +118,46 @@ There may be unrelated uncommitted changes in:
 - `bare_runs_analysis/strategies/strategy_v227_scorp.py`
 
 Those belong to naked-run/optimization work. Do not mix them into mother alignment commits.
+
+## 2026-06-11 Efficiency Checkpoint
+
+Effective commits on the mother alignment path:
+
+- `f59b64b Cache pre-open marks and harden hdata imports`
+  - Restored hdata imports after the local `scripts/__init__.py` namespace appeared.
+  - Cached repeated pre-open portfolio marks.
+  - 2021 warm-to-2021-02-28 probe stayed identical: final value `1048896.80`, trades `38`.
+- `0440e01 Skip income merge for valuation-only queries`
+  - `get_valuation(fields=[...])` and valuation-only `get_fundamentals(query(...valuation...))` skip the expensive income merge.
+  - 10-day probe: `prepare_all` dropped from about `9.80s` to `8.77s`; `_scan_all` from about `2.43s` to `1.12s`; trades unchanged.
+- `290a1c2 Skip idle minutes in engine loop`
+  - Minute loop now skips minutes with no scheduled handler, no `handle_data`, and no pending orders.
+  - 10-day probe stayed identical and engine time dropped from about `24.93s` to `15.08s`.
+  - 35-day probe stayed identical and engine time dropped from about `57.67s` to `54.61s`.
+
+Tested but not kept:
+
+- A daily high/low limit cache inside `get_price(frequency='1m')`.
+  - 10-day probe stayed identical but only improved about `0.35s`.
+  - 35-day probe was slower (`61.52s`), so the change was reverted before commit.
+
+Current 35-day profile after the effective commits:
+
+- `refresh_sec`: about `26.15s`
+- `scheduled_sec`: about `26.83s`
+- top handlers:
+  - `prepare_all`: about `13.89s`
+  - `buy_auction_yiqian`: about `10.25s`
+  - `buy_v227_天蝎座`: about `1.70s`
+
+Most promising next preprocessing target:
+
+- Build a project-local daily `auction_yiqian_prepare` cache.
+- It should mirror `_auction_yiqian_prepare` facts for each trade date:
+  - ordered candidates capped by `g.auction_yiqian_candidate_cap`
+  - `kind`
+  - previous `close`, `money`, `volume`
+  - `avg_inc`, `inc4`
+  - `left_ok`
+- Validate first with a comparison script against the live strategy function over 2020 and 2021 before wiring it into `母版-20260506-Clone.py`.
+- Keep the fallback path to the current calculation whenever cache is absent or validation finds a mismatch.
