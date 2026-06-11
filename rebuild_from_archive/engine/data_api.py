@@ -710,7 +710,8 @@ class DataAPI:
     def get_valuation(self, security, start_date=None, end_date=None, fields=None, count=None):
         securities = security if isinstance(security, (list, tuple, pd.Index, pd.Series)) else [security]
         dt = pd.to_datetime(end_date or start_date or datetime.now())
-        df = self.get_fundamentals(None, date=dt)
+        include_income = fields is None or any(f == 'operating_revenue' for f in fields)
+        df = self.get_fundamentals(None, date=dt) if include_income else self._get_indicator_day(dt, include_income=False)
         if df.empty:
             return df
         if securities:
@@ -1221,9 +1222,28 @@ class DataAPI:
         return df.reset_index(drop=True)
 
     def get_fundamentals(self, query_obj, date=None):
+        return self._get_indicator_day(date, include_income=True)
+
+    def _get_indicator_day(self, date=None, include_income=True):
         dt_str = pd.to_datetime(date).strftime('%Y%m%d')
-        if dt_str in self._indicator_cache:
-            return self._indicator_cache[dt_str]
+        cache_key = (dt_str, bool(include_income))
+        if cache_key in self._indicator_cache:
+            return self._indicator_cache[cache_key]
+        base_key = (dt_str, False)
+        if include_income and base_key in self._indicator_cache:
+            df_tmp = self._indicator_cache[base_key].copy()
+        else:
+            df_tmp = self._load_indicator_day_base(dt_str)
+            self._indicator_cache[base_key] = df_tmp
+        if include_income:
+            df_tmp = df_tmp.copy()
+            income = self._get_latest_income(pd.to_datetime(date))
+            if not income.empty:
+                df_tmp = df_tmp.merge(income, on='code', how='left')
+        self._indicator_cache[cache_key] = df_tmp
+        return df_tmp
+
+    def _load_indicator_day_base(self, dt_str):
         path = os.path.join(self.data_root, f'基本面数据/stock_indicator/{dt_str}.parquet')
         if os.path.exists(path):
             df_tmp = pd.read_parquet(path)
@@ -1252,10 +1272,6 @@ class DataAPI:
         if 'turnover_rate' in df_tmp.columns and 'turnover_ratio' not in df_tmp.columns:
             df_tmp['turnover_ratio'] = df_tmp['turnover_rate']
         df_tmp['code'] = self._denormalize(df_tmp['code'].tolist())
-        income = self._get_latest_income(pd.to_datetime(date))
-        if not income.empty:
-            df_tmp = df_tmp.merge(income, on='code', how='left')
-        self._indicator_cache[dt_str] = df_tmp
         return df_tmp
 
     def _get_latest_income(self, date):

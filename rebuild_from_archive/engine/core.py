@@ -864,7 +864,17 @@ class Engine:
     # get_fundamentals wrapper
     # ------------------------------------------------------------------
     def wrapped_get_fundamentals(self, query_obj, date=None):
-        df = self.data_api.get_fundamentals(query_obj, date=date)
+        names = set()
+        if hasattr(query_obj, 'targets'):
+            names.update(t.name for t in query_obj.targets if hasattr(t, 'name'))
+        if hasattr(query_obj, 'filters'):
+            for f in query_obj.filters:
+                if isinstance(f, tuple) and len(f) >= 2:
+                    names.add(f[1])
+        if names and 'operating_revenue' not in names:
+            df = self.data_api._get_indicator_day(date, include_income=False)
+        else:
+            df = self.data_api.get_fundamentals(query_obj, date=date)
         if df.empty:
             return self._wrap_pandas(df)
         if hasattr(query_obj, 'filters'):
