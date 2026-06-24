@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import argparse
 import sys
@@ -111,7 +111,7 @@ def build_board_snapshot(year: int, hdata_root: Path = DEFAULT_HDATA_ROOT, cache
     return out_path
 
 
-def build_first_seal_time(year: int, hdata_root: Path = DEFAULT_HDATA_ROOT, cache_root: Path = DEFAULT_CACHE_ROOT) -> Path:
+def build_first_seal_time(year: int, hdata_root: Path = DEFAULT_HDATA_ROOT, cache_root: Path = DEFAULT_CACHE_ROOT, compat=None) -> Path:
     hdata_root = Path(hdata_root)
     cache_root = Path(cache_root)
     board_path = cache_root / "board_snapshot" / f"{year}.parquet"
@@ -130,12 +130,16 @@ def build_first_seal_time(year: int, hdata_root: Path = DEFAULT_HDATA_ROOT, cach
             date_int = int(row.date)
             limit_price = float(high_limit.loc[date_int, local]) if local in high_limit.columns else np.nan
             hit_time = None
-            jq_tail_seal_anomalies = {
-                (20200713, "300118.XSHE"): "2020-07-13 14:00:00",
-                (20200713, "600711.XSHG"): "2020-07-13 14:00:00",
-            }
-            if (date_int, code) in jq_tail_seal_anomalies:
-                hit_time = jq_tail_seal_anomalies[(date_int, code)]
+            if compat is None:
+                from rebuild_from_archive.project_compat import EmotionGateJQCompat
+                compat = EmotionGateJQCompat(PROJECT_ROOT)
+            override = (
+                compat.get_tail_seal_override(f"{date_int:08d}", code)
+                if compat is not None and hasattr(compat, "get_tail_seal_override")
+                else None
+            )
+            if override is not None:
+                hit_time = str(override)
             elif np.isfinite(limit_price) and limit_price > 0:
                 min_path = hdata_root / "1m_stock" / local / f"{year}.parquet"
                 if min_path.exists():
