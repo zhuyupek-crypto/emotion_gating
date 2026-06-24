@@ -1,0 +1,1021 @@
+{
+  "results": [
+    {
+      "name": "2020_ipo_close_overrides",
+      "passed": 1,
+      "details": {
+        "rows": [
+          {
+            "code": "605399.XSHG",
+            "previous_day_present": 0,
+            "start_day_present": 1,
+            "start_date": "2020-08-03",
+            "start_override": "2020-08-03 00:00:00",
+            "trade_date": 20200804,
+            "close_override": 13.16,
+            "expected_close": 13.16,
+            "passed": 1
+          },
+          {
+            "code": "605123.XSHG",
+            "previous_day_present": 0,
+            "start_day_present": 1,
+            "start_date": "2020-08-21",
+            "start_override": "2020-08-21 00:00:00",
+            "trade_date": 20200825,
+            "close_override": 30.33,
+            "expected_close": 30.33,
+            "passed": 1
+          },
+          {
+            "code": "605255.XSHG",
+            "previous_day_present": 0,
+            "start_day_present": 1,
+            "start_date": "2020-08-21",
+            "start_override": "2020-08-21 00:00:00",
+            "trade_date": 20200825,
+            "close_override": 12.66,
+            "expected_close": 12.66,
+            "passed": 1
+          },
+          {
+            "code": "605369.XSHG",
+            "previous_day_present": 0,
+            "start_day_present": 1,
+            "start_date": "2020-09-14",
+            "start_override": "2020-09-14 00:00:00",
+            "trade_date": 20200916,
+            "close_override": 31.65,
+            "expected_close": 31.65,
+            "passed": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "2021_tail_seal",
+      "passed": 1,
+      "details": {
+        "tail": "2021-11-15 14:00:00",
+        "tail_hits": {
+          "queries": 1,
+          "hits": 1,
+          "hit_keys": [
+            [
+              "20211115",
+              "000420.XSHE"
+            ]
+          ],
+          "miss_key_examples": []
+        }
+      }
+    },
+    {
+      "name": "2021_st_name_window",
+      "passed": 1,
+      "details": {
+        "display_name": "舍得"
+      }
+    },
+    {
+      "name": "2021_preopen_duplicate",
+      "passed": 1,
+      "details": {
+        "value": 1
+      }
+    },
+    {
+      "name": "2023_v227_shock",
+      "passed": 1,
+      "details": {
+        "override": 1,
+        "state": 1
+      }
+    },
+    {
+      "name": "2024_511880_fallback",
+      "passed": 1,
+      "details": {
+        "price": 100.094,
+        "zero_fee": 1
+      }
+    },
+    {
+      "name": "2024_st_rule",
+      "passed": 1,
+      "details": {
+        "candidate": "000070.XSHE",
+        "is_st": 1
+      }
+    },
+    {
+      "name": "2025_preopen_cash_floor",
+      "passed": 1,
+      "details": {
+        "reject": 1,
+        "threshold": 20000.0
+      }
+    },
+    {
+      "name": "2026_corrupted_daily_fastpath",
+      "passed": 1,
+      "details": {
+        "bypass": 1,
+        "high": 20.540000915527344,
+        "high_limit": 20.540000915527344
+      }
+    },
+    {
+      "name": "suspected_unused_repo_scan",
+      "passed": 1,
+      "details": {
+        "repo_hits": [
+          "D:\\Work Space\\他山之石\\情绪门控\\acceptance_hook_migration_2020\\targeted_checks_report.json:129:      \"name\": \"suspected_unused_static_main_path\",",
+          "D:\\Work Space\\他山之石\\情绪门控\\acceptance_hook_migration_2020\\targeted_checks_report.json:958:      \"artifact\": \"rebuild_from_archive/suspected_unused/data_api_legacy.py\",",
+          "D:\\Work Space\\他山之石\\情绪门控\\acceptance_hook_migration_2020\\targeted_checks_report.json:971:      \"artifact\": \"rebuild_from_archive/suspected_unused/core_diff_rebased.patch\",",
+          "D:\\Work Space\\他山之石\\情绪门控\\acceptance_hook_migration_2020\\targeted_checks_report.json:985:      \"artifact\": \"rebuild_from_archive/suspected_unused/core_diff_rebased_git.patch\",",
+          "D:\\Work Space\\他山之石\\情绪门控\\acceptance_hook_migration_2020\\run_summary.json:13:  \"suspected_unused_runtime_modules\": []",
+          "D:\\Work Space\\他山之石\\情绪门控\\alignment_reports\\compat_hook_migration_report.md:62:- `rebuild_from_archive/suspected_unused/core_diff_rebased.patch`",
+          "D:\\Work Space\\他山之石\\情绪门控\\alignment_reports\\compat_hook_migration_report.md:63:- `rebuild_from_archive/suspected_unused/core_diff_rebased_git.patch`",
+          "D:\\Work Space\\他山之石\\情绪门控\\tools\\hook_migration_acceptance.py:269:    summary[\"suspected_unused_runtime_modules\"] = sorted([m for m in sys.modules if \"suspected_unused\" in m])",
+          "D:\\Work Space\\他山之石\\情绪门控\\tools\\hook_migration_acceptance.py:568:        [\"rg\", \"-n\", \"suspected_unused\", str(ROOT)],",
+          "D:\\Work Space\\他山之石\\情绪门控\\tools\\hook_migration_acceptance.py:586:        \"suspected_unused_repo_scan\",",
+          "D:\\Work Space\\他山之石\\情绪门控\\tools\\hook_migration_acceptance.py:599:            \"status\": \"Legacy public entry retained via rebuild_from_archive/data_api.py shim; current in-repo caller set is the shim itself, and no suspected_unused runtime dependency remains.\",",
+          "D:\\Work Space\\他山之石\\情绪门控\\tools\\hook_migration_acceptance.py:602:            \"artifact\": \"rebuild_from_archive/suspected_unused/core_diff_rebased.patch\",",
+          "D:\\Work Space\\他山之石\\情绪门控\\tools\\hook_migration_acceptance.py:608:            \"artifact\": \"rebuild_from_archive/suspected_unused/core_diff_rebased_git.patch\","
+        ],
+        "blocking_hits": [],
+        "blocking_prefixes": [
+          "D:\\Work Space\\他山之石\\情绪门控\\rebuild_from_archive\\data_api.py",
+          "D:\\Work Space\\他山之石\\情绪门控\\rebuild_from_archive\\engine",
+          "D:\\Work Space\\他山之石\\情绪门控\\rebuild_from_archive\\project_compat.py",
+          "D:\\Work Space\\他山之石\\情绪门控\\rebuild_from_archive\\project_preprocess.py",
+          "D:\\Work Space\\他山之石\\情绪门控\\母版-20260506-Clone.py"
+        ]
+      }
+    }
+  ],
+  "hook_counts_after_targeted": {
+    "minute_price": {
+      "queries": 0,
+      "hits": 0,
+      "hit_keys": [],
+      "miss_key_examples": []
+    },
+    "daily_field": {
+      "queries": 8,
+      "hits": 6,
+      "hit_keys": [
+        [
+          "605399.XSHG",
+          20200804,
+          "ipo_close"
+        ],
+        [
+          "605123.XSHG",
+          20200825,
+          "ipo_close"
+        ],
+        [
+          "605255.XSHG",
+          20200825,
+          "ipo_close"
+        ],
+        [
+          "605369.XSHG",
+          20200916,
+          "ipo_close"
+        ],
+        [
+          "002185.XSHE",
+          20260527,
+          "high_limit",
+          "field"
+        ],
+        [
+          "002185.XSHE",
+          20260527,
+          "high",
+          "field"
+        ]
+      ],
+      "miss_key_examples": [
+        [
+          "002185.XSHE",
+          20260527,
+          "ipo_close"
+        ],
+        [
+          "002185.XSHE",
+          20260527,
+          "ipo_close"
+        ]
+      ]
+    },
+    "execution_price": {
+      "queries": 0,
+      "hits": 0,
+      "hit_keys": [],
+      "miss_key_examples": []
+    },
+    "order_amount": {
+      "queries": 0,
+      "hits": 0,
+      "hit_keys": [],
+      "miss_key_examples": []
+    },
+    "fill_amount": {
+      "queries": 0,
+      "hits": 0,
+      "hit_keys": [],
+      "miss_key_examples": []
+    },
+    "call_auction": {
+      "queries": 0,
+      "hits": 0,
+      "hit_keys": [],
+      "miss_key_examples": []
+    },
+    "security_metadata": {
+      "queries": 5964,
+      "hits": 114,
+      "hit_keys": [
+        [
+          "start_date",
+          "605123.XSHG"
+        ],
+        [
+          "start_date",
+          "605255.XSHG"
+        ],
+        [
+          "start_date",
+          "605369.XSHG"
+        ],
+        [
+          "start_date",
+          "605399.XSHG"
+        ],
+        [
+          "display_name",
+          "2020-08-02",
+          "600856.XSHG"
+        ],
+        [
+          "display_name",
+          "2020-08-03",
+          "002684.XSHE"
+        ],
+        [
+          "display_name",
+          "2020-08-03",
+          "002256.XSHE"
+        ],
+        [
+          "display_name",
+          "2020-08-03",
+          "002470.XSHE"
+        ],
+        [
+          "display_name",
+          "2020-08-03",
+          "600145.XSHG"
+        ],
+        [
+          "display_name",
+          "2020-08-03",
+          "002192.XSHE"
+        ],
+        [
+          "display_name",
+          "2020-08-03",
+          "600666.XSHG"
+        ],
+        [
+          "display_name",
+          "2020-08-03",
+          "600518.XSHG"
+        ],
+        [
+          "display_name",
+          "2020-08-03",
+          "600242.XSHG"
+        ],
+        [
+          "display_name",
+          "2020-08-03",
+          "600856.XSHG"
+        ],
+        [
+          "display_name",
+          "2020-08-03",
+          "002638.XSHE"
+        ],
+        [
+          "display_name",
+          "2020-08-03",
+          "600091.XSHG"
+        ],
+        [
+          "display_name",
+          "2020-08-03",
+          "600146.XSHG"
+        ],
+        [
+          "display_name",
+          "2020-08-03",
+          "000585.XSHE"
+        ],
+        [
+          "display_name",
+          "2020-08-03",
+          "002052.XSHE"
+        ],
+        [
+          "display_name",
+          "2020-08-03",
+          "002086.XSHE"
+        ],
+        [
+          "display_name",
+          "2020-08-03",
+          "600687.XSHG"
+        ],
+        [
+          "display_name",
+          "2020-08-03",
+          "600654.XSHG"
+        ],
+        [
+          "display_name",
+          "2020-08-03",
+          "600255.XSHG"
+        ],
+        [
+          "display_name",
+          "2020-08-03",
+          "000980.XSHE"
+        ],
+        [
+          "display_name",
+          "2020-08-03",
+          "000673.XSHE"
+        ],
+        [
+          "display_name",
+          "2020-08-03",
+          "002147.XSHE"
+        ],
+        [
+          "start_date",
+          "605399.XSHG"
+        ],
+        [
+          "display_name",
+          "2020-08-20",
+          "002684.XSHE"
+        ],
+        [
+          "display_name",
+          "2020-08-20",
+          "002256.XSHE"
+        ],
+        [
+          "display_name",
+          "2020-08-20",
+          "002470.XSHE"
+        ],
+        [
+          "display_name",
+          "2020-08-20",
+          "600145.XSHG"
+        ],
+        [
+          "display_name",
+          "2020-08-20",
+          "002192.XSHE"
+        ],
+        [
+          "display_name",
+          "2020-08-20",
+          "600666.XSHG"
+        ],
+        [
+          "display_name",
+          "2020-08-20",
+          "600518.XSHG"
+        ],
+        [
+          "display_name",
+          "2020-08-20",
+          "600242.XSHG"
+        ],
+        [
+          "display_name",
+          "2020-08-20",
+          "600856.XSHG"
+        ],
+        [
+          "display_name",
+          "2020-08-20",
+          "002638.XSHE"
+        ],
+        [
+          "display_name",
+          "2020-08-20",
+          "600091.XSHG"
+        ],
+        [
+          "display_name",
+          "2020-08-20",
+          "600146.XSHG"
+        ],
+        [
+          "display_name",
+          "2020-08-20",
+          "000585.XSHE"
+        ],
+        [
+          "display_name",
+          "2020-08-20",
+          "002052.XSHE"
+        ],
+        [
+          "display_name",
+          "2020-08-20",
+          "002086.XSHE"
+        ],
+        [
+          "display_name",
+          "2020-08-20",
+          "600687.XSHG"
+        ],
+        [
+          "display_name",
+          "2020-08-20",
+          "600654.XSHG"
+        ],
+        [
+          "display_name",
+          "2020-08-20",
+          "600255.XSHG"
+        ],
+        [
+          "display_name",
+          "2020-08-20",
+          "000980.XSHE"
+        ],
+        [
+          "display_name",
+          "2020-08-20",
+          "000673.XSHE"
+        ],
+        [
+          "display_name",
+          "2020-08-20",
+          "002147.XSHE"
+        ],
+        [
+          "display_name",
+          "2020-08-21",
+          "002684.XSHE"
+        ],
+        [
+          "display_name",
+          "2020-08-21",
+          "002256.XSHE"
+        ],
+        [
+          "display_name",
+          "2020-08-21",
+          "002470.XSHE"
+        ],
+        [
+          "display_name",
+          "2020-08-21",
+          "600145.XSHG"
+        ],
+        [
+          "display_name",
+          "2020-08-21",
+          "002192.XSHE"
+        ],
+        [
+          "display_name",
+          "2020-08-21",
+          "600666.XSHG"
+        ],
+        [
+          "display_name",
+          "2020-08-21",
+          "600518.XSHG"
+        ],
+        [
+          "display_name",
+          "2020-08-21",
+          "600242.XSHG"
+        ],
+        [
+          "display_name",
+          "2020-08-21",
+          "600856.XSHG"
+        ],
+        [
+          "display_name",
+          "2020-08-21",
+          "002638.XSHE"
+        ],
+        [
+          "display_name",
+          "2020-08-21",
+          "600091.XSHG"
+        ],
+        [
+          "display_name",
+          "2020-08-21",
+          "600146.XSHG"
+        ],
+        [
+          "display_name",
+          "2020-08-21",
+          "000585.XSHE"
+        ],
+        [
+          "display_name",
+          "2020-08-21",
+          "002052.XSHE"
+        ],
+        [
+          "display_name",
+          "2020-08-21",
+          "002086.XSHE"
+        ],
+        [
+          "display_name",
+          "2020-08-21",
+          "600687.XSHG"
+        ],
+        [
+          "display_name",
+          "2020-08-21",
+          "600654.XSHG"
+        ],
+        [
+          "display_name",
+          "2020-08-21",
+          "600255.XSHG"
+        ],
+        [
+          "display_name",
+          "2020-08-21",
+          "000980.XSHE"
+        ],
+        [
+          "display_name",
+          "2020-08-21",
+          "000673.XSHE"
+        ],
+        [
+          "display_name",
+          "2020-08-21",
+          "002147.XSHE"
+        ],
+        [
+          "start_date",
+          "605123.XSHG"
+        ],
+        [
+          "start_date",
+          "605255.XSHG"
+        ],
+        [
+          "display_name",
+          "2020-09-13",
+          "600856.XSHG"
+        ],
+        [
+          "display_name",
+          "2020-09-14",
+          "002684.XSHE"
+        ],
+        [
+          "display_name",
+          "2020-09-14",
+          "002256.XSHE"
+        ],
+        [
+          "display_name",
+          "2020-09-14",
+          "002470.XSHE"
+        ],
+        [
+          "display_name",
+          "2020-09-14",
+          "600145.XSHG"
+        ],
+        [
+          "display_name",
+          "2020-09-14",
+          "002192.XSHE"
+        ],
+        [
+          "display_name",
+          "2020-09-14",
+          "600666.XSHG"
+        ],
+        [
+          "display_name",
+          "2020-09-14",
+          "600518.XSHG"
+        ],
+        [
+          "display_name",
+          "2020-09-14",
+          "600242.XSHG"
+        ],
+        [
+          "display_name",
+          "2020-09-14",
+          "600856.XSHG"
+        ],
+        [
+          "display_name",
+          "2020-09-14",
+          "002638.XSHE"
+        ],
+        [
+          "display_name",
+          "2020-09-14",
+          "600091.XSHG"
+        ],
+        [
+          "display_name",
+          "2020-09-14",
+          "600146.XSHG"
+        ],
+        [
+          "display_name",
+          "2020-09-14",
+          "000585.XSHE"
+        ],
+        [
+          "display_name",
+          "2020-09-14",
+          "002052.XSHE"
+        ],
+        [
+          "display_name",
+          "2020-09-14",
+          "002086.XSHE"
+        ],
+        [
+          "display_name",
+          "2020-09-14",
+          "600687.XSHG"
+        ],
+        [
+          "display_name",
+          "2020-09-14",
+          "600654.XSHG"
+        ],
+        [
+          "display_name",
+          "2020-09-14",
+          "600255.XSHG"
+        ],
+        [
+          "display_name",
+          "2020-09-14",
+          "000980.XSHE"
+        ],
+        [
+          "display_name",
+          "2020-09-14",
+          "000673.XSHE"
+        ],
+        [
+          "display_name",
+          "2020-09-14",
+          "002147.XSHE"
+        ],
+        [
+          "start_date",
+          "605369.XSHG"
+        ],
+        [
+          "display_name",
+          "2021-04-21",
+          "002684.XSHE"
+        ],
+        [
+          "display_name",
+          "2021-04-21",
+          "002256.XSHE"
+        ],
+        [
+          "display_name",
+          "2021-04-21",
+          "002470.XSHE"
+        ],
+        [
+          "display_name",
+          "2021-04-21",
+          "600145.XSHG"
+        ],
+        [
+          "display_name",
+          "2021-04-21",
+          "600702.XSHG"
+        ],
+        [
+          "display_name",
+          "2021-04-21",
+          "600666.XSHG"
+        ],
+        [
+          "display_name",
+          "2021-04-21",
+          "600518.XSHG"
+        ],
+        [
+          "display_name",
+          "2021-04-21",
+          "600242.XSHG"
+        ],
+        [
+          "display_name",
+          "2021-04-21",
+          "600856.XSHG"
+        ],
+        [
+          "display_name",
+          "2021-04-21",
+          "002638.XSHE"
+        ],
+        [
+          "display_name",
+          "2021-04-21",
+          "600091.XSHG"
+        ],
+        [
+          "display_name",
+          "2021-04-21",
+          "600146.XSHG"
+        ],
+        [
+          "display_name",
+          "2021-04-21",
+          "000585.XSHE"
+        ],
+        [
+          "display_name",
+          "2021-04-21",
+          "002052.XSHE"
+        ],
+        [
+          "display_name",
+          "2021-04-21",
+          "002086.XSHE"
+        ],
+        [
+          "display_name",
+          "2021-04-21",
+          "600654.XSHG"
+        ],
+        [
+          "display_name",
+          "2021-04-21",
+          "000980.XSHE"
+        ],
+        [
+          "display_name",
+          "2021-04-21",
+          "000673.XSHE"
+        ],
+        [
+          "display_name",
+          "2021-04-21",
+          "002147.XSHE"
+        ],
+        [
+          "is_st",
+          "2024-05-06 00:00:00",
+          "000070.XSHE",
+          0
+        ]
+      ],
+      "miss_key_examples": [
+        [
+          "start_date",
+          "000001.XSHE"
+        ],
+        [
+          "start_date",
+          "000002.XSHE"
+        ],
+        [
+          "start_date",
+          "000003.XSHE"
+        ],
+        [
+          "start_date",
+          "000004.XSHE"
+        ],
+        [
+          "start_date",
+          "000005.XSHE"
+        ],
+        [
+          "start_date",
+          "000006.XSHE"
+        ],
+        [
+          "start_date",
+          "000007.XSHE"
+        ],
+        [
+          "start_date",
+          "000008.XSHE"
+        ],
+        [
+          "start_date",
+          "000009.XSHE"
+        ],
+        [
+          "start_date",
+          "000010.XSHE"
+        ],
+        [
+          "start_date",
+          "000011.XSHE"
+        ],
+        [
+          "start_date",
+          "000012.XSHE"
+        ],
+        [
+          "start_date",
+          "000013.XSHE"
+        ],
+        [
+          "start_date",
+          "000014.XSHE"
+        ],
+        [
+          "start_date",
+          "000015.XSHE"
+        ],
+        [
+          "start_date",
+          "000016.XSHE"
+        ],
+        [
+          "start_date",
+          "000017.XSHE"
+        ],
+        [
+          "start_date",
+          "000018.XSHE"
+        ],
+        [
+          "start_date",
+          "000019.XSHE"
+        ],
+        [
+          "start_date",
+          "000020.XSHE"
+        ]
+      ]
+    },
+    "preopen_order": {
+      "queries": 2,
+      "hits": 2,
+      "hit_keys": [
+        [
+          "2021-12-01",
+          "600072.XSHG",
+          "drop_first_duplicate"
+        ],
+        [
+          "2025-03-19",
+          "09:28",
+          "cash_floor",
+          19999.99
+        ]
+      ],
+      "miss_key_examples": []
+    },
+    "strategy_state": {
+      "queries": 1,
+      "hits": 1,
+      "hit_keys": [
+        [
+          "after_v227_shock",
+          "2023-02-17"
+        ]
+      ],
+      "miss_key_examples": []
+    },
+    "instrument_fallback": {
+      "queries": 3,
+      "hits": 2,
+      "hit_keys": [
+        [
+          "price",
+          "511880.XSHG",
+          "None",
+          "2024-01-02"
+        ],
+        [
+          "zero_fee",
+          "511880.XSHG"
+        ]
+      ],
+      "miss_key_examples": [
+        [
+          "price",
+          "002185.XSHE",
+          "None",
+          "2026-05-27"
+        ]
+      ]
+    },
+    "tail_seal": {
+      "queries": 1,
+      "hits": 1,
+      "hit_keys": [
+        [
+          "20211115",
+          "000420.XSHE"
+        ]
+      ],
+      "miss_key_examples": []
+    },
+    "history_fastpath": {
+      "queries": 2,
+      "hits": 2,
+      "hit_keys": [
+        [
+          "1d",
+          [
+            "high",
+            "high_limit"
+          ],
+          "2026-05-27 00:00:00"
+        ],
+        [
+          "1d",
+          [
+            "high",
+            "high_limit"
+          ],
+          "2026-05-27 00:00:00"
+        ]
+      ],
+      "miss_key_examples": []
+    }
+  },
+  "legacy_inventory": [
+    {
+      "artifact": "rebuild_from_archive/legacy/data_api_legacy.py",
+      "years": [
+        2020,
+        2024
+      ],
+      "categories": [
+        "security_metadata.start_date_overrides",
+        "instrument_fallback.price_fallback",
+        "security_metadata.adjust_extras_is_st"
+      ],
+      "status": "Legacy public entry retained via rebuild_from_archive/data_api.py shim; current in-repo caller set is the shim itself, and no suspected_unused runtime dependency remains."
+    },
+    {
+      "artifact": "rebuild_from_archive/suspected_unused/core_diff_rebased.patch",
+      "years": [
+        2020,
+        2021,
+        2024
+      ],
+      "categories": [
+        "platform_execution.cash_freeze",
+        "platform_execution.fill_and_fee",
+        "instrument_fallback.zero_fee"
+      ],
+      "status": "text archive only; no runtime import; retain until multi-year execution validation fully closes"
+    },
+    {
+      "artifact": "rebuild_from_archive/suspected_unused/core_diff_rebased_git.patch",
+      "years": [
+        2020,
+        2021,
+        2024
+      ],
+      "categories": [
+        "platform_execution.cash_freeze",
+        "platform_execution.fill_and_fee",
+        "instrument_fallback.zero_fee"
+      ],
+      "status": "text archive only; no runtime import; retain until multi-year execution validation fully closes"
+    }
+  ]
+}

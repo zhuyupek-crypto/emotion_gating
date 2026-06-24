@@ -1,4 +1,4 @@
-﻿"""
+"""
 回测引擎主类
 =============
 
@@ -20,7 +20,6 @@ from .order import (
     get_trade_price, Order, OrderStatus, Trade,
 )
 from .performance import calculate_metrics
-from .temporary_fallbacks import has_zero_fee_fallback
 
 
 # --- 兼容层 ---
@@ -401,7 +400,7 @@ class Engine:
                         ref_price, _, _, _, _ = self._get_trade_price(security)
                     cost_model = self._order_costs.get(inst_type, self.order_cost)
                     est_value = ref_price * amount
-                    if has_zero_fee_fallback(security):
+                    if self._has_zero_fee_override(security):
                         est_fee = 0.0
                     else:
                         est_commission = round(max(est_value * cost_model.open_commission, cost_model.min_commission), 2)
@@ -424,7 +423,7 @@ class Engine:
                 # Freeze cash for buying
                 est_price = style.limit_price
                 est_value = est_price * amount
-                if has_zero_fee_fallback(security):
+                if self._has_zero_fee_override(security):
                     est_fee = 0.0
                 else:
                     cost_model = self._order_costs.get(inst_type, self.order_cost)
@@ -449,6 +448,13 @@ class Engine:
 
         return order
 
+    def _has_zero_fee_override(self, security):
+        return bool(
+            self.compat is not None
+            and hasattr(self.compat, "has_zero_fee_override")
+            and self.compat.has_zero_fee_override(security)
+        )
+
     def _should_reject_jq_preopen_order(self, security, amount, style):
         if amount <= 0 or isinstance(style, LimitOrderStyle):
             return False
@@ -460,29 +466,29 @@ class Engine:
         except Exception:
             return False
 
-        reject_cash_below = {}
-        if self.compat is not None:
-            reject_cash_below.update(getattr(self.compat, "preopen_reject_cash_below", {}) or {})
-        reject_cash_below.update(getattr(g, 'jq_preopen_reject_cash_below', {}) or {})
         time_key = f"{h:02d}:{m:02d}"
-        cash_threshold = reject_cash_below.get((date_key, time_key))
-        if cash_threshold is not None and self.context.portfolio.available_cash < cash_threshold:
-            self.info(
-                f"Rejected pre-open market order for {security}: JQ compat cash floor "
-                f"on {date_key} {time_key} (available={self.context.portfolio.available_cash:.2f}, "
-                f"threshold={cash_threshold:.2f})."
+        if self.compat is not None and hasattr(self.compat, "should_reject_preopen_cash"):
+            should_reject, cash_threshold = self.compat.should_reject_preopen_cash(
+                date_key,
+                time_key,
+                self.context.portfolio.available_cash,
             )
+            if should_reject:
+                self.info(
+                    f"Rejected pre-open market order for {security}: JQ compat cash floor "
+                    f"on {date_key} {time_key} (available={self.context.portfolio.available_cash:.2f}, "
+                    f"threshold={cash_threshold:.2f})."
+                )
+                return True
+
+        if (
+            self.compat is not None
+            and hasattr(self.compat, "should_reject_preopen_order")
+            and self.compat.should_reject_preopen_order(date_key, security)
+        ):
+            self.info(f"Rejected pre-open market order for {security}: JQ compat skip on {date_key}.")
             return True
-
-        reject_orders = set()
-        if self.compat is not None:
-            reject_orders |= set(getattr(self.compat, "preopen_reject_orders", set()) or set())
-        reject_orders |= set(getattr(g, 'jq_preopen_reject_orders', set()) or set())
-        if (date_key, security) not in reject_orders:
-            return False
-
-        self.info(f"Rejected pre-open market order for {security}: JQ compat skip on {date_key}.")
-        return True
+        return False
 
     def _apply_jq_preopen_duplicate_order_anomaly(self, order):
         """Replicate observed JQ pending-order drops for same-stock 09:26 duplicates."""
@@ -493,11 +499,11 @@ class Engine:
         except Exception:
             return
 
-        jq_drop_first_preopen_duplicate = set()
-        if self.compat is not None:
-            jq_drop_first_preopen_duplicate |= set(getattr(self.compat, "preopen_drop_first_duplicate", set()) or set())
-        jq_drop_first_preopen_duplicate |= set(getattr(g, 'jq_preopen_drop_first_duplicate', set()) or set())
-        if (date_key, order.security) not in jq_drop_first_preopen_duplicate:
+        if (
+            self.compat is None
+            or not hasattr(self.compat, "should_drop_first_preopen_duplicate")
+            or not self.compat.should_drop_first_preopen_duplicate(date_key, order.security)
+        ):
             return
 
         earlier = [
@@ -788,7 +794,7 @@ class Engine:
             tax_rate = cost_model.open_tax
             # Calculate cost for current fill_amount_abs
             fill_value = fill_amount_abs * trade_price
-            if has_zero_fee_fallback(security):
+            if self._has_zero_fee_override(security):
                 commission, tax = 0.0, 0.0
             else:
                 commission = round(max(fill_value * comm_rate, cost_model.min_commission), 2)
@@ -802,7 +808,7 @@ class Engine:
                     self.info(f"Rejected market buy for {security}: available cash is too low for min commission.")
                     return
                 rates = comm_rate + tax_rate
-                if has_zero_fee_fallback(security):
+                if self._has_zero_fee_override(security):
                     rates = 0.0
                 max_shares_float = max_available / (trade_price * (1 + rates))
                 if inst_type in ('stock', 'etf'):
@@ -821,7 +827,7 @@ class Engine:
 
         # Re-calculate value and fees for the final fill_amount_abs
         fill_value = fill_amount_abs * trade_price
-        if has_zero_fee_fallback(security):
+        if self._has_zero_fee_override(security):
             commission, tax = 0.0, 0.0
         else:
             if order.amount > 0:
@@ -1109,32 +1115,10 @@ class Engine:
     def _apply_jq_minute_price_anomaly(self, security, norm_time, value):
         try:
             day_key = pd.Timestamp(self.context.current_dt).strftime('%Y%m%d')
-            minute_key = (day_key, norm_time, security)
-            # EMOTION_GATE_COMPAT_HOOK: project-specific JQ snapshot quirks
-            # belong to compat profiles.  Keep the historical fallback table
-            # below only for older workspace parity entries.
-            compat_anomalies = getattr(self.compat, "minute_price_anomalies", {}) if self.compat is not None else {}
-            if minute_key in compat_anomalies:
-                return (
-                    compat_anomalies[minute_key],
-                    value[1],
-                    value[2],
-                    value[3],
-                    value[4],
-                )
-            jq_minute_price_anomalies = {
-                ('20200114', '11:25', '002056.XSHE'): 10.90,
-                ('20210519', '11:28', '000592.XSHE'): 3.17,
-                ('20210809', '14:52', '002176.XSHE'): 24.84,
-            }
-            if minute_key in jq_minute_price_anomalies:
-                return (
-                    jq_minute_price_anomalies[minute_key],
-                    value[1],
-                    value[2],
-                    value[3],
-                    value[4],
-                )
+            if self.compat is not None and hasattr(self.compat, "get_minute_price_override"):
+                override = self.compat.get_minute_price_override(day_key, norm_time, security)
+                if override is not None:
+                    return (override, value[1], value[2], value[3], value[4])
         except Exception:
             pass
         return value
@@ -1145,125 +1129,11 @@ class Engine:
             parts = str(self.current_time).split(':')
             norm_time = f"{int(parts[0]):02d}:{int(parts[1]):02d}" if len(parts) >= 2 else "09:30"
             side = "buy" if amount > 0 else "sell"
-            execution_key = (day_key, norm_time, security, side)
-            # EMOTION_GATE_COMPAT_HOOK: concrete JQ execution-price snapshot
-            # quirks belong to the project compat profile, not the reusable
-            # engine. Keep the legacy fallback table below for old entries.
-            compat_anomalies = getattr(self.compat, "execution_price_anomalies", {}) if self.compat is not None else {}
-            if execution_key in compat_anomalies:
-                return compat_anomalies[execution_key]
-            jq_execution_price_anomalies = {
-                ('20200116', '11:25', '300448.XSHE', 'sell'): 10.52,
-                ('20200120', '14:50', '000049.XSHE', 'sell'): 47.18,
-                ('20200121', '11:25', '000818.XSHE', 'sell'): 28.50,
-                ('20200122', '09:30', '000650.XSHE', 'buy'): 7.30,
-                ('20200206', '11:25', '002340.XSHE', 'sell'): 6.28,
-                ('20200210', '09:30', '000700.XSHE', 'buy'): 13.68,
-                ('20200211', '09:30', '603083.XSHG', 'buy'): 32.58,
-                ('20200211', '09:30', '603185.XSHG', 'buy'): 36.40,
-                ('20200211', '11:28', '000700.XSHE', 'sell'): 14.42,
-                ('20200212', '09:30', '603185.XSHG', 'sell'): 40.79,
-                ('20200214', '11:30', '603626.XSHG', 'sell'): 12.74,
-                ('20200218', '14:50', '002428.XSHE', 'sell'): 13.92,
-                ('20200218', '11:28', '002079.XSHE', 'sell'): 15.24,
-                ('20200219', '09:30', '600469.XSHG', 'buy'): 5.84,
-                ('20200220', '09:30', '002413.XSHE', 'buy'): 7.70,
-                ('20200224', '09:30', '002185.XSHE', 'buy'): 14.16,
-                ('20200224', '09:30', '603186.XSHG', 'buy'): 58.58,
-                ('20200224', '11:28', '002915.XSHE', 'sell'): 32.94,
-                ('20200225', '11:28', '002413.XSHE', 'sell'): 9.57,
-                ('20200225', '11:25', '600221.XSHG', 'sell'): 1.64,
-                ('20200226', '14:50', '000034.XSHE', 'sell'): 28.02,
-                ('20200226', '11:25', '300037.XSHE', 'sell'): 45.22,
-                ('20200227', '09:30', '600318.XSHG', 'buy'): 10.40,
-                ('20200302', '09:30', '600654.XSHG', 'buy'): 2.14,
-                ('20200304', '09:30', '002935.XSHE', 'buy'): 34.86,
-                ('20200304', '09:30', '600126.XSHG', 'buy'): 6.44,
-                ('20200305', '11:30', '002935.XSHE', 'sell'): 37.44,
-                ('20200311', '14:48', '002596.XSHE', 'sell'): 9.24,
-                ('20200312', '09:30', '002075.XSHE', 'buy'): 11.00,
-                ('20200312', '09:30', '603912.XSHG', 'sell'): 25.14,
-                ('20200313', '11:25', '002075.XSHE', 'sell'): 11.20,
-                ('20200317', '11:30', '000592.XSHE', 'sell'): 2.68,
-                ('20200318', '09:30', '002444.XSHE', 'buy'): 11.28,
-                ('20200319', '11:25', '000700.XSHE', 'sell'): 9.82,
-                ('20200319', '11:30', '002365.XSHE', 'sell'): 11.24,
-                ('20200319', '11:30', '002444.XSHE', 'sell'): 10.53,
-                ('20200319', '11:30', '600973.XSHG', 'sell'): 4.66,
-                ('20200325', '09:30', '600988.XSHG', 'buy'): 8.60,
-                ('20200327', '09:30', '002063.XSHE', 'buy'): 15.00,
-                ('20200327', '11:25', '002603.XSHE', 'sell'): 22.60,
-                ('20200330', '09:30', '002063.XSHE', 'sell'): 13.88,
-                ('20200330', '09:30', '002612.XSHE', 'buy'): 8.36,
-                ('20200331', '11:25', '002612.XSHE', 'sell'): 8.42,
-                ('20200402', '09:30', '002156.XSHE', 'buy'): 21.08,
-                ('20200402', '14:50', '002605.XSHE', 'sell'): 29.42,
-                ('20200403', '11:25', '002156.XSHE', 'sell'): 22.98,
-                ('20200408', '11:25', '002470.XSHE', 'sell'): 3.10,
-                ('20200414', '09:30', '002221.XSHE', 'buy'): 9.60,
-                ('20200414', '13:01', '002444.XSHE', 'sell'): 10.17,
-                ('20200415', '14:50', '002221.XSHE', 'sell'): 9.69,
-                ('20200416', '09:30', '002041.XSHE', 'buy'): 12.20,
-                ('20200417', '11:25', '002041.XSHE', 'sell'): 12.60,
-                ('20200422', '09:30', '300463.XSHE', 'sell'): 35.64,
-                ('20200427', '09:30', '600241.XSHG', 'buy'): 3.16,
-                ('20200512', '14:50', '002183.XSHE', 'sell'): 5.00,
-                ('20200512', '14:50', '002351.XSHE', 'sell'): 19.30,
-                ('20200514', '09:30', '600550.XSHG', 'buy'): 5.90,
-                ('20200515', '11:25', '600550.XSHG', 'sell'): 6.02,
-                ('20200518', '09:30', '000987.XSHE', 'buy'): 11.70,
-                ('20200519', '09:30', '600143.XSHG', 'buy'): 14.00,
-                ('20200519', '11:25', '000987.XSHE', 'sell'): 12.56,
-                ('20200520', '14:50', '600143.XSHG', 'sell'): 13.78,
-                ('20200602', '11:25', '002409.XSHE', 'sell'): 50.24,
-                ('20200602', '11:25', '002466.XSHE', 'sell'): 22.98,
-                ('20200603', '09:30', '600831.XSHG', 'buy'): 8.86,
-                ('20200603', '09:30', '000505.XSHE', 'buy'): 8.30,
-                ('20200604', '11:30', '000505.XSHE', 'sell'): 8.34,
-                ('20200604', '11:30', '603101.XSHG', 'sell'): 9.43,
-                ('20200605', '09:30', '603788.XSHG', 'buy'): 16.56,
-                ('20200605', '09:30', '601330.XSHG', 'buy'): 9.68,
-                ('20200608', '14:48', '601330.XSHG', 'sell'): 9.56,
-                ('20200609', '09:30', '002873.XSHE', 'buy'): 19.42,
-                ('20200610', '11:30', '002279.XSHE', 'sell'): 7.20,
-                ('20200611', '09:30', '600884.XSHG', 'buy'): 14.20,
-                ('20200612', '11:30', '002208.XSHE', 'sell'): 11.10,
-                ('20200612', '11:30', '600318.XSHG', 'sell'): 9.26,
-                ('20200616', '14:50', '600095.XSHG', 'sell'): 10.68,
-                ('20200617', '09:30', '600268.XSHG', 'buy'): 8.28,
-                ('20200617', '09:30', '603185.XSHG', 'buy'): 38.90,
-                ('20200617', '11:25', '300677.XSHE', 'sell'): 116.00,
-                ('20200618', '09:30', '600315.XSHG', 'buy'): 48.04,
-                ('20200618', '11:25', '002402.XSHE', 'sell'): 15.92,
-                ('20200618', '11:30', '002137.XSHE', 'sell'): 7.86,
-                ('20200618', '11:30', '603185.XSHG', 'sell'): 42.16,
-                ('20200619', '09:30', '600812.XSHG', 'sell'): 12.27,
-                ('20200622', '09:30', '601788.XSHG', 'buy'): 12.28,
-                ('20200622', '09:30', '002686.XSHE', 'buy'): 5.22,
-                ('20200622', '09:30', '002891.XSHE', 'buy'): 41.72,
-                ('20200623', '11:25', '601788.XSHG', 'sell'): 14.00,
-                ('20200623', '11:30', '600198.XSHG', 'sell'): 15.96,
-                ('20200624', '09:30', '603608.XSHG', 'sell'): 11.36,
-                ('20200624', '11:30', '002891.XSHE', 'sell'): 40.29,
-                ('20200629', '09:30', '601999.XSHG', 'sell'): 7.14,
-                ('20200629', '09:30', '002532.XSHE', 'sell'): 8.10,
-                ('20200630', '09:30', '601908.XSHG', 'buy'): 4.34,
-                ('20200701', '11:30', '600966.XSHG', 'sell'): 10.32,
-                ('20200703', '11:30', '002184.XSHE', 'sell'): 14.78,
-                ('20200706', '09:30', '600223.XSHG', 'buy'): 11.00,
-                ('20200706', '09:30', '000800.XSHE', 'buy'): 12.70,
-                ('20200706', '11:30', '000700.XSHE', 'sell'): 8.38,
-                ('20200707', '11:25', '000800.XSHE', 'sell'): 13.14,
-                ('20200708', '09:30', '600515.XSHG', 'buy'): 6.90,
-                ('20200708', '09:30', '002930.XSHE', 'buy'): 18.10,
-                ('20200709', '11:30', '600859.XSHG', 'sell'): 76.98,
-                ('20200709', '11:30', '002371.XSHE', 'sell'): 219.16,
-                ('20200820', '09:30', '600027.XSHG', 'buy'): 4.30,
-            }
-            return jq_execution_price_anomalies.get(
-                execution_key,
-                trade_price,
-            )
+            if self.compat is not None and hasattr(self.compat, "get_execution_price_override"):
+                override = self.compat.get_execution_price_override(day_key, norm_time, security, side)
+                if override is not None:
+                    return override
+            return trade_price
         except Exception:
             return trade_price
 
@@ -1272,36 +1142,11 @@ class Engine:
             day_key = pd.Timestamp(self.context.current_dt).strftime('%Y%m%d')
             parts = str(self.current_time).split(':')
             norm_time = f"{int(parts[0]):02d}:{int(parts[1]):02d}" if len(parts) >= 2 else "09:30"
-            jq_order_amount_anomalies = {
-                ('20200210', '09:27', '600400.XSHG'): 146300,
-                ('20200302', '09:28', '600654.XSHG'): 352900,
-                ('20200304', '09:28', '600126.XSHG'): 60000,
-                ('20200309', '09:28', '000859.XSHE'): 136600,
-                ('20200310', '09:28', '002596.XSHE'): 50200,
-                ('20200311', '09:27', '603912.XSHG'): 45700,
-                ('20200312', '09:26', '002075.XSHE'): 16400,
-                ('20200316', '09:28', '000592.XSHE'): 287000,
-                ('20200318', '09:26', '000700.XSHE'): 45200,
-                ('20200318', '09:28', '002365.XSHE'): 34300,
-                ('20200327', '09:26', '002063.XSHE'): 32400,
-                ('20200330', '09:30', '002612.XSHE'): 126500,
-                ('20200402', '09:30', '600086.XSHG'): 146000,
-                ('20200413', '09:30', '002444.XSHE'): 76300,
-                ('20200414', '09:26', '002221.XSHE'): 51600,
-                ('20200421', '09:26', '002022.XSHE'): 32600,
-                ('20200424', '09:26', '601975.XSHG'): 161900,
-                ('20200427', '09:30', '600241.XSHG'): 166000,
-                ('20200430', '09:30', '600856.XSHG'): 711900,
-                ('20200518', '09:26', '000987.XSHE'): [38600, 33800],
-                ('20200615', '09:26', '600095.XSHG'): 76100,
-                ('20200630', '09:28', '600966.XSHG'): 58400,
-                ('20200702', '09:28', '000700.XSHE'): 50500,
-                ('20200706', '09:26', '000800.XSHE'): 34700,
-                ('20200714', '09:26', '002661.XSHE'): 21400,
-                ('20200820', '09:26', '600027.XSHG'): 164300,
-            }
             anomaly_key = (day_key, norm_time, security)
-            override = jq_order_amount_anomalies.get(anomaly_key)
+            if self.compat is not None and hasattr(self.compat, "get_order_amount_override"):
+                override = self.compat.get_order_amount_override(day_key, norm_time, security)
+            else:
+                override = None
             if isinstance(override, list):
                 counts = getattr(self, "_jq_order_amount_anomaly_counts", None)
                 if counts is None:
@@ -1325,11 +1170,11 @@ class Engine:
             day_key = pd.Timestamp(self.context.current_dt).strftime('%Y%m%d')
             parts = str(self.current_time).split(':')
             norm_time = f"{int(parts[0]):02d}:{int(parts[1]):02d}" if len(parts) >= 2 else "09:30"
-            jq_fill_amount_anomalies = {
-                ('20200402', '09:30', '600086.XSHG'): 146000,
-                ('20200416', '09:30', '002041.XSHE'): 39300,
-            }
-            return jq_fill_amount_anomalies.get((day_key, norm_time, security), fill_amount_abs)
+            if self.compat is not None and hasattr(self.compat, "get_fill_amount_override"):
+                override = self.compat.get_fill_amount_override(day_key, norm_time, security)
+                if override is not None:
+                    return override
+            return fill_amount_abs
         except Exception:
             return fill_amount_abs
 
@@ -1361,11 +1206,14 @@ class Engine:
                     return None
                 available = frame.columns
                 values = frame.loc[day_int]
-                compat_daily = getattr(self.compat, "daily_price_anomalies", {}) if self.compat is not None else {}
                 for code, local in zip(codes, local_codes):
-                    point_key = (code, day_int, field)
-                    if point_key in compat_daily:
-                        out[code][field] = compat_daily[point_key]
+                    point_value = (
+                        self.compat.get_daily_field_override(code, day_int, field)
+                        if self.compat is not None and hasattr(self.compat, "get_daily_field_override")
+                        else None
+                    )
+                    if point_value is not None:
+                        out[code][field] = point_value
                     elif local in available:
                         out[code][field] = values.get(local)
                     else:
@@ -2021,8 +1869,3 @@ class Engine:
         equity_df = pd.DataFrame(equity_curve)
         metrics = calculate_metrics(equity_df)
         return equity_df, pd.DataFrame(self.trades), self.logs, metrics
-
-
-
-
-

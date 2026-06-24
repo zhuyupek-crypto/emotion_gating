@@ -1,4 +1,4 @@
-﻿"""Project-specific JoinQuant parity hooks for the emotion-gate rebuild.
+"""Project-specific JoinQuant parity hooks for the emotion-gate rebuild.
 
 The engine package is intended to stay reusable.  Observed JoinQuant snapshot
 quirks and preprocessed project features live here instead of in engine code.
@@ -8,234 +8,48 @@ import os
 
 import pandas as pd
 
+from .compat.call_auction import CALL_AUCTION_ALLOW_ONLY, CALL_AUCTION_DEPTH_OVERRIDES, CALL_AUCTION_EMPTY_ANOMALIES
+from .compat.execution import (
+    EXECUTION_PRICE_ANOMALIES,
+    FILL_AMOUNT_ANOMALIES,
+    ORDER_AMOUNT_ANOMALIES,
+    PREOPEN_DROP_FIRST_DUPLICATE,
+    PREOPEN_REJECT_CASH_BELOW,
+    PREOPEN_REJECT_ORDERS,
+)
+from .compat.instrument_fallbacks import INSTRUMENT_PRICE_FALLBACKS, ZERO_FEE_OVERRIDES
+from .compat.market_data import (
+    CORRUPTED_DAILY_LIMIT_WINDOWS,
+    DAILY_FIELD_ANOMALIES,
+    DAILY_IPO_CLOSE_ANOMALIES,
+    MINUTE_PRICE_ANOMALIES,
+    TAIL_SEAL_ANOMALIES,
+)
+from .compat.security_metadata import BILLBOARD_ROW_FILTERS, NON_ST_NAME_WINDOWS, SECURITY_START_DATE_OVERRIDES
+from .compat.strategy_state import FB_STATE_OVERRIDES, V227_SHOCK_OVERRIDES
+
 
 class EmotionGateJQCompat:
     """Compatibility profile for reproducing the archived emotion-gate runs."""
 
     immediate_sell_cash_release = True
 
-    corrupted_daily_limit_windows = [
-        (pd.Timestamp('2026-05-25'), pd.Timestamp('2026-06-12')),
-    ]
-
-    preopen_reject_cash_below = {
-        # Full-path mother log has active=rzq+zb and zb candidates on
-        # 2025-03-19, but no 09:28 [zb买] lines. Local available cash before
-        # buy_zb is only 10,601.20 and otherwise keeps walking the ranked list
-        # to create tiny one-lot/few-lot orders. Treat this as a narrow JQ
-        # order_value/min-cash boundary point for that exact pre-open stage.
-        ("2025-03-19", "09:28"): 20000.0,
-    }
-
-    preopen_reject_orders = {
-    }
-    preopen_drop_first_duplicate = {
-        # Kept as an opt-in project profile rule.  The real 2020-2021 trade
-        # export currently shows these duplicate buys, so remove these entries
-        # when validating against that export rather than the older derived log.
-        ("2021-04-26", "002120.XSHE"),
-        ("2021-12-01", "600072.XSHG"),
-        ("2021-12-08", "002508.XSHE"),
-        ("2022-08-02", "000547.XSHE"),
-        ("2022-11-24", "000600.XSHE"),
-        ("2022-12-02", "603589.XSHG"),
-    }
-
-    tail_seal_anomalies = {
-        ("20200713", "300118.XSHE"): pd.Timestamp("2020-07-13 14:00:00"),
-        ("20200713", "600711.XSHG"): pd.Timestamp("2020-07-13 14:00:00"),
-        ("20211115", "000420.XSHE"): pd.Timestamp("2021-11-15 14:00:00"),
-        ("20221226", "002487.XSHE"): pd.Timestamp("2022-12-26 14:41:00"),
-        # Mother log on 2025-08-14 reports one v130 tail-seal removal
-        # and excludes 603031 from V227_CANDS. Local first_seal_time cache
-        # stores None, while hdata minute close first reaches high_limit at
-        # 2025-08-13 14:09.
-        ("20250813", "603031.XSHG"): pd.Timestamp("2025-08-13 14:09:00"),
-    }
-
-    minute_price_anomalies = {
-        # Mother log sells 002470 at 2022-07-08 14:47 with ret=-3.3%.
-        # Local hdata minute bars for this window only expose 14:50=2.33,
-        # which misses the rzq stop-loss threshold and changes the July path.
-        ("20220708", "14:47", "002470.XSHE"): 2.32,
-        # JQ runtime probe reports current_data.last_price=15.18 at
-        # 2023-02-28 11:28, while local hdata stores the 11:28 close as 15.13.
-        # The local value incorrectly triggers the rzq -3% scheduled sell one
-        # day before JQ's 2023-03-01 open stop.
-        ("20230228", "11:28", "002229.XSHE"): 15.18,
-        # Same JQ probe reports 14:47 last/close=15.14 while local hdata stores
-        # 15.13.  This minute is the remaining premature 2023-02-28 rzq exit.
-        ("20230228", "14:47", "002229.XSHE"): 15.14,
-        # JQ mother trade keeps 002130.XSHE through 2024-03-25 14:50 and sells
-        # on 2024-03-26 11:25. Given the mother v227 afternoon rule sells any
-        # non-limit-up v227 hold at 14:50, JQ must still see this minute as
-        # limit-up. Local hdata stores 14:50 close=10.91 while the day's
-        # high_limit is 10.99. Confirm with jq_20240325_002130_sell_probe.py.
-        ("20240325", "14:50", "002130.XSHE"): 10.99,
-        # Mother log keeps the auction-yiqian 002426.XSHE position after
-        # 2025-06-13 14:50 and sells on 2025-06-18 11:25 as 落袋. The sell rule
-        # would only fire locally because hdata minute close=2.82 is just below
-        # previous-day MA5 ~=2.822; the same minute has open/high=2.83, which
-        # keeps JQ on the mother path. Exact one-minute snapshot boundary.
-        ("20250613", "14:50", "002426.XSHE"): 2.83,
-        # Mother log sells the auction-yiqian 000987.XSHE position on
-        # 2025-07-11 14:50 with ret=+0.1% and high=2.0%. Local execution cost is
-        # 7.84 and hdata minute close=7.84, so ret is not positive and the sell
-        # is delayed to 2025-07-15 MA5. The same minute high is 7.85, matching
-        # the mother positive-ret boundary without changing the earlier high.
-        ("20250711", "14:50", "000987.XSHE"): 7.85,
-        # Mother log keeps the auction-yiqian 002310.XSHE hold through
-        # 2026-01-19 14:50 and only sells on 2026-01-20 11:25 as MA5.
-        # Local minute close at 2026-01-19 14:50 is 2.35, which is just
-        # below the strategy MA5 boundary (~2.354) and triggers an early
-        # sell. The same minute open/high are 2.36, matching the mother
-        # path that survives into the next day before the MA5 exit.
-        ("20260119", "14:50", "002310.XSHE"): 2.36,
-    }
-
-
-    daily_price_anomalies = {
-        # Mother log buys 600032 via rzq on 2022-07-04.  The rzq prepare path
-        # requires previous-day high == high_limit, while hdata computes
-        # 2022-07-01 high=16.12 and high_limit=16.11.  Patch the JQ snapshot
-        # point only; broad limit-touch tolerance worsened 2022 alignment.
-        ("600032.XSHG", 20220701, "high_limit"): 16.12,
-        # Mother log buys 002141 through scorpion on 2024-07-16 and logs
-        # low-open -3.0%.  hdata stores the open as float32(0.97), making
-        # local open_pct -0.029999971 and failing the strategy's strict
-        # open_pct > -0.03 guard.  Keep this as an exact JQ boundary point.
-        ("002141.XSHE", 20240716, "open"): 0.96999997,
-        # Mother log includes 603569 in the 2024-12-04 zb leg and buys it.
-        # Local hdata on the previous day has high=9.41 but high_limit=9.40,
-        # so the strict bomb-board test high == high_limit drops it. This is
-        # the same documented daily limit-touch equality class as 600032.
-        ("603569.XSHG", 20241203, "high_limit"): 9.41,
-        # Mother log buys 002265 through rzq on 2024-12-10. It passes the
-        # local billboard/name filters, but hdata has previous-day
-        # high=20.19 and high_limit=20.18, so strict high == high_limit
-        # drops it before the buy gate. Same daily limit-touch equality class.
-        ("002265.XSHE", 20241209, "high_limit"): 20.19,
-        # Mother log buys 002121 through zb on 2025-09-30 with op/yc=0.984
-        # and cands zb:14. Local hdata has 2025-09-29 high=9.41 but
-        # high_limit=9.40, so the strict bomb-board test high == high_limit
-        # drops it and local walks to 601619 instead. Same daily limit-touch
-        # equality class; patch only this JQ snapshot point.
-        ("002121.XSHE", 20250929, "high_limit"): 9.41,
-        # Mother log buys 002185 and 603773 through rzq on 2026-05-28.
-        # Local previous-day bomb-board filter uses strict high == high_limit;
-        # hdata carries tiny float tail mismatches, so pin both fields to the
-        # same JQ-compatible value on the observed previous day.
-        ("002185.XSHE", 20260527, "high"): 20.540000915527344,
-        ("002185.XSHE", 20260527, "high_limit"): 20.540000915527344,
-        ("603773.XSHG", 20260527, "high"): 100.69000244140625,
-        ("603773.XSHG", 20260527, "high_limit"): 100.69000244140625,
-    }
-
-    execution_price_anomalies = {
-        # JQ runtime probe with the same FixedSlippage(0.01) reports the
-        # 2023-02-27 09:30 market buy fill and position avg_cost for 002229 as
-        # 15.60, while local slippage simulation fills 15.61.  That one-cent
-        # avg-cost difference makes the later 14:47 JQ last=15.14 cross the
-        # local -3% rzq stop boundary even though JQ keeps holding to 2023-03-01.
-        ("20230227", "09:30", "002229.XSHE", "buy"): 15.60,
-        # JQ runtime probe for the 2023-03-23 zb buy reports
-        # MarketOrderStyle(day_open=2.16) filling 600518 at 2.16.  Local
-        # slippage simulation filled 2.17, which suppresses JQ's next-day
-        # positive-ret zb sell boundary.
-        ("20230323", "09:30", "600518.XSHG", "buy"): 2.16,
-        # JQ runtime probe for the 2023-12-12 zb buy reports
-        # MarketOrderStyle(day_open=13.60) filling 002395 at 13.60.  Local
-        # slippage simulation filled 13.61, which suppresses JQ's
-        # 2023-12-13 11:30 positive-ret zb sell boundary.
-        ("20231212", "09:30", "002395.XSHE", "buy"): 13.60,
-    }
-
-    call_auction_empty_anomalies = {
-        # Keep this list for proven research/runtime get_call_auction gaps.
-        # The previous 2024-03-21 002130.XSHE entry was removed after the full
-        # mother log showed both [竞价买] and [v227买] on that date; the older
-        # jq_trades_actual.csv / research-probe interpretation was incomplete.
-    }
-
-
-    non_st_name_windows = {
-        "600666.XSHG": ("2020-02-28", "2020-02-28"),
-        "600654.XSHG": ("2020-02-28", "2020-02-28"),
-        "002192.XSHE": ("2020-07-15", "2020-07-15"),
-        "600255.XSHG": ("2020-08-25", "2020-08-25"),
-        "002256.XSHE": ("2020-08-27", "2020-08-27"),
-        "600145.XSHG": ("2020-09-09", "2020-09-09"),
-        "002638.XSHE": ("2020-10-23", "2020-10-23"),
-        "600687.XSHG": ("2020-11-23", "2020-11-23"),
-        "000673.XSHE": ("2020-11-30", "2020-11-30"),
-        "600146.XSHG": ("2020-12-14", "2020-12-14"),
-        "000585.XSHE": ("2020-12-18", "2020-12-18"),
-        "002147.XSHE": ("2021-01-14", "2021-01-14"),
-        "600702.XSHG": ("2021-04-21", "2021-04-21"),
-        "601020.XSHG": ("2021-09-10", "2021-09-10"),
-        "000980.XSHE": ("2021-12-10", "2021-12-10"),
-        # JQ mother log includes these ST-name securities in 2022 candidate
-        # pools.  Keep the override pinned to the observed previous-day name
-        # filter date; do not treat it as a clean ST-history replacement.
-        "600191.XSHG": ("2022-02-07", "2022-02-07"),
-        # Mother log includes 603268 in 2026-02-13 V227_CANDS, so the
-        # previous-day 2026-02-12 name filter cannot be treated as ST there.
-        # Local stock_basic leaks a future *ST label into this history date.
-        "603268.XSHG": ("2026-02-12", "2026-02-12"),
-        "600091.XSHG": ("2022-02-08", "2022-02-08"),
-        "600093.XSHG": ("2022-02-10", "2022-03-15"),
-        "002086.XSHE": ("2022-02-15", "2022-02-15"),
-        "600146.XSHG": ("2022-03-02", "2022-04-01"),
-        "002684.XSHE": ("2022-04-19", "2022-04-19"),
-        "002470.XSHE": ("2022-07-05", "2022-07-05"),
-        # JQ mother log includes 600532 in the 2023-01-04 bear pool and buys
-        # it via the scorpion leg; hdata's clean name snapshot is *ST未来.
-        "600532.XSHG": [
-            ("2023-01-03", "2023-01-03"),
-            ("2023-06-01", "2023-06-01"),
-        ],
-        # JQ mother log includes these ST-name securities in the 2023-06-02
-        # bear pool.  Only 600242 naturally passes the scorpion open-gap
-        # window on the buy day; keep this as a previous-day name snapshot
-        # compatibility window, not a broad ST-status override.
-        "000839.XSHE": ("2023-06-01", "2023-06-01"),
-        "600242.XSHG": ("2023-06-01", "2023-06-01"),
-        "603030.XSHG": ("2023-06-01", "2023-06-01"),
-        "603880.XSHG": ("2023-06-01", "2023-06-01"),
-        # Full mother log buys 600518 through zb on 2023-03-23 and through
-        # auction on 2023-04-11.  Local clean hdata names show an ST prefix on
-        # the previous-day filter snapshots, while all downstream price/volume
-        # and market-cap conditions pass.
-        "600518.XSHG": [
-            ("2023-03-22", "2023-03-22"),
-            ("2023-04-10", "2023-04-10"),
-        ],
-        "600856.XSHG": ("1900-01-01", "2020-05-06"),
-        # JQ mother log buys 000584 through the 2024-04-23 scorpion leg.
-        # Local hdata shows an ST display name on the previous-day filter date,
-        # but board/60-day/open-gap conditions otherwise pass exactly.
-        "000584.XSHE": ("2024-04-22", "2024-04-22"),
-        # Same JQ-compatible name snapshot pattern for 2024 scorpion buys:
-        # each code is first-board on the previous day, passes the 60-day
-        # position and next-open gap windows, and is blocked locally only by
-        # the clean hdata ST display name.
-        "002141.XSHE": [
-            ("2024-06-07", "2024-06-07"),
-            ("2024-07-15", "2024-07-15"),
-        ],
-        "002052.XSHE": ("2024-06-20", "2024-06-20"),
-        "603003.XSHG": ("2024-06-27", "2024-06-27"),
-        "000506.XSHE": ("2024-08-07", "2024-08-07"),
-        # Full-path mother log includes 600711 in the 2025-07-23 v227
-        # candidate list and buys it; local hdata marks the previous-day
-        # security name as ST盛屯.  The 2025-07-25 mother candidate list
-        # also includes 600711, so keep both observed previous-day name
-        # snapshots narrow instead of broadening the ST history.
-        "600711.XSHG": [
-            ("2025-07-22", "2025-07-22"),
-            ("2025-07-24", "2025-07-24"),
-        ],
-    }
+    corrupted_daily_limit_windows = CORRUPTED_DAILY_LIMIT_WINDOWS
+    preopen_reject_cash_below = PREOPEN_REJECT_CASH_BELOW
+    preopen_reject_orders = PREOPEN_REJECT_ORDERS
+    preopen_drop_first_duplicate = PREOPEN_DROP_FIRST_DUPLICATE
+    tail_seal_anomalies = TAIL_SEAL_ANOMALIES
+    minute_price_anomalies = MINUTE_PRICE_ANOMALIES
+    daily_ipo_close_anomalies = DAILY_IPO_CLOSE_ANOMALIES
+    daily_price_anomalies = DAILY_FIELD_ANOMALIES
+    execution_price_anomalies = EXECUTION_PRICE_ANOMALIES
+    order_amount_anomalies = ORDER_AMOUNT_ANOMALIES
+    fill_amount_anomalies = FILL_AMOUNT_ANOMALIES
+    call_auction_empty_anomalies = CALL_AUCTION_EMPTY_ANOMALIES
+    call_auction_allow_only = CALL_AUCTION_ALLOW_ONLY
+    call_auction_depth_overrides = CALL_AUCTION_DEPTH_OVERRIDES
+    security_start_date_overrides = SECURITY_START_DATE_OVERRIDES
+    non_st_name_windows = NON_ST_NAME_WINDOWS
 
     def __init__(self, project_root=None):
         self.project_root = os.path.abspath(
@@ -245,6 +59,7 @@ class EmotionGateJQCompat:
         self._board_cache = {}
         self._master_prepare_cache = {}
         self._auction_yiqian_cache = {}
+        self._auction_left_api = None
 
     def namespace_entries(self, engine):
         return {
@@ -257,7 +72,127 @@ class EmotionGateJQCompat:
             "get_project_auction_yiqian_prepare": lambda *a, **kw: engine._wrap_pandas(
                 engine.data_api.get_project_auction_yiqian_prepare(*a, **kw)
             ),
+            "apply_project_strategy_compat": lambda stage, context, state=None: self.apply_strategy_state_override(
+                stage,
+                context,
+                state,
+            ),
         }
+
+    def get_minute_price_override(self, date_key, time_key, security):
+        key = (date_key, time_key, security)
+        return MINUTE_PRICE_ANOMALIES.get(key, self.minute_price_anomalies.get(key))
+
+    def get_daily_ipo_close_override(self, security, date_int):
+        key = (security, date_int)
+        return DAILY_IPO_CLOSE_ANOMALIES.get(key)
+
+    def get_daily_field_override(self, security, date_int, field):
+        key = (security, date_int, field)
+        return DAILY_FIELD_ANOMALIES.get(key, self.daily_price_anomalies.get(key))
+
+    def get_execution_price_override(self, date_key, time_key, security, side):
+        key = (date_key, time_key, security, side)
+        return EXECUTION_PRICE_ANOMALIES.get(key, self.execution_price_anomalies.get(key))
+
+    def get_order_amount_override(self, date_key, time_key, security):
+        return ORDER_AMOUNT_ANOMALIES.get((date_key, time_key, security))
+
+    def get_fill_amount_override(self, date_key, time_key, security):
+        return FILL_AMOUNT_ANOMALIES.get((date_key, time_key, security))
+
+    def should_reject_preopen_cash(self, date_key, time_key, available_cash):
+        cash_threshold = self.preopen_reject_cash_below.get((date_key, time_key))
+        return cash_threshold is not None and available_cash < cash_threshold, cash_threshold
+
+    def should_reject_preopen_order(self, date_key, security):
+        return (date_key, security) in self.preopen_reject_orders
+
+    def should_drop_first_preopen_duplicate(self, date_key, security):
+        return (date_key, security) in self.preopen_drop_first_duplicate
+
+    def get_tail_seal_override(self, date_key, security):
+        key = (date_key, security)
+        return TAIL_SEAL_ANOMALIES.get(key, self.tail_seal_anomalies.get(key))
+
+    def get_security_start_date_override(self, security):
+        return SECURITY_START_DATE_OVERRIDES.get(security)
+
+    def get_instrument_price_fallback(self, security, start_date=None, end_date=None):
+        lookup_key = security if isinstance(security, str) else (security[0] if len(security) == 1 else None)
+        if lookup_key is None:
+            return None
+        spec = INSTRUMENT_PRICE_FALLBACKS.get(lookup_key)
+        if spec is None:
+            return None
+        target_dt = pd.to_datetime(end_date or start_date)
+        price = spec["prices"].get(target_dt.strftime("%Y%m%d"), spec["default_price"])
+        result = pd.DataFrame(
+            {
+                "open": [price],
+                "close": [price],
+                "high": [price],
+                "low": [price],
+                "volume": [spec["volume"]],
+                "money": [spec["money"]],
+            },
+            index=[target_dt],
+        )
+        result.index.name = "time"
+        if isinstance(security, list):
+            result.columns = pd.MultiIndex.from_product([result.columns, security], names=[None, "code"])
+        return result
+
+    def has_zero_fee_override(self, security):
+        return security in ZERO_FEE_OVERRIDES
+
+    def apply_call_auction_overrides(self, frame):
+        if frame is None or frame.empty or "_date_int" not in frame.columns or "code" not in frame.columns:
+            return frame
+        df = frame.copy()
+        date_ints = df["_date_int"].astype(int)
+        for dt_int, allowed_codes in CALL_AUCTION_ALLOW_ONLY.items():
+            row_mask = date_ints == dt_int
+            if row_mask.any():
+                df = df[~row_mask | df["code"].astype(str).isin(allowed_codes)].copy()
+                date_ints = df["_date_int"].astype(int)
+        if CALL_AUCTION_EMPTY_ANOMALIES:
+            mask = [
+                (str(code), int(dt_int)) not in CALL_AUCTION_EMPTY_ANOMALIES
+                for code, dt_int in zip(df["code"].astype(str), date_ints)
+            ]
+            df = df[mask].copy()
+            date_ints = df["_date_int"].astype(int)
+        for (code, dt_int), values in CALL_AUCTION_DEPTH_OVERRIDES.items():
+            row_mask = (df["code"].astype(str) == code) & (date_ints == dt_int)
+            if row_mask.any():
+                for col, value in values.items():
+                    if col in df.columns:
+                        df.loc[row_mask, col] = value
+        return df
+
+    def apply_strategy_state_override(self, stage, context, state=None):
+        if state is None or context is None:
+            return None
+        date_key = context.current_dt.strftime("%Y-%m-%d")
+        if stage == "after_fb_state":
+            override = FB_STATE_OVERRIDES.get(date_key)
+            if override is None:
+                return None
+            fb_perf, fb_pct = override
+            state.first_board_perf = fb_perf
+            state.fb_pct = fb_pct
+            if getattr(state, "fb_perf_history", None):
+                state.fb_perf_history.pop()
+                state.fb_perf_history.append(fb_perf)
+            return override
+        if stage == "after_v227_shock":
+            override = V227_SHOCK_OVERRIDES.get(date_key)
+            if override is None:
+                return None
+            state.v227_shock_cooldown = override
+            return override
+        return None
 
     def _feature_path(self, feature_name, year):
         return os.path.join(
@@ -435,10 +370,9 @@ class EmotionGateJQCompat:
         if frame is None or frame.empty or "date" not in frame.columns or "code" not in frame.columns:
             return frame
         date_int = frame["date"].astype(str)
-        anomaly = (
-            ((frame["code"] == "600146.XSHG") & (date_int == "20200226"))
-            | ((frame["code"] == "603721.XSHG") & (date_int == "20220825"))
-        )
+        anomaly = False
+        for code, dt in BILLBOARD_ROW_FILTERS:
+            anomaly = anomaly | ((frame["code"] == code) & (date_int == dt))
         return frame[~anomaly].copy() if anomaly.any() else frame
 
 

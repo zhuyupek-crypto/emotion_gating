@@ -152,7 +152,7 @@ class DataAPI:
         return False
 
     def _apply_jq_daily_anomalies(self, frame, field, securities, end_dt):
-        """Patch a few documented JQ daily-history quirks without mutating hdata."""
+        """Patch documented JQ daily-history quirks without mutating hdata."""
         if frame is None or frame.empty or field not in ('open', 'close', 'high', 'high_limit', 'low_limit', 'pre_close', 'money'):
             return frame
         try:
@@ -160,32 +160,15 @@ class DataAPI:
         except Exception:
             return frame
 
-        # IPO sync-delay snapshots observed in the 2020 JQ logs.  On the
-        # first effective query day JQ returns [raw pre_close, NaN], which is
-        # important because calc_fb_perf intentionally lets NaN poison mean().
-        ipo_close_anomalies = {
-            ('605399.XSHG', 20200804): 13.16,
-            ('605123.XSHG', 20200825): 30.33,
-            ('605255.XSHG', 20200825): 12.66,
-            ('605369.XSHG', 20200916): 31.65,
-        }
-        point_value_anomalies = {
-            ('002256.XSHE', 20200828, 'open'): 1.24,
-            ('603393.XSHG', 20210910, 'high'): 40.42,
-            ('000420.XSHE', 20211115, 'money'): 965000000.0,
-        }
-        # EMOTION_GATE_COMPAT_HOOK: application-level JQ daily snapshot quirks.
-        # The generic engine applies point values; evidence and keys live in
-        # the project compat profile for future base migration.
-        compat_point_value_anomalies = (
-            getattr(self.compat, "daily_price_anomalies", {}) if self.compat is not None else {}
-        )
         out = frame.copy()
         sec_list = [securities] if isinstance(securities, str) else list(securities)
         for sec in sec_list:
-            key = (sec, end_int)
-            point_key = (sec, end_int, field)
-            if point_key in compat_point_value_anomalies or point_key in point_value_anomalies:
+            point_value = (
+                self.compat.get_daily_field_override(sec, end_int, field)
+                if self.compat is not None and hasattr(self.compat, "get_daily_field_override")
+                else None
+            )
+            if point_value is not None:
                 if sec in out.columns:
                     col = sec
                 elif len(sec_list) == 1 and field in out.columns:
@@ -193,13 +176,13 @@ class DataAPI:
                 else:
                     col = None
                 if col is not None and len(out.index) >= 1:
-                    out.iloc[-1, out.columns.get_loc(col)] = compat_point_value_anomalies.get(
-                        point_key,
-                        point_value_anomalies.get(point_key),
-                    )
-            if key not in ipo_close_anomalies:
-                continue
-            if len(out.index) < 2:
+                    out.iloc[-1, out.columns.get_loc(col)] = point_value
+            ipo_value = (
+                self.compat.get_daily_ipo_close_override(sec, end_int)
+                if self.compat is not None and hasattr(self.compat, "get_daily_ipo_close_override")
+                else None
+            )
+            if ipo_value is None or len(out.index) < 2:
                 continue
             if sec in out.columns:
                 col = sec
@@ -208,10 +191,10 @@ class DataAPI:
             else:
                 continue
             if field == 'close':
-                out.iloc[-2, out.columns.get_loc(col)] = ipo_close_anomalies[key]
+                out.iloc[-2, out.columns.get_loc(col)] = ipo_value
                 out.iloc[-1, out.columns.get_loc(col)] = np.nan
             elif field in ('high_limit', 'low_limit', 'pre_close'):
-                out.iloc[-2, out.columns.get_loc(col)] = ipo_close_anomalies[key]
+                out.iloc[-2, out.columns.get_loc(col)] = ipo_value
                 out.iloc[-1, out.columns.get_loc(col)] = np.nan
         return out
 
@@ -228,20 +211,6 @@ class DataAPI:
         except Exception:
             return frame
 
-        ipo_close_anomalies = {
-            ('605399.XSHG', 20200804): 13.16,
-            ('605123.XSHG', 20200825): 30.33,
-            ('605255.XSHG', 20200825): 12.66,
-            ('605369.XSHG', 20200916): 31.65,
-        }
-        point_value_anomalies = {
-            ('002256.XSHE', 20200828, 'open'): 1.24,
-            ('603393.XSHG', 20210910, 'high'): 40.42,
-            ('000420.XSHE', 20211115, 'money'): 965000000.0,
-        }
-        compat_point_value_anomalies = (
-            getattr(self.compat, "daily_price_anomalies", {}) if self.compat is not None else {}
-        )
         out = frame.copy()
         sec_list = [securities] if isinstance(securities, str) else list(securities)
         for sec in sec_list:
@@ -249,20 +218,25 @@ class DataAPI:
             if not sec_rows:
                 continue
             for field in patch_fields:
-                point_key = (sec, end_int, field)
-                if (point_key in compat_point_value_anomalies or point_key in point_value_anomalies) and field in out.columns:
-                    out.loc[sec_rows[-1], field] = compat_point_value_anomalies.get(
-                        point_key,
-                        point_value_anomalies.get(point_key),
-                    )
-                key = (sec, end_int)
-                if key not in ipo_close_anomalies or len(sec_rows) < 2 or field not in out.columns:
+                point_value = (
+                    self.compat.get_daily_field_override(sec, end_int, field)
+                    if self.compat is not None and hasattr(self.compat, "get_daily_field_override")
+                    else None
+                )
+                if point_value is not None and field in out.columns:
+                    out.loc[sec_rows[-1], field] = point_value
+                ipo_value = (
+                    self.compat.get_daily_ipo_close_override(sec, end_int)
+                    if self.compat is not None and hasattr(self.compat, "get_daily_ipo_close_override")
+                    else None
+                )
+                if ipo_value is None or len(sec_rows) < 2 or field not in out.columns:
                     continue
                 if field == 'close':
-                    out.loc[sec_rows[-2], field] = ipo_close_anomalies[key]
+                    out.loc[sec_rows[-2], field] = ipo_value
                     out.loc[sec_rows[-1], field] = np.nan
                 elif field in ('high_limit', 'low_limit', 'pre_close'):
-                    out.loc[sec_rows[-2], field] = ipo_close_anomalies[key]
+                    out.loc[sec_rows[-2], field] = ipo_value
                     out.loc[sec_rows[-1], field] = np.nan
         return out
 
@@ -422,25 +396,14 @@ class DataAPI:
     # get_price — 原有的行情API，保留不动
     # ------------------------------------------------------------------
     def get_price(self, security, start_date=None, end_date=None, frequency='daily', fields=None, fq='pre', count=None, **kwargs):
-        # --- 511880 ETF OFFICIAL DATA INJECTION ---
-        if security == '511880.XSHG' or security == ['511880.XSHG']:
-            official_prices = {
-                '20240102': 100.094, '20240103': 100.113, '20240104': 100.120, '20240105': 100.138,
-                '20240108': 100.138, '20240109': 100.142, '20240110': 100.150, '20240111': 100.148,
-                '20240112': 100.170, '20240115': 100.179, '20240116': 100.178, '20240117': 100.182,
-                '20240118': 100.191, '20240119': 100.208, '20240122': 100.224, '20240123': 100.216,
-                '20240124': 100.216, '20240125': 100.205, '20240126': 100.233, '20240129': 100.241,
-                '20240130': 100.254, '20240131': 100.260, '20240201': 100.262,
-                '20240401': 100.562, '20240506': 100.703
-            }
-            target_dt = pd.to_datetime(end_date or start_date)
-            dt_str = target_dt.strftime('%Y%m%d')
-            p = official_prices.get(dt_str, 100.50)
-            df_tmp = pd.DataFrame({'open': [p], 'close': [p], 'high': [p], 'low': [p], 'volume': [1000000], 'money': [100000000]}, index=[target_dt])
-            df_tmp.index.name = 'time'
-            if isinstance(security, list):
-                df_tmp.columns = pd.MultiIndex.from_product([df_tmp.columns, security], names=[None, 'code'])
-            return df_tmp
+        if self.compat is not None and hasattr(self.compat, "get_instrument_price_fallback"):
+            fallback = self.compat.get_instrument_price_fallback(
+                security,
+                start_date=start_date,
+                end_date=end_date,
+            )
+            if fallback is not None:
+                return fallback
 
         is_single = isinstance(security, str)
         securities = [security] if is_single else list(security)
@@ -792,46 +755,8 @@ class DataAPI:
             return pd.DataFrame()
         if 'code' in df.columns:
             df = df[df['code'].isin(list(securities))].copy()
-        if '_date_dt' in df.columns:
-            anomaly_empty = {
-                ('002897.XSHE', 20200304),
-                ('600982.XSHG', 20210818),
-                ('603908.XSHG', 20210818),
-                ('600804.XSHG', 20210901),
-            }
-            if self.compat is not None:
-                anomaly_empty |= set(getattr(self.compat, "call_auction_empty_anomalies", set()) or set())
-            if not df.empty and 'code' in df.columns:
-                date_ints = df['_date_int'].astype(int)
-                allow_only = {
-                    20210818: {'000833.XSHE'},
-                    20211202: set(),
-                }
-                for dt_int, allowed_codes in allow_only.items():
-                    row_mask = date_ints == dt_int
-                    if row_mask.any():
-                        df = df[~row_mask | df['code'].astype(str).isin(allowed_codes)].copy()
-                        date_ints = df['_date_int'].astype(int)
-                keys = set(zip(df['code'].astype(str), date_ints))
-                if keys & anomaly_empty:
-                    mask = [
-                        (str(code), int(dt_int)) not in anomaly_empty
-                        for code, dt_int in zip(df['code'].astype(str), date_ints)
-                    ]
-                    df = df[mask].copy()
-                # JQ parity guard: local 2020-09-03 auction depth makes
-                # 002635 outrank the JQ-selected 002362 in the zb leg.  JQ's
-                # sell-side depth is slightly larger; patch only this point.
-                anomaly_depth = {
-                    ('002635.XSHE', 20200903): {'a1_v': 2000.0},
-                    ('000038.XSHE', 20210604): {'a1_v': 40000.0},
-                }
-                for (code, dt_int), values in anomaly_depth.items():
-                    row_mask = (df['code'].astype(str) == code) & (date_ints == dt_int)
-                    if row_mask.any():
-                        for col, value in values.items():
-                            if col in df.columns:
-                                df.loc[row_mask, col] = value
+        if '_date_dt' in df.columns and self.compat is not None and hasattr(self.compat, "apply_call_auction_overrides"):
+            df = self.compat.apply_call_auction_overrides(df)
         drop_cols = [c for c in ['_date_dt', '_date_int'] if c in df.columns]
         if drop_cols:
             df = df.drop(columns=drop_cols)
@@ -915,7 +840,6 @@ class DataAPI:
         clean_secs = [s[0] if isinstance(s, tuple) else s for s in securities]
         day = pd.to_datetime(date)
         day_key = day.strftime('%Y%m%d')
-        jq_tail_seal_anomalies = getattr(self.compat, "tail_seal_anomalies", {}) if self.compat is not None else {}
         result = {}
         if not clean_secs:
             return result
@@ -923,8 +847,13 @@ class DataAPI:
         project_seals = self._load_project_first_seal_year(day.year)
         for sec in clean_secs:
             cache_key = (day_key, sec)
-            if cache_key in jq_tail_seal_anomalies:
-                result[sec] = jq_tail_seal_anomalies[cache_key]
+            override = (
+                self.compat.get_tail_seal_override(day_key, sec)
+                if self.compat is not None and hasattr(self.compat, "get_tail_seal_override")
+                else None
+            )
+            if override is not None:
+                result[sec] = override
                 self._sealing_points_cache[cache_key] = result[sec]
             elif cache_key in self._sealing_points_cache:
                 result[sec] = self._sealing_points_cache[cache_key]
@@ -1058,15 +987,11 @@ class DataAPI:
             self._stock_basic.index = self._denormalize(self._stock_basic['code'].tolist())
             if 'name' in self._stock_basic.columns:
                 self._stock_basic = self._stock_basic.rename(columns={'name': 'display_name'})
-            ipo_overrides = {
-                '605399.XSHG': pd.Timestamp('2020-08-03'),
-                '605123.XSHG': pd.Timestamp('2020-08-21'),
-                '605255.XSHG': pd.Timestamp('2020-08-21'),
-                '605369.XSHG': pd.Timestamp('2020-09-14'),
-            }
-            for code, start_date in ipo_overrides.items():
-                if code in self._stock_basic.index:
-                    self._stock_basic.loc[code, 'start_date'] = start_date
+            if self.compat is not None and hasattr(self.compat, "get_security_start_date_override"):
+                for code in self._stock_basic.index:
+                    start_date = self.compat.get_security_start_date_override(code)
+                    if start_date is not None:
+                        self._stock_basic.loc[code, 'start_date'] = start_date
 
         df_tmp = self._stock_basic.copy()
         if date:
@@ -1081,6 +1006,7 @@ class DataAPI:
                 # replace this with a real name-history table when available.
                 cleaned = out.loc[active_before_delist, 'display_name'].astype(str)
                 cleaned = cleaned.str.replace(r'^\s*退市', '', regex=True)
+                cleaned = cleaned.str.replace(r'^\s*退(?=\S)', '', regex=True)
                 cleaned = cleaned.str.replace(r'[\(（]退[\)）]\s*$', '', regex=True)
                 cleaned = cleaned.str.replace(r'退\s*$', '', regex=True)
                 out.loc[active_before_delist, 'display_name'] = cleaned
@@ -1226,3 +1152,5 @@ class DataAPI:
             return pd.DataFrame(columns=['code', 'operating_revenue'])
         visible = visible.sort_values(['code', 'ann_date', 'end_date'])
         return visible.groupby('code', as_index=False).tail(1)[['code', 'operating_revenue']]
+
+
