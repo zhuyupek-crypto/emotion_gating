@@ -17,6 +17,7 @@ sys.modules["jqdata"] = importlib.import_module("jqdata_compat")
 
 from scripts.core import hdata_reader
 from engine.core import Engine
+from project_compat import EmotionGateJQCompat
 
 
 class TimerStats:
@@ -54,7 +55,7 @@ def main():
     print("Preload finished.", flush=True)
 
     stats = TimerStats()
-    engine = Engine(strategy_code, start_date, end_date, 1000000)
+    engine = Engine(strategy_code, start_date, end_date, 1000000, compat=EmotionGateJQCompat(ROOT))
 
     api = engine.data_api
     for name in [
@@ -101,3 +102,4 @@ if __name__ == "__main__":
     except Exception:
         traceback.print_exc()
         raise
+

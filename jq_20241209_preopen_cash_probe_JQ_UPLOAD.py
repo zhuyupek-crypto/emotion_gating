@@ -1,4 +1,4 @@
-import os
+﻿import os
 import sys, importlib
 _LOCAL_STRATEGY_DIR = os.path.dirname(os.path.abspath(globals().get("__file__", os.getcwd())))
 _LOCAL_JQ_ROOT = os.path.join(_LOCAL_STRATEGY_DIR, "rebuild_from_archive")
@@ -2258,3 +2258,67 @@ def _record_trade(cost, last_price, stock=None):
             g.non_bull_consec_wins = 0
     if stock:
         g.buy_mode.pop(stock, None)
+
+# ===== Codex probe: 2024-12-09 pre-open cash/slot semantics =====
+# Run in JoinQuant backtest environment, recommended date range 2024-12-02 to 2024-12-16.
+# Return log lines containing "[CX-1209]" plus normal [rzq买]/[zb买] lines.
+
+def _cx1209_pf(context, label):
+    try:
+        dt = context.current_dt.strftime('%Y-%m-%d %H:%M')
+    except Exception:
+        dt = str(getattr(context, 'current_dt', 'NA'))
+    try:
+        pos_keys = sorted(list(context.portfolio.positions.keys()))
+    except Exception:
+        pos_keys = []
+    try:
+        owner_items = sorted(['%s:%s' % (k, v) for k, v in getattr(g, 'owner', {}).items()])
+    except Exception:
+        owner_items = []
+    log.info('[CX-1209] %s dt=%s available=%.2f locked=%.2f total=%.2f positions=%s owners=%s active=%s slots=%s/%s cands_rzq=%d cands_zb=%d' % (
+        label,
+        dt,
+        float(getattr(context.portfolio, 'available_cash', -1)),
+        float(getattr(context.portfolio, 'locked_cash', -1)),
+        float(getattr(context.portfolio, 'total_value', -1)),
+        ','.join(pos_keys),
+        ','.join(owner_items),
+        getattr(g, 'active', 'NA'),
+        getattr(g, 'rzq_slots', 'NA'),
+        getattr(g, 'zb_slots', 'NA'),
+        len(getattr(g, 'rzq_candidates', []) or []),
+        len(getattr(g, 'zb_candidates', []) or []),
+    ))
+
+_orig_cx1209_buy_rzq = buy_rzq
+def buy_rzq(context):
+    day = context.current_dt.strftime('%Y-%m-%d')
+    if '2024-12-09' <= day <= '2024-12-10':
+        _cx1209_pf(context, 'before_buy_rzq')
+        try:
+            log.info('[CX-1209] rzq_candidates=%s' % ','.join(list(getattr(g, 'rzq_candidates', []) or [])[:20]))
+        except Exception:
+            pass
+    ret = _orig_cx1209_buy_rzq(context)
+    if '2024-12-09' <= day <= '2024-12-10':
+        _cx1209_pf(context, 'after_buy_rzq')
+    return ret
+
+_orig_cx1209_buy_zb = buy_zb
+def buy_zb(context):
+    day = context.current_dt.strftime('%Y-%m-%d')
+    if '2024-12-09' <= day <= '2024-12-10':
+        _cx1209_pf(context, 'before_buy_zb')
+        try:
+            log.info('[CX-1209] zb_candidates_head=%s contains_002114=%s contains_002144=%s' % (
+                ','.join(list(getattr(g, 'zb_candidates', []) or [])[:40]),
+                '002114.XSHE' in (getattr(g, 'zb_candidates', []) or []),
+                '002144.XSHE' in (getattr(g, 'zb_candidates', []) or []),
+            ))
+        except Exception:
+            pass
+    ret = _orig_cx1209_buy_zb(context)
+    if '2024-12-09' <= day <= '2024-12-10':
+        _cx1209_pf(context, 'after_buy_zb')
+    return ret

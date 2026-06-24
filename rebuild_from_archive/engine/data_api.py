@@ -33,7 +33,7 @@ class SecurityInfo:
 
 
 class DataAPI:
-    def __init__(self, data_root=None):
+    def __init__(self, data_root=None, compat=None):
         if data_root is None:
             data_root = os.environ.get('LOCALQUANT_DATA_ROOT', "D:/work space/hdata/data/processed")
         if not os.path.exists(os.path.join(data_root, '1d_stock')):
@@ -41,6 +41,7 @@ class DataAPI:
             if os.path.exists(os.path.join(processed_root, '1d_stock')):
                 data_root = processed_root
         self.data_root = data_root
+        self.compat = compat
         self._stock_basic = None
         self._st_history = None
         self._price_records = {}
@@ -53,10 +54,6 @@ class DataAPI:
         self._call_auction_day_cache = {}
         self._call_auction_query_cache = {}
         self._history_cache = {}
-        self._project_first_seal_cache = {}
-        self._project_board_cache = {}
-        self._project_master_prepare_cache = {}
-        self._project_auction_yiqian_cache = {}
         self._st_day_cache = {}
         self._st_year_cache = {}
         self._all_securities_cache = {}
@@ -105,6 +102,11 @@ class DataAPI:
         cleaned = cleaned.str.replace(r'^\s*SST', '', regex=True)
         return cleaned
 
+    def _apply_jq_security_name_overrides(self, out, date):
+        if self.compat is not None and hasattr(self.compat, "apply_security_name_overrides"):
+            return self.compat.apply_security_name_overrides(self, out, date)
+        return out
+
     def _history_cached(self, count, unit, field, security_list, df=True, fq=None,
                         start_date=None, end_date=None):
         securities = tuple(security_list if isinstance(security_list, (list, tuple, pd.Index, pd.Series)) else [security_list])
@@ -138,6 +140,17 @@ class DataAPI:
         if isinstance(code, (list, pd.Index, pd.Series)): return [self._denormalize(c) for c in code]
         return code.replace('.SZ', '.XSHE').replace('.SH', '.XSHG') if isinstance(code, str) else code
 
+    def _should_bypass_history_fastpath(self, unit, fields, end_dt):
+        if unit not in ('1d', 'daily'):
+            return False
+        compat = self.compat
+        if compat is not None and hasattr(compat, 'should_bypass_history_fastpath'):
+            try:
+                return bool(compat.should_bypass_history_fastpath(unit, fields, end_dt))
+            except Exception:
+                return False
+        return False
+
     def _apply_jq_daily_anomalies(self, frame, field, securities, end_dt):
         """Patch a few documented JQ daily-history quirks without mutating hdata."""
         if frame is None or frame.empty or field not in ('open', 'close', 'high', 'high_limit', 'low_limit', 'pre_close', 'money'):
@@ -161,12 +174,18 @@ class DataAPI:
             ('603393.XSHG', 20210910, 'high'): 40.42,
             ('000420.XSHE', 20211115, 'money'): 965000000.0,
         }
+        # EMOTION_GATE_COMPAT_HOOK: application-level JQ daily snapshot quirks.
+        # The generic engine applies point values; evidence and keys live in
+        # the project compat profile for future base migration.
+        compat_point_value_anomalies = (
+            getattr(self.compat, "daily_price_anomalies", {}) if self.compat is not None else {}
+        )
         out = frame.copy()
         sec_list = [securities] if isinstance(securities, str) else list(securities)
         for sec in sec_list:
             key = (sec, end_int)
             point_key = (sec, end_int, field)
-            if point_key in point_value_anomalies:
+            if point_key in compat_point_value_anomalies or point_key in point_value_anomalies:
                 if sec in out.columns:
                     col = sec
                 elif len(sec_list) == 1 and field in out.columns:
@@ -174,7 +193,10 @@ class DataAPI:
                 else:
                     col = None
                 if col is not None and len(out.index) >= 1:
-                    out.iloc[-1, out.columns.get_loc(col)] = point_value_anomalies[point_key]
+                    out.iloc[-1, out.columns.get_loc(col)] = compat_point_value_anomalies.get(
+                        point_key,
+                        point_value_anomalies.get(point_key),
+                    )
             if key not in ipo_close_anomalies:
                 continue
             if len(out.index) < 2:
@@ -217,6 +239,9 @@ class DataAPI:
             ('603393.XSHG', 20210910, 'high'): 40.42,
             ('000420.XSHE', 20211115, 'money'): 965000000.0,
         }
+        compat_point_value_anomalies = (
+            getattr(self.compat, "daily_price_anomalies", {}) if self.compat is not None else {}
+        )
         out = frame.copy()
         sec_list = [securities] if isinstance(securities, str) else list(securities)
         for sec in sec_list:
@@ -225,8 +250,11 @@ class DataAPI:
                 continue
             for field in patch_fields:
                 point_key = (sec, end_int, field)
-                if point_key in point_value_anomalies and field in out.columns:
-                    out.loc[sec_rows[-1], field] = point_value_anomalies[point_key]
+                if (point_key in compat_point_value_anomalies or point_key in point_value_anomalies) and field in out.columns:
+                    out.loc[sec_rows[-1], field] = compat_point_value_anomalies.get(
+                        point_key,
+                        point_value_anomalies.get(point_key),
+                    )
                 key = (sec, end_int)
                 if key not in ipo_close_anomalies or len(sec_rows) < 2 or field not in out.columns:
                     continue
@@ -443,6 +471,9 @@ class DataAPI:
                     if sec not in frame.columns and field in frame.columns and len(frame.columns) == 1:
                         return frame.rename(columns={field: sec})
                     return frame
+
+                if self._should_bypass_history_fastpath(unit, fields_to_get, end_dt):
+                    raise RuntimeError('history fastpath bypass requested by compat')
 
                 if len(fields_to_get) == 1:
                     hd = self._history_cached(
@@ -768,6 +799,8 @@ class DataAPI:
                 ('603908.XSHG', 20210818),
                 ('600804.XSHG', 20210901),
             }
+            if self.compat is not None:
+                anomaly_empty |= set(getattr(self.compat, "call_auction_empty_anomalies", set()) or set())
             if not df.empty and 'code' in df.columns:
                 date_ints = df['_date_int'].astype(int)
                 allow_only = {
@@ -843,7 +876,9 @@ class DataAPI:
         cached = self._call_auction_day_cache.get(key)
         if cached is not None:
             return cached.copy()
-        out = self._load_project_call_auction_day(day)
+        out = None
+        if self.compat is not None and hasattr(self.compat, "load_project_call_auction_day"):
+            out = self.compat.load_project_call_auction_day(self, day)
         if out is None:
             df_year = self._load_call_auction_year(day.year)
             if df_year is None or df_year.empty or '_date_int' not in df_year.columns:
@@ -855,109 +890,32 @@ class DataAPI:
         self._call_auction_day_cache[key] = out
         return out.copy()
 
-    def _load_project_call_auction_day(self, day):
-        day = pd.to_datetime(day).normalize()
-        key = day.strftime('%Y%m%d')
-        root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-        path = os.path.join(root, 'project_cache', 'features', 'call_auction_by_date', str(day.year), f'{key}.parquet')
-        if not os.path.exists(path):
-            return None
-        df = pd.read_parquet(path)
-        if df.empty:
-            return df
-        df = df.copy()
-        if 'code' in df.columns:
-            codes = df['code'].astype(str)
-            if codes.str.endswith(('.SZ', '.SH', '.BJ')).any():
-                df['code'] = self._denormalize(codes.tolist())
-        if 'date' in df.columns:
-            df['_date_dt'] = pd.to_datetime(df['date'].astype(str))
-            df['_date_int'] = df['_date_dt'].dt.strftime('%Y%m%d').astype(int)
-        else:
-            df['_date_dt'] = day
-            df['_date_int'] = int(key)
-        return df
-
     def _load_project_first_seal_year(self, year):
-        if year in self._project_first_seal_cache:
-            return self._project_first_seal_cache[year]
-        root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-        path = os.path.join(root, 'project_cache', 'features', 'first_seal_time', f'{year}.parquet')
-        if not os.path.exists(path):
-            self._project_first_seal_cache[year] = None
-            return None
-        df = pd.read_parquet(path)
-        if df.empty or 'date' not in df.columns or 'code' not in df.columns:
-            self._project_first_seal_cache[year] = {}
-            return self._project_first_seal_cache[year]
-        out = {}
-        for row in df.itertuples(index=False):
-            dt_int = int(getattr(row, 'date'))
-            code = getattr(row, 'code')
-            hit = getattr(row, 'first_limit_hit_time', None)
-            if hit is None or pd.isna(hit):
-                out[(f'{dt_int:08d}', code)] = None
-            else:
-                out[(f'{dt_int:08d}', code)] = pd.Timestamp(hit)
-        self._project_first_seal_cache[year] = out
-        return out
+        if self.compat is not None and hasattr(self.compat, "load_first_seal_year"):
+            return self.compat.load_first_seal_year(year)
+        return None
 
     def get_project_board_snapshot(self, date):
-        day = pd.to_datetime(date)
-        year = day.year
-        if year not in self._project_board_cache:
-            root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-            path = os.path.join(root, 'project_cache', 'features', 'board_snapshot', f'{year}.parquet')
-            if not os.path.exists(path):
-                self._project_board_cache[year] = None
-            else:
-                self._project_board_cache[year] = pd.read_parquet(path)
-        df = self._project_board_cache.get(year)
-        if df is None or df.empty:
-            return pd.DataFrame()
-        date_int = int(day.strftime('%Y%m%d'))
-        return df[df['date'].astype(int) == date_int].copy()
+        if self.compat is not None and hasattr(self.compat, "get_project_board_snapshot"):
+            return self.compat.get_project_board_snapshot(date)
+        return pd.DataFrame()
 
     def get_project_master_prepare_index(self, date):
-        day = pd.to_datetime(date)
-        year = day.year
-        if year not in self._project_master_prepare_cache:
-            root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-            path = os.path.join(root, 'project_cache', 'features', 'master_prepare_index', f'{year}.parquet')
-            if not os.path.exists(path):
-                self._project_master_prepare_cache[year] = None
-            else:
-                self._project_master_prepare_cache[year] = pd.read_parquet(path)
-        df = self._project_master_prepare_cache.get(year)
-        if df is None or df.empty:
-            return pd.DataFrame()
-        date_int = int(day.strftime('%Y%m%d'))
-        return df[df['date'].astype(int) == date_int].copy()
+        if self.compat is not None and hasattr(self.compat, "get_project_master_prepare_index"):
+            return self.compat.get_project_master_prepare_index(date)
+        return pd.DataFrame()
 
     def get_project_auction_yiqian_prepare(self, date):
-        day = pd.to_datetime(date)
-        year = day.year
-        if year not in self._project_auction_yiqian_cache:
-            root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-            path = os.path.join(root, 'project_cache', 'features', 'auction_yiqian_prepare', f'{year}.parquet')
-            if not os.path.exists(path):
-                self._project_auction_yiqian_cache[year] = None
-            else:
-                self._project_auction_yiqian_cache[year] = pd.read_parquet(path)
-        df = self._project_auction_yiqian_cache.get(year)
-        if df is None:
-            return None
-        date_int = int(day.strftime('%Y%m%d'))
-        rows = df[df['date'].astype(int) == date_int]
-        if rows.empty:
-            return pd.DataFrame(columns=df.columns)
-        return rows.copy().sort_values('rank').reset_index(drop=True)
+        if self.compat is not None and hasattr(self.compat, "get_project_auction_yiqian_prepare"):
+            return self.compat.get_project_auction_yiqian_prepare(date)
+        return None
 
     def get_batch_sealing_points(self, securities, date):
         securities = securities if isinstance(securities, (list, tuple, pd.Index, pd.Series)) else [securities]
         clean_secs = [s[0] if isinstance(s, tuple) else s for s in securities]
         day = pd.to_datetime(date)
         day_key = day.strftime('%Y%m%d')
+        jq_tail_seal_anomalies = getattr(self.compat, "tail_seal_anomalies", {}) if self.compat is not None else {}
         result = {}
         if not clean_secs:
             return result
@@ -965,7 +923,10 @@ class DataAPI:
         project_seals = self._load_project_first_seal_year(day.year)
         for sec in clean_secs:
             cache_key = (day_key, sec)
-            if cache_key in self._sealing_points_cache:
+            if cache_key in jq_tail_seal_anomalies:
+                result[sec] = jq_tail_seal_anomalies[cache_key]
+                self._sealing_points_cache[cache_key] = result[sec]
+            elif cache_key in self._sealing_points_cache:
                 result[sec] = self._sealing_points_cache[cache_key]
             elif project_seals is not None and cache_key in project_seals:
                 result[sec] = project_seals[cache_key]
@@ -975,14 +936,14 @@ class DataAPI:
         if not missing_secs:
             return result
         try:
-            limits = self._history_cached(
-                count=1,
-                unit='1d',
-                field='high_limit',
-                security_list=missing_secs,
-                df=True,
-                fq=None,
+            limits = self.get_price(
+                missing_secs,
                 end_date=day,
+                frequency='daily',
+                count=1,
+                fields=['high_limit'],
+                fq=None,
+                panel=False,
             )
         except Exception:
             limits = pd.DataFrame()
@@ -1004,10 +965,6 @@ class DataAPI:
         for sec in missing_secs:
             cache_key = (day_key, sec)
             try:
-                jq_tail_seal_anomalies = {
-                    ('20200713', '300118.XSHE'): pd.Timestamp('2020-07-13 14:00:00'),
-                    ('20200713', '600711.XSHG'): pd.Timestamp('2020-07-13 14:00:00'),
-                }
                 if cache_key in jq_tail_seal_anomalies:
                     first_hit = jq_tail_seal_anomalies[cache_key]
                     self._sealing_points_cache[cache_key] = first_hit
@@ -1015,7 +972,11 @@ class DataAPI:
                     continue
                 high_limit = None
                 if not limits.empty:
-                    if sec in limits.columns:
+                    if 'code' in limits.columns and 'high_limit' in limits.columns:
+                        sub = limits[limits['code'] == sec]
+                        if not sub.empty:
+                            high_limit = sub['high_limit'].iloc[-1]
+                    elif sec in limits.columns:
                         high_limit = limits[sec].iloc[-1]
                     elif 'high_limit' in limits.columns and len(clean_secs) == 1:
                         high_limit = limits['high_limit'].iloc[-1]
@@ -1082,7 +1043,10 @@ class DataAPI:
         cache_key = (types_key, date_key)
         cached = self._all_securities_cache.get(cache_key)
         if cached is not None:
-            return cached.copy()
+            out = cached.copy()
+            if date:
+                out = self._apply_jq_security_name_overrides(out, date)
+            return out.copy()
 
         if self._stock_basic is None:
             basic_path = os.path.join(self.data_root, 'stock_basic.parquet')
@@ -1120,46 +1084,7 @@ class DataAPI:
                 cleaned = cleaned.str.replace(r'[\(（]退[\)）]\s*$', '', regex=True)
                 cleaned = cleaned.str.replace(r'退\s*$', '', regex=True)
                 out.loc[active_before_delist, 'display_name'] = cleaned
-            st_df = self._st_day_frame(date)
-            st_codes = set()
-            if not st_df.empty and 'jq_code' in st_df.columns:
-                st_df = st_df.dropna(subset=['jq_code']).drop_duplicates('jq_code', keep='last')
-                st_codes = set(st_df['jq_code'].astype(str))
-                st_names = st_df.set_index('jq_code')['name'].astype(str)
-                common = out.index.intersection(st_names.index)
-                if len(common):
-                    out.loc[common, 'display_name'] = st_names.loc[common]
-            # JQ's get_all_securities often leaks current ST display names into
-            # history.  Keep that quirk for parity, but carve out observed cases
-            # where JQ itself returned a non-ST historical name.
-            if '001270.XSHE' in out.index and '001270.XSHE' not in st_codes:
-                out.loc['001270.XSHE', 'display_name'] = self._strip_future_st_name(
-                    out.loc[['001270.XSHE'], 'display_name']
-                ).iloc[0]
-            jq_non_st_name_windows = {
-                # JQ 2020 logs buy these via get_all_securities name filters
-                # despite hdata st_list marking them ST on the queried day.
-                '600666.XSHG': ('2020-02-28', '2020-02-28'),
-                '600654.XSHG': ('2020-02-28', '2020-02-28'),
-                '002192.XSHE': ('2020-07-15', '2020-07-15'),
-                '600255.XSHG': ('2020-08-25', '2020-08-25'),
-                '002256.XSHE': ('2020-08-27', '2020-08-27'),
-                '600145.XSHG': ('2020-09-09', '2020-09-09'),
-                '002638.XSHE': ('2020-10-23', '2020-10-23'),
-                '600687.XSHG': ('2020-11-23', '2020-11-23'),
-                '000673.XSHE': ('2020-11-30', '2020-11-30'),
-                '600146.XSHG': ('2020-12-14', '2020-12-14'),
-                '000585.XSHE': ('2020-12-18', '2020-12-18'),
-                # JQ-compatible 600856 ST window starts on 2020-05-07.
-                '600856.XSHG': ('1900-01-01', '2020-05-06'),
-            }
-            for code, (start, end) in jq_non_st_name_windows.items():
-                if code in out.index and pd.to_datetime(start) <= pd.to_datetime(date) <= pd.to_datetime(end):
-                    out.loc[code, 'display_name'] = self._strip_future_st_name(
-                        out.loc[[code], 'display_name']
-                    ).iloc[0]
-            if pd.to_datetime(date) >= pd.to_datetime('2020-05-07') and '600856.XSHG' in out.index:
-                out.loc['600856.XSHG', 'display_name'] = '*ST中天'
+            out = self._apply_jq_security_name_overrides(out, date)
         out['start_date'] = pd.to_datetime(out['start_date'], errors='coerce').dt.date
         if len(self._all_securities_cache) > 2048:
             self._all_securities_cache.pop(next(iter(self._all_securities_cache)))
@@ -1176,17 +1101,8 @@ class DataAPI:
         res_dict = {}
         for s in securities:
             is_st = s in st_codes
-            if self._normalize(s) == '600856.SH':
-                is_st = pd.to_datetime('2020-05-07') <= ds_dt
-            if not is_st and pd.to_datetime('2024-05-01') <= ds_dt < pd.to_datetime('2024-06-03'):
-                if s in self._st_codes_on('2024-06-03'):
-                    is_st = True
-            if not is_st and s in self._stock_basic.index:
-                name = self._stock_basic.loc[s, 'display_name']
-                if 'ST' in name or '退' in name:
-                    ed = self._stock_basic.loc[s, 'end_date']
-                    if pd.notna(ed) and ed.year == 2024 and ds_dt >= pd.to_datetime('2024-05-01'):
-                        is_st = True
+            if self.compat is not None and hasattr(self.compat, "adjust_extras_is_st"):
+                is_st = self.compat.adjust_extras_is_st(self, s, ds_dt, is_st)
             res_dict[s] = is_st
         return JQMockResult(res_dict)
 
@@ -1227,13 +1143,8 @@ class DataAPI:
         if 'code' in df.columns:
             df['code'] = self._denormalize(df['code'].astype(str).tolist())
         if 'date' in df.columns and 'code' in df.columns:
-            # Temporary JQ billboard parity guard.  Local hdata includes this
-            # three-day deviation record, while the 2020 JQ strategy log shows
-            # one fewer rzq candidate and no 600146 buy on 2020-02-27.
-            date_int = df['date'].astype(str)
-            anomaly = (df['code'] == '600146.XSHG') & (date_int == '20200226')
-            if anomaly.any():
-                df = df[~anomaly].copy()
+            if self.compat is not None and hasattr(self.compat, "filter_billboard_rows"):
+                df = self.compat.filter_billboard_rows(df)
         if stock_list is not None and 'code' in df.columns:
             stocks = stock_list if isinstance(stock_list, (list, tuple, pd.Index, pd.Series)) else [stock_list]
             df = df[df['code'].isin(list(stocks))].copy()

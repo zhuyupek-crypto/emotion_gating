@@ -1,4 +1,4 @@
-import os
+﻿import os
 import sys, importlib
 _LOCAL_STRATEGY_DIR = os.path.dirname(os.path.abspath(globals().get("__file__", os.getcwd())))
 _LOCAL_JQ_ROOT = os.path.join(_LOCAL_STRATEGY_DIR, "rebuild_from_archive")
@@ -2258,3 +2258,352 @@ def _record_trade(cost, last_price, stock=None):
             g.non_bull_consec_wins = 0
     if stock:
         g.buy_mode.pop(stock, None)
+
+# ===== Codex focus probe: 2024-12-09 rzq/zb path for 603662 and 002114 =====
+# Run in JoinQuant backtest environment, date range 2024-12-02 to 2024-12-16.
+# Quiet mode suppresses ordinary logs and keeps only CX-FOCUS plus target-window
+# buy/sell lines.
+
+_CX_FOCUS_DATES = ('2024-12-09', '2024-12-10')
+_CX_FOCUS_CODES = ('603662.XSHG', '002114.XSHE', '002144.XSHE', '002265.XSHE')
+
+
+def _cx_focus_pf(context, label):
+    try:
+        dt = context.current_dt.strftime('%Y-%m-%d %H:%M')
+    except Exception:
+        dt = str(getattr(context, 'current_dt', 'NA'))
+    try:
+        pos_keys = sorted(list(context.portfolio.positions.keys()))
+    except Exception:
+        pos_keys = []
+    try:
+        owner_items = sorted(['%s:%s' % (k, v) for k, v in getattr(g, 'owner', {}).items()])
+    except Exception:
+        owner_items = []
+    log.info('[CX-FOCUS] %s dt=%s available=%.2f locked=%.2f total=%.2f positions=%s owners=%s active=%s slots=%s/%s cands_rzq=%d cands_zb=%d' % (
+        label,
+        dt,
+        float(getattr(context.portfolio, 'available_cash', -1)),
+        float(getattr(context.portfolio, 'locked_cash', -1)),
+        float(getattr(context.portfolio, 'total_value', -1)),
+        ','.join(pos_keys),
+        ','.join(owner_items),
+        getattr(g, 'active', 'NA'),
+        getattr(g, 'rzq_slots', 'NA'),
+        getattr(g, 'zb_slots', 'NA'),
+        len(getattr(g, 'rzq_candidates', []) or []),
+        len(getattr(g, 'zb_candidates', []) or []),
+    ))
+
+
+def _cx_focus_calc_money(row, prefix):
+    total = 0.0
+    for i in range(1, 6):
+        try:
+            p = float(row.get('%s%d_p' % (prefix, i), 0) or 0)
+            v = float(row.get('%s%d_v' % (prefix, i), 0) or 0)
+        except Exception:
+            p, v = 0.0, 0.0
+        total += p * v
+    return total
+
+
+def _cx_focus_log_target(context, leg, code, yclose):
+    try:
+        cd = get_current_data()
+        d = cd[code]
+    except Exception as e:
+        log.info('[CX-FOCUS] leg=%s code=%s current_data_error=%r' % (leg, code, e))
+        return
+
+    op = getattr(d, 'day_open', 0) or 0
+    last_price = getattr(d, 'last_price', 0) or 0
+    high_limit = getattr(d, 'high_limit', 0) or 0
+    low_limit = getattr(d, 'low_limit', 0) or 0
+    paused = bool(getattr(d, 'paused', False))
+    ratio = (float(op) / float(yclose)) if yclose and op else 0.0
+    if leg == 'rzq':
+        ratio_ok = 0.96 < ratio < 1.01
+    else:
+        ratio_ok = 0.97 < ratio < 1.075
+    not_limit = not (last_price >= high_limit * 0.999 or last_price <= low_limit * 1.001)
+
+    buy_m = sell_m = None
+    auction_ok = False
+    try:
+        date_str = context.current_dt.strftime('%Y-%m-%d')
+        au = get_call_auction(code, start_date=date_str, end_date=date_str)
+        if au is not None and not au.empty:
+            row = au.iloc[0]
+            buy_m = _cx_focus_calc_money(row, 'b')
+            sell_m = _cx_focus_calc_money(row, 'a')
+            auction_ok = sell_m > 0 and (buy_m - sell_m) / sell_m > 0
+    except Exception as e:
+        log.info('[CX-FOCUS] leg=%s code=%s auction_error=%r' % (leg, code, e))
+
+    turn = circ = None
+    try:
+        df_val = get_valuation(code, start_date=context.previous_date, end_date=context.previous_date,
+                               fields=['turnover_ratio', 'circulating_market_cap'])
+        if df_val is not None and not df_val.empty:
+            row = df_val.iloc[0]
+            turn = float(row.get('turnover_ratio', 0) or 0)
+            circ = float(row.get('circulating_market_cap', 0) or 0)
+    except Exception as e:
+        log.info('[CX-FOCUS] leg=%s code=%s valuation_error=%r' % (leg, code, e))
+
+    score = (turn or 0.0) * ratio * ((buy_m / sell_m) if buy_m and sell_m else 0.0)
+    log.info('[CX-FOCUS] leg=%s code=%s in_pool=%s yclose=%.4f open=%.4f ratio=%.6f paused=%s last=%.4f high_limit=%.4f low_limit=%.4f ratio_ok=%s not_limit=%s auction_ok=%s buy_m=%s sell_m=%s turnover=%s circ_mv=%s score=%.6f' % (
+        leg,
+        code,
+        True,
+        float(yclose or 0),
+        float(op or 0),
+        float(ratio or 0),
+        paused,
+        float(last_price or 0),
+        float(high_limit or 0),
+        float(low_limit or 0),
+        ratio_ok,
+        not_limit,
+        auction_ok,
+        '%.2f' % buy_m if buy_m is not None else 'NA',
+        '%.2f' % sell_m if sell_m is not None else 'NA',
+        '%.6f' % turn if turn is not None else 'NA',
+        '%.6f' % circ if circ is not None else 'NA',
+        float(score or 0),
+    ))
+
+
+def _cx_focus_log_leg(context, leg):
+    if leg == 'rzq':
+        candidates = list(getattr(g, 'rzq_candidates', []) or [])
+        yclose_map = getattr(g, 'rzq_yclose', {}) or {}
+    else:
+        candidates = list(getattr(g, 'zb_candidates', []) or [])
+        yclose_map = getattr(g, 'zb_yclose', {}) or {}
+
+    log.info('[CX-FOCUS] leg=%s candidates=%s' % (leg, ','.join(candidates[:60])))
+    for code in _CX_FOCUS_CODES:
+        in_pool = code in candidates
+        yclose = yclose_map.get(code, 0)
+        if in_pool:
+            _cx_focus_log_target(context, leg, code, yclose)
+        else:
+            log.info('[CX-FOCUS] leg=%s code=%s in_pool=%s yclose=%s' % (
+                leg, code, in_pool, '%.4f' % float(yclose) if yclose else 'NA'
+            ))
+
+
+_CX_FOCUS_ORIG_BUY_RZQ = buy_rzq
+def buy_rzq(context):
+    day = context.current_dt.strftime('%Y-%m-%d')
+    if _CX_FOCUS_DATES[0] <= day <= _CX_FOCUS_DATES[1]:
+        _cx_focus_pf(context, 'before_buy_rzq')
+        _cx_focus_log_leg(context, 'rzq')
+    ret = _CX_FOCUS_ORIG_BUY_RZQ(context)
+    if _CX_FOCUS_DATES[0] <= day <= _CX_FOCUS_DATES[1]:
+        _cx_focus_pf(context, 'after_buy_rzq')
+    return ret
+
+
+_CX_FOCUS_ORIG_BUY_ZB = buy_zb
+def buy_zb(context):
+    day = context.current_dt.strftime('%Y-%m-%d')
+    if _CX_FOCUS_DATES[0] <= day <= _CX_FOCUS_DATES[1]:
+        _cx_focus_pf(context, 'before_buy_zb')
+        _cx_focus_log_leg(context, 'zb')
+    ret = _CX_FOCUS_ORIG_BUY_ZB(context)
+    if _CX_FOCUS_DATES[0] <= day <= _CX_FOCUS_DATES[1]:
+        _cx_focus_pf(context, 'after_buy_zb')
+    return ret
+
+
+# ===== Codex quiet full-path log filter =====
+_CX_FOCUS_ORIG_LOG_INFO = log.info
+_CX_FOCUS_LOG_WINDOW = False
+_CX_FOCUS_KEEP_MARKERS = (
+    '[CX-FOCUS]',
+    '[CX-ORDER]',
+    '[rzq买]', '[zb买]', '[rzq卖]', '[zb卖]',
+    '[竞价买]', '[竞价卖', '[v227买]', '[天蝎座]', '[v227止盈]', '[v227止损]', '[bull强清]',
+    '[BIG_TRADE]', '[STATE] date=2024-12-09', '[STATE] date=2024-12-10',
+)
+
+
+def _cx_focus_quiet_log_info(msg, *args, **kwargs):
+    try:
+        text = str(msg)
+    except Exception:
+        text = ''
+    if '[CX-FOCUS]' in text:
+        return _CX_FOCUS_ORIG_LOG_INFO(msg, *args, **kwargs)
+    if globals().get('_CX_FOCUS_LOG_WINDOW', False):
+        for marker in _CX_FOCUS_KEEP_MARKERS:
+            if marker in text:
+                return _CX_FOCUS_ORIG_LOG_INFO(msg, *args, **kwargs)
+    return None
+
+
+log.info = _cx_focus_quiet_log_info
+
+_CX_FOCUS_PRE_QUIET_BUY_RZQ = buy_rzq
+_CX_FOCUS_PRE_QUIET_BUY_ZB = buy_zb
+
+
+def buy_rzq(context):
+    global _CX_FOCUS_LOG_WINDOW
+    day = context.current_dt.strftime('%Y-%m-%d')
+    old = _CX_FOCUS_LOG_WINDOW
+    _CX_FOCUS_LOG_WINDOW = (_CX_FOCUS_DATES[0] <= day <= _CX_FOCUS_DATES[1])
+    try:
+        return _CX_FOCUS_PRE_QUIET_BUY_RZQ(context)
+    finally:
+        _CX_FOCUS_LOG_WINDOW = old
+
+
+def buy_zb(context):
+    global _CX_FOCUS_LOG_WINDOW
+    day = context.current_dt.strftime('%Y-%m-%d')
+    old = _CX_FOCUS_LOG_WINDOW
+    _CX_FOCUS_LOG_WINDOW = (_CX_FOCUS_DATES[0] <= day <= _CX_FOCUS_DATES[1])
+    try:
+        return _CX_FOCUS_PRE_QUIET_BUY_ZB(context)
+    finally:
+        _CX_FOCUS_LOG_WINDOW = old
+
+# ===== Codex order-trace addendum =====
+# Narrow follow-up probe for 2024-12-09 09:27/09:28: log all rzq/zb passed
+# candidates and every order_value call/result during the target window.
+
+def _cx_ordertrace_ratio_bounds(leg):
+    return (0.96, 1.01) if leg == 'rzq' else (0.97, 1.075)
+
+
+def _cx_ordertrace_scan_leg(context, leg):
+    if leg == 'rzq':
+        candidates = list(getattr(g, 'rzq_candidates', []) or [])
+        yclose_map = getattr(g, 'rzq_yclose', {}) or {}
+    else:
+        candidates = list(getattr(g, 'zb_candidates', []) or [])
+        yclose_map = getattr(g, 'zb_yclose', {}) or {}
+    if not candidates:
+        log.info('[CX-ORDER] leg=%s pass_list=EMPTY' % leg)
+        return
+
+    cd = get_current_data()
+    date_str = context.current_dt.strftime('%Y-%m-%d')
+    rows = []
+    lo, hi = _cx_ordertrace_ratio_bounds(leg)
+    for s in candidates:
+        try:
+            d = cd[s]
+            yc = float(yclose_map.get(s, 0) or 0)
+            op = float(getattr(d, 'day_open', 0) or 0)
+            last_price = float(getattr(d, 'last_price', 0) or 0)
+            high_limit = float(getattr(d, 'high_limit', 0) or 0)
+            low_limit = float(getattr(d, 'low_limit', 0) or 0)
+            ratio = (op / yc) if yc > 0 and op > 0 else 0.0
+            ratio_ok = lo < ratio < hi
+            not_limit = not (last_price >= high_limit * 0.999 or last_price <= low_limit * 1.001)
+            if not ratio_ok or not not_limit or getattr(d, 'paused', False):
+                continue
+            au = get_call_auction(s, start_date=date_str, end_date=date_str)
+            if au is None or au.empty:
+                continue
+            row = au.iloc[0]
+            buy_m = _cx_focus_calc_money(row, 'b')
+            sell_m = _cx_focus_calc_money(row, 'a')
+            if sell_m <= 0 or (buy_m - sell_m) / sell_m <= 0:
+                continue
+            df_val = get_valuation(s, start_date=context.previous_date, end_date=context.previous_date,
+                                   fields=['turnover_ratio'])
+            turn = 0.0
+            if df_val is not None and not df_val.empty:
+                turn = float(df_val.iloc[0].get('turnover_ratio', 0) or 0)
+            score = turn * ratio * (buy_m / sell_m)
+            rows.append((s, score, ratio, turn, buy_m, sell_m))
+        except Exception as e:
+            log.info('[CX-ORDER] leg=%s code=%s scan_error=%r' % (leg, s, e))
+    rows.sort(key=lambda x: (-x[1], x[0]))
+    if not rows:
+        log.info('[CX-ORDER] leg=%s pass_list=EMPTY' % leg)
+        return
+    parts = []
+    for s, score, ratio, turn, buy_m, sell_m in rows[:20]:
+        parts.append('%s score=%.6f ratio=%.6f turn=%.6f bs=%.4f' % (
+            s, score, ratio, turn, (buy_m / sell_m if sell_m else 0.0)
+        ))
+    log.info('[CX-ORDER] leg=%s pass_list=%s' % (leg, ' | '.join(parts)))
+
+
+_CX_ORDERTRACE_ORIG_ORDER_VALUE = order_value
+_CX_ORDERTRACE_CONTEXT = None
+
+def order_value(security, value, style=None):
+    ctx = globals().get('_CX_ORDERTRACE_CONTEXT')
+    if ctx is None:
+        return _CX_ORDERTRACE_ORIG_ORDER_VALUE(security, value, style)
+    day = ctx.current_dt.strftime('%Y-%m-%d')
+    time_key = ctx.current_dt.strftime('%H:%M')
+    if _CX_FOCUS_DATES[0] <= day <= _CX_FOCUS_DATES[1] and time_key in ('09:27', '09:28'):
+        try:
+            px = getattr(style, 'limit_price', None)
+        except Exception:
+            px = None
+        log.info('[CX-ORDER] before order_value dt=%s %s security=%s value=%.2f style_px=%s available=%.2f locked=%.2f' % (
+            ctx.current_dt.strftime('%Y-%m-%d %H:%M'),
+            time_key,
+            security,
+            float(value or 0),
+            '%.4f' % float(px) if px else 'NA',
+            float(getattr(ctx.portfolio, 'available_cash', -1)),
+            float(getattr(ctx.portfolio, 'locked_cash', -1)),
+        ))
+    ret = _CX_ORDERTRACE_ORIG_ORDER_VALUE(security, value, style)
+    if _CX_FOCUS_DATES[0] <= day <= _CX_FOCUS_DATES[1] and time_key in ('09:27', '09:28'):
+        log.info('[CX-ORDER] after order_value dt=%s %s security=%s returned=%s available=%.2f locked=%.2f' % (
+            ctx.current_dt.strftime('%Y-%m-%d %H:%M'),
+            time_key,
+            security,
+            'None' if ret is None else 'Order',
+            float(getattr(ctx.portfolio, 'available_cash', -1)),
+            float(getattr(ctx.portfolio, 'locked_cash', -1)),
+        ))
+    return ret
+
+
+_CX_ORDERTRACE_PREV_BUY_RZQ = buy_rzq
+
+def buy_rzq(context):
+    global _CX_ORDERTRACE_CONTEXT
+    day = context.current_dt.strftime('%Y-%m-%d')
+    old_ctx = _CX_ORDERTRACE_CONTEXT
+    _CX_ORDERTRACE_CONTEXT = context
+    try:
+        if _CX_FOCUS_DATES[0] <= day <= _CX_FOCUS_DATES[1]:
+            _cx_ordertrace_scan_leg(context, 'rzq')
+        return _CX_ORDERTRACE_PREV_BUY_RZQ(context)
+    finally:
+        _CX_ORDERTRACE_CONTEXT = old_ctx
+
+
+_CX_ORDERTRACE_PREV_BUY_ZB = buy_zb
+
+def buy_zb(context):
+    global _CX_ORDERTRACE_CONTEXT
+    day = context.current_dt.strftime('%Y-%m-%d')
+    old_ctx = _CX_ORDERTRACE_CONTEXT
+    _CX_ORDERTRACE_CONTEXT = context
+    try:
+        if _CX_FOCUS_DATES[0] <= day <= _CX_FOCUS_DATES[1]:
+            _cx_ordertrace_scan_leg(context, 'zb')
+        return _CX_ORDERTRACE_PREV_BUY_ZB(context)
+    finally:
+        _CX_ORDERTRACE_CONTEXT = old_ctx
+
+
+
+
+

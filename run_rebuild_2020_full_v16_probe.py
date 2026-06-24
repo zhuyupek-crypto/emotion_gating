@@ -17,6 +17,7 @@ sys.modules["jqdata"] = importlib.import_module("jqdata_compat")
 
 from scripts.core import hdata_reader
 from engine.core import Engine
+from project_compat import EmotionGateJQCompat
 
 
 def main():
@@ -29,7 +30,7 @@ def main():
     print("Preload finished.", flush=True)
 
     start = time.time()
-    engine = Engine(strategy_code, "2020-01-01", "2020-12-31", 1000000)
+    engine = Engine(strategy_code, "2020-01-01", "2020-12-31", 1000000, compat=EmotionGateJQCompat(ROOT))
     equity, trades, logs, metrics = engine.run()
     elapsed = time.time() - start
 
@@ -52,3 +53,4 @@ if __name__ == "__main__":
     except Exception:
         traceback.print_exc()
         raise
+

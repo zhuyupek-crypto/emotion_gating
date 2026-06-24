@@ -14,8 +14,9 @@ sys.path.insert(1, ROOT)
 sys.path.insert(2, r"D:\work space\hdata")
 sys.modules["jqdata"] = importlib.import_module("jqdata_compat")
 
-from scripts.core import hdata_reader
+from core import hdata_reader
 from engine.core import Engine
+from project_compat import EmotionGateJQCompat
 
 
 def main():
@@ -34,7 +35,7 @@ def main():
     print("Preload finished.", flush=True)
 
     start = time.time()
-    engine = Engine(strategy_code, start_date, end_date, 1000000)
+    engine = Engine(strategy_code, start_date, end_date, 1000000, compat=EmotionGateJQCompat(ROOT))
     equity, trades, logs, metrics = engine.run()
     elapsed = time.time() - start
 

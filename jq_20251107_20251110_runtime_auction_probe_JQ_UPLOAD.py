@@ -2258,3 +2258,313 @@ def _record_trade(cost, last_price, stock=None):
             g.non_bull_consec_wins = 0
     if stock:
         g.buy_mode.pop(stock, None)
+
+# ===== Codex probe: 2024-12-09 pre-open cash/slot semantics =====
+# Run in JoinQuant backtest environment, date range 2024-01-01 to 2024-12-16. Quiet full-path probe.
+# Quiet mode suppresses ordinary strategy logs and keeps only CX-1209 plus target-window buy/sell lines.
+
+def _cx1209_pf(context, label):
+    try:
+        dt = context.current_dt.strftime('%Y-%m-%d %H:%M')
+    except Exception:
+        dt = str(getattr(context, 'current_dt', 'NA'))
+    try:
+        pos_keys = sorted(list(context.portfolio.positions.keys()))
+    except Exception:
+        pos_keys = []
+    try:
+        owner_items = sorted(['%s:%s' % (k, v) for k, v in getattr(g, 'owner', {}).items()])
+    except Exception:
+        owner_items = []
+    log.info('[CX-1209] %s dt=%s available=%.2f locked=%.2f total=%.2f positions=%s owners=%s active=%s slots=%s/%s cands_rzq=%d cands_zb=%d' % (
+        label,
+        dt,
+        float(getattr(context.portfolio, 'available_cash', -1)),
+        float(getattr(context.portfolio, 'locked_cash', -1)),
+        float(getattr(context.portfolio, 'total_value', -1)),
+        ','.join(pos_keys),
+        ','.join(owner_items),
+        getattr(g, 'active', 'NA'),
+        getattr(g, 'rzq_slots', 'NA'),
+        getattr(g, 'zb_slots', 'NA'),
+        len(getattr(g, 'rzq_candidates', []) or []),
+        len(getattr(g, 'zb_candidates', []) or []),
+    ))
+
+_orig_cx1209_buy_rzq = buy_rzq
+def buy_rzq(context):
+    day = context.current_dt.strftime('%Y-%m-%d')
+    if '2024-12-09' <= day <= '2024-12-10':
+        _cx1209_pf(context, 'before_buy_rzq')
+        try:
+            log.info('[CX-1209] rzq_candidates=%s' % ','.join(list(getattr(g, 'rzq_candidates', []) or [])[:20]))
+        except Exception:
+            pass
+    ret = _orig_cx1209_buy_rzq(context)
+    if '2024-12-09' <= day <= '2024-12-10':
+        _cx1209_pf(context, 'after_buy_rzq')
+    return ret
+
+_orig_cx1209_buy_zb = buy_zb
+def buy_zb(context):
+    day = context.current_dt.strftime('%Y-%m-%d')
+    if '2024-12-09' <= day <= '2024-12-10':
+        _cx1209_pf(context, 'before_buy_zb')
+        try:
+            log.info('[CX-1209] zb_candidates_head=%s contains_002114=%s contains_002144=%s' % (
+                ','.join(list(getattr(g, 'zb_candidates', []) or [])[:40]),
+                '002114.XSHE' in (getattr(g, 'zb_candidates', []) or []),
+                '002144.XSHE' in (getattr(g, 'zb_candidates', []) or []),
+            ))
+        except Exception:
+            pass
+    ret = _orig_cx1209_buy_zb(context)
+    if '2024-12-09' <= day <= '2024-12-10':
+        _cx1209_pf(context, 'after_buy_zb')
+    return ret
+
+# ===== Codex quiet full-path log filter =====
+# Keep the full-year rolling state, but avoid JoinQuant log overflow.
+_CX1209_ORIG_LOG_INFO = log.info
+_CX1209_LOG_WINDOW = False
+_CX1209_KEEP_MARKERS = (
+    '[CX-1209]',
+    '[rzq买]', '[zb买]', '[rzq卖]', '[zb卖]',
+    '[竞价买]', '[竞价卖', '[v227买]', '[天蝎座]', '[v227止盈]', '[v227止损]', '[bull强清]',
+    '[BIG_TRADE]', '[STATE] date=2024-12-09', '[STATE] date=2024-12-10',
+)
+
+def _cx1209_quiet_log_info(msg, *args, **kwargs):
+    try:
+        text = str(msg)
+    except Exception:
+        text = ''
+    if '[CX-1209]' in text:
+        return _CX1209_ORIG_LOG_INFO(msg, *args, **kwargs)
+    if globals().get('_CX1209_LOG_WINDOW', False):
+        for marker in _CX1209_KEEP_MARKERS:
+            if marker in text:
+                return _CX1209_ORIG_LOG_INFO(msg, *args, **kwargs)
+    return None
+
+log.info = _cx1209_quiet_log_info
+
+# Re-wrap the buy functions so original strategy buy logs inside these handlers
+# are temporarily visible only on the target dates.
+_CX1209_PRE_QUIET_BUY_RZQ = buy_rzq
+_CX1209_PRE_QUIET_BUY_ZB = buy_zb
+
+def buy_rzq(context):
+    global _CX1209_LOG_WINDOW
+    day = context.current_dt.strftime('%Y-%m-%d')
+    old = _CX1209_LOG_WINDOW
+    _CX1209_LOG_WINDOW = ('2024-12-09' <= day <= '2024-12-10')
+    try:
+        return _CX1209_PRE_QUIET_BUY_RZQ(context)
+    finally:
+        _CX1209_LOG_WINDOW = old
+
+
+def buy_zb(context):
+    global _CX1209_LOG_WINDOW
+    day = context.current_dt.strftime('%Y-%m-%d')
+    old = _CX1209_LOG_WINDOW
+    _CX1209_LOG_WINDOW = ('2024-12-09' <= day <= '2024-12-10')
+    try:
+        return _CX1209_PRE_QUIET_BUY_ZB(context)
+    finally:
+        _CX1209_LOG_WINDOW = old
+# ===== Codex 2025-11-07 / 2025-11-10 runtime auction probe =====
+_CX2511_TARGET_DATES = {'2025-11-07', '2025-11-10'}
+_CX2511_TARGET_CODES = ('002170.XSHE', '002544.XSHE', '002513.XSHE')
+_CX2511_ORIG_LOG_INFO = log.info
+_CX2511_LOG_WINDOW = False
+_CX2511_KEEP_MARKERS = (
+    '[CX-2511]',
+    '[竞价买]', '[竞价卖', '[rzq买]', '[rzq卖]', '[zb买]', '[zb卖]',
+    '[v227买]', '[v227止盈]', '[v227止损]', '[BIG_TRADE]',
+)
+
+
+def _cx2511_in_window(context):
+    try:
+        return context.current_dt.strftime('%Y-%m-%d') in _CX2511_TARGET_DATES
+    except Exception:
+        return False
+
+
+def _cx2511_quiet_log_info(msg, *args, **kwargs):
+    try:
+        text = str(msg)
+    except Exception:
+        text = ''
+    if '[CX-2511]' in text:
+        return _CX2511_ORIG_LOG_INFO(msg, *args, **kwargs)
+    if globals().get('_CX2511_LOG_WINDOW', False):
+        for marker in _CX2511_KEEP_MARKERS:
+            if marker in text:
+                return _CX2511_ORIG_LOG_INFO(msg, *args, **kwargs)
+    return None
+
+
+log.info = _cx2511_quiet_log_info
+
+
+def _cx2511_full_auction(stock, day):
+    try:
+        df = get_call_auction(stock, start_date=day, end_date=day)
+    except Exception as exc:
+        return {'err': repr(exc)}
+    if df is None or df.empty:
+        return {'rows': 0}
+    row = df.iloc[0]
+    buy_m = sum(row.get('b%d_p' % i, 0) * row.get('b%d_v' % i, 0) for i in range(1, 6))
+    sell_m = sum(row.get('a%d_p' % i, 0) * row.get('a%d_v' % i, 0) for i in range(1, 6))
+    return {
+        'rows': len(df),
+        'current': row.get('current', None),
+        'volume': row.get('volume', None),
+        'buy_m': buy_m,
+        'sell_m': sell_m,
+        'net_ratio': ((buy_m - sell_m) / sell_m) if sell_m else None,
+    }
+
+
+def _cx2511_narrow_auction(stock, day):
+    start = day + ' 09:15:00'
+    end = day + ' 09:25:00'
+    try:
+        res = get_call_auction([stock], start_date=start, end_date=end, fields=['time', 'volume', 'current'])
+        df = res.get(stock) if isinstance(res, dict) else res
+    except Exception as exc:
+        return {'err': repr(exc)}
+    if df is None or df.empty:
+        return {'rows': 0}
+    row = df.iloc[0]
+    return {
+        'rows': len(df),
+        'current': row.get('current', None),
+        'volume': row.get('volume', None),
+    }
+
+
+def _cx2511_prev_day(context):
+    try:
+        return context.previous_date.strftime('%Y-%m-%d')
+    except Exception:
+        return None
+
+
+def _cx2511_dump_targets(context, label):
+    if not _cx2511_in_window(context):
+        return
+    day = context.current_dt.strftime('%Y-%m-%d')
+    prev_day = _cx2511_prev_day(context)
+    cd = None
+    try:
+        cd = get_current_data()
+    except Exception:
+        cd = None
+    try:
+        val = get_valuation(list(_CX2511_TARGET_CODES), start_date=context.previous_date, end_date=context.previous_date,
+                            fields=['market_cap', 'circulating_market_cap', 'turnover_ratio'])
+        val_map = {row['code']: row for _, row in val.iterrows()} if val is not None and not val.empty else {}
+    except Exception:
+        val_map = {}
+    log.info('[CX-2511] %s day=%s mode=%s active=%s slots=v227:%s,rzq:%s,zb:%s,auction:%s counts=yjj:%s,auction:%s,rzq:%s,zb:%s owner=%s' % (
+        label,
+        day,
+        getattr(g, 'market_mode', 'NA'),
+        getattr(g, 'active', 'NA'),
+        getattr(g, 'v227_slots', 'NA'),
+        getattr(g, 'rzq_slots', 'NA'),
+        getattr(g, 'zb_slots', 'NA'),
+        getattr(g, 'auction_yiqian_slots', 'NA'),
+        len(getattr(g, 'yjj_candidates', []) or []),
+        len(getattr(g, 'auction_yiqian_candidates', []) or []),
+        len(getattr(g, 'rzq_candidates', []) or []),
+        len(getattr(g, 'zb_candidates', []) or []),
+        ','.join('%s:%s' % (k, getattr(g, 'owner', {}).get(k, '')) for k in sorted(getattr(g, 'owner', {}).keys())),
+    ))
+    for stock in _CX2511_TARGET_CODES:
+        d = cd[stock] if cd is not None else None
+        v = val_map.get(stock)
+        log.info('[CX-2511] stock=%s prev=%s in_yjj=%s in_auction=%s in_rzq=%s in_zb=%s owner=%s left_ok=%s kind=%s yclose=%s day_open=%s last=%s hi=%s lo=%s paused=%s mc=%s cmc=%s tr=%s narrow=%s full=%s' % (
+            stock,
+            prev_day,
+            stock in (getattr(g, 'yjj_candidates', []) or []),
+            stock in (getattr(g, 'auction_yiqian_candidates', []) or []),
+            stock in (getattr(g, 'rzq_candidates', []) or []),
+            stock in (getattr(g, 'zb_candidates', []) or []),
+            getattr(g, 'owner', {}).get(stock, ''),
+            getattr(g, 'auction_yiqian_left_ok', {}).get(stock, None),
+            getattr(g, 'auction_yiqian_kind', {}).get(stock, ''),
+            getattr(g, 'auction_yiqian_yclose', {}).get(stock, getattr(g, 'rzq_yclose', {}).get(stock, getattr(g, 'zb_yclose', {}).get(stock, None))),
+            getattr(d, 'day_open', None) if d is not None else None,
+            getattr(d, 'last_price', None) if d is not None else None,
+            getattr(d, 'high_limit', None) if d is not None else None,
+            getattr(d, 'low_limit', None) if d is not None else None,
+            getattr(d, 'paused', None) if d is not None else None,
+            None if v is None else v.get('market_cap', None),
+            None if v is None else v.get('circulating_market_cap', None),
+            None if v is None else v.get('turnover_ratio', None),
+            _cx2511_narrow_auction(stock, day),
+            _cx2511_full_auction(stock, day),
+        ))
+
+
+_CX2511_PREPARE_ALL = prepare_all
+_CX2511_BUY_AUCTION = buy_auction_yiqian
+_CX2511_BUY_RZQ = buy_rzq
+_CX2511_BUY_ZB = buy_zb
+
+
+def prepare_all(context):
+    global _CX2511_LOG_WINDOW
+    old = _CX2511_LOG_WINDOW
+    _CX2511_LOG_WINDOW = _cx2511_in_window(context)
+    try:
+        ret = _CX2511_PREPARE_ALL(context)
+        _cx2511_dump_targets(context, 'prepare_all:after')
+        return ret
+    finally:
+        _CX2511_LOG_WINDOW = old
+
+
+def buy_auction_yiqian(context):
+    global _CX2511_LOG_WINDOW
+    old = _CX2511_LOG_WINDOW
+    _CX2511_LOG_WINDOW = _cx2511_in_window(context)
+    try:
+        _cx2511_dump_targets(context, 'buy_auction:before')
+        ret = _CX2511_BUY_AUCTION(context)
+        _cx2511_dump_targets(context, 'buy_auction:after')
+        return ret
+    finally:
+        _CX2511_LOG_WINDOW = old
+
+
+def buy_rzq(context):
+    global _CX2511_LOG_WINDOW
+    old = _CX2511_LOG_WINDOW
+    _CX2511_LOG_WINDOW = _cx2511_in_window(context)
+    try:
+        _cx2511_dump_targets(context, 'buy_rzq:before')
+        ret = _CX2511_BUY_RZQ(context)
+        _cx2511_dump_targets(context, 'buy_rzq:after')
+        return ret
+    finally:
+        _CX2511_LOG_WINDOW = old
+
+
+def buy_zb(context):
+    global _CX2511_LOG_WINDOW
+    old = _CX2511_LOG_WINDOW
+    _CX2511_LOG_WINDOW = _cx2511_in_window(context)
+    try:
+        _cx2511_dump_targets(context, 'buy_zb:before')
+        ret = _CX2511_BUY_ZB(context)
+        _cx2511_dump_targets(context, 'buy_zb:after')
+        return ret
+    finally:
+        _CX2511_LOG_WINDOW = old

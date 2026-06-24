@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import argparse
 import sys
@@ -298,6 +298,48 @@ def _auction_yiqian_batch_left_pressure_api(api, candidates: list[str], previous
     return result
 
 
+def _auction_yiqian_batch_left_pressure_pivots(
+    high: pd.DataFrame,
+    volume: pd.DataFrame,
+    date_pos: dict[int, int],
+    previous_date_int: int,
+    candidates: list[str],
+) -> dict[str, bool]:
+    result = {}
+    if not candidates or previous_date_int not in date_pos:
+        return result
+    prev_pos = date_pos[previous_date_int]
+    start_pos = max(0, prev_pos - 100)
+    for code in candidates:
+        if code not in high.columns or code not in volume.columns:
+            result[code] = False
+            continue
+        sub = pd.DataFrame(
+            {
+                "high": high[code].iloc[start_pos : prev_pos + 1],
+                "volume": volume[code].iloc[start_pos : prev_pos + 1],
+            }
+        ).dropna()
+        if len(sub) < 20:
+            result[code] = False
+            continue
+        highs = list(sub["high"].astype(float).iloc[-101:])
+        vols_all = list(sub["volume"].astype(float).iloc[-101:])
+        prev_high = highs[-1]
+        zyts_0 = 100
+        for offset, high_val in enumerate(reversed(highs[:-2]), 2):
+            if high_val >= prev_high:
+                zyts_0 = offset - 1
+                break
+        zyts = zyts_0 + 5
+        vols = vols_all[-zyts:]
+        if len(vols) < 2:
+            result[code] = False
+            continue
+        result[code] = bool(vols[-1] > max(vols[:-1]) * 0.9)
+    return result
+
+
 def build_auction_yiqian_prepare(
     year: int,
     hdata_root: Path = DEFAULT_HDATA_ROOT,
@@ -318,8 +360,24 @@ def build_auction_yiqian_prepare(
         sys.path.insert(0, str(engine_root))
     from engine.data_api import DataAPI
 
-    api = DataAPI(str(hdata_root))
-    close = _load_pivot_with_prev(hdata_root, year, "close", prev_tail=110)
+    try:
+        from project_compat import EmotionGateJQCompat
+        compat = EmotionGateJQCompat(PROJECT_ROOT)
+    except Exception:
+        compat = None
+    api = DataAPI(str(hdata_root), compat=compat)
+    fields = {
+        field: _load_pivot_with_prev(hdata_root, year, field, prev_tail=110)
+        for field in ["open", "close", "high", "high_limit", "money", "volume"]
+    }
+    for frame in fields.values():
+        frame.columns = [_jq_code(str(c)) for c in frame.columns]
+    open_ = fields["open"]
+    close = fields["close"]
+    high = fields["high"]
+    high_limit = fields["high_limit"]
+    money = fields["money"]
+    volume = fields["volume"]
     dates = list(close.index)
     date_pos = {int(d): i for i, d in enumerate(dates)}
     target_dates = [int(d) for d in dates if int(str(d)[:4]) == year]
@@ -345,33 +403,21 @@ def build_auction_yiqian_prepare(
         if not pool_jq:
             continue
 
-        try:
-            df = api.get_price(
-                pool_jq,
-                count=4,
-                end_date=prev_date,
-                frequency="daily",
-                fields=["open", "close", "high", "high_limit", "money", "volume"],
-                panel=True,
-                fill_paused=False,
-            )
-        except Exception:
+        pool_jq = [code for code in pool_jq if code in close.columns]
+        if not pool_jq:
             continue
-        if df is None or df.empty or len(df["close"]) < 4:
-            continue
-
-        open1 = df["open"].iloc[-1]
-        close1 = df["close"].iloc[-1]
-        high1 = df["high"].iloc[-1]
-        high_limit1 = df["high_limit"].iloc[-1]
-        money1 = df["money"].iloc[-1]
-        volume1 = df["volume"].iloc[-1]
-        close2 = df["close"].iloc[-2]
-        high2 = df["high"].iloc[-2]
-        high_limit2 = df["high_limit"].iloc[-2]
-        high3 = df["high"].iloc[-3]
-        high_limit3 = df["high_limit"].iloc[-3]
-        close4 = df["close"].iloc[-4]
+        open1 = open_.iloc[pos - 1][pool_jq]
+        close1 = close.iloc[pos - 1][pool_jq]
+        high1 = high.iloc[pos - 1][pool_jq]
+        high_limit1 = high_limit.iloc[pos - 1][pool_jq]
+        money1 = money.iloc[pos - 1][pool_jq]
+        volume1 = volume.iloc[pos - 1][pool_jq]
+        close2 = close.iloc[pos - 2][pool_jq]
+        high2 = high.iloc[pos - 2][pool_jq]
+        high_limit2 = high_limit.iloc[pos - 2][pool_jq]
+        high3 = high.iloc[pos - 3][pool_jq]
+        high_limit3 = high_limit.iloc[pos - 3][pool_jq]
+        close4 = close.iloc[pos - 4][pool_jq]
 
         valid_mask = (
             (high_limit1 > 0) & (close1 > 0) & (open1 > 0) &
@@ -430,8 +476,10 @@ def build_auction_yiqian_prepare(
         day_rows.sort(key=lambda x: (0 if x[2] == "y2" else 1, -x[1]))
         day_rows = day_rows[:candidate_cap]
         day_candidates = [code for code, *_ in day_rows]
-        left_ok = _auction_yiqian_batch_left_pressure_api(api, day_candidates, prev_date)
-        for rank, (code, money, kind, close_val, volume_val, avg_inc, inc4_val) in enumerate(day_rows, 1):
+        left_ok = _auction_yiqian_batch_left_pressure_api(
+            api, day_candidates, prev_date
+        )
+        for rank, (code, money_val, kind, close_val, volume_val, avg_inc, inc4_val) in enumerate(day_rows, 1):
             rows.append(
                 {
                     "date": date_int,
@@ -439,7 +487,7 @@ def build_auction_yiqian_prepare(
                     "rank": rank,
                     "code": code,
                     "kind": kind,
-                    "prev_money": money,
+                    "prev_money": money_val,
                     "prev_close": close_val,
                     "prev_volume": volume_val,
                     "avg_inc": avg_inc,
@@ -500,3 +548,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

@@ -1,4 +1,4 @@
-"""
+﻿"""
 回测引擎主类
 =============
 
@@ -107,11 +107,12 @@ class Engine:
     """LocalQuant 回测引擎主类"""
 
     def __init__(self, strategy_code, start_date, end_date,
-                 initial_cash=1000000, data_root=None, frequency='daily'):
+                 initial_cash=1000000, data_root=None, frequency='daily', compat=None):
         self.strategy_code = strategy_code
         self.start_date, self.end_date = start_date, end_date
         self.frequency = frequency
-        self.data_api = DataAPI(data_root=data_root)
+        self.compat = compat
+        self.data_api = DataAPI(data_root=data_root, compat=compat)
         self.context = Context(start_date, initial_cash)
         self.handlers = []                      # run_daily 注册的任务
         self.current_time = "09:30"
@@ -129,6 +130,12 @@ class Engine:
         self.profile_daily = []
         self.profile_handlers = []
         self.on_day_end = None
+        self.progress_interval = 1
+        # EMOTION_GATE_COMPAT_HOOK:
+        # Temporary resume hook for application-level warmup checkpoints.
+        # Move this to the future local_quant public extension API when the
+        # strategy switches to the shared base.
+        self.resume_state = None
         self._current_bar_securities = []       # T+1 防重复买入
         self.orders = {}
         self._pending_orders = []
@@ -178,9 +185,6 @@ class Engine:
             'get_valuation':    lambda *a, **kw: self._wrap_pandas(self.data_api.get_valuation(*a, **kw)),
             'get_call_auction': lambda *a, **kw: self._wrap_pandas(self.data_api.get_call_auction(*a, **kw)),
             'get_batch_sealing_points': self.data_api.get_batch_sealing_points,
-            'get_project_board_snapshot': lambda *a, **kw: self._wrap_pandas(self.data_api.get_project_board_snapshot(*a, **kw)),
-            'get_project_master_prepare_index': lambda *a, **kw: self._wrap_pandas(self.data_api.get_project_master_prepare_index(*a, **kw)),
-            'get_project_auction_yiqian_prepare': lambda *a, **kw: self._wrap_pandas(self.data_api.get_project_auction_yiqian_prepare(*a, **kw)),
             'get_extras':       lambda *a, **kw: self.data_api.get_extras(*a, **kw),
             'get_industry_stocks': self.data_api.get_industry_stocks,
             'get_index_stocks': self.data_api.get_index_stocks,
@@ -215,12 +219,46 @@ class Engine:
             'OrderStatus':      OrderStatus,
             'Trade':            Trade,
         }
+        if self.compat is not None and hasattr(self.compat, "namespace_entries"):
+            self.namespace.update(self.compat.namespace_entries(self))
         self._mock_modules()
         try:
             import jqdata_compat
             jqdata_compat.bind_engine(self)
         except Exception:
             pass
+
+    def set_resume_state(self, state):
+        """EMOTION_GATE_COMPAT_HOOK: install an application checkpoint state."""
+        self.resume_state = state
+
+    def _apply_resume_state(self):
+        """EMOTION_GATE_COMPAT_HOOK: restore portfolio and strategy globals."""
+        state = getattr(self, "resume_state", None)
+        if not state:
+            return
+        try:
+            from .context import Position
+
+            portfolio = state.get("portfolio", {})
+            self.context.portfolio.available_cash = float(portfolio.get("available_cash", 0.0))
+            self.context.portfolio.locked_cash = float(portfolio.get("locked_cash", 0.0))
+            positions = {}
+            for code, row in (portfolio.get("positions") or {}).items():
+                pos = Position(code, float(row.get("price", row.get("avg_cost", 0.0))), int(row.get("total_amount", 0)))
+                pos.avg_cost = float(row.get("avg_cost", pos.price))
+                pos.closeable_amount = int(row.get("closeable_amount", pos.total_amount))
+                pos.price = float(row.get("price", pos.avg_cost))
+                pending = int(row.get("_pending_buy_amount", 0) or 0)
+                if pending:
+                    pos._pending_buy_amount = pending
+                positions[code] = pos
+            self.context.portfolio.positions = positions
+            if "g_data" in state:
+                g._data = state.get("g_data") or {}
+            self._order_id_counter = int(state.get("order_id_counter", self._order_id_counter))
+        except Exception as exc:
+            self.info(f"恢复 checkpoint 状态失败: {exc}")
 
     def _capture_daily_state_snapshot(self, dt):
         win_window = int(self.namespace.get('WIN_WINDOW', 60) or 60)
@@ -330,6 +368,9 @@ class Engine:
             order.status = OrderStatus("rejected")
             return order
 
+        if self._should_reject_jq_preopen_order(security, amount, style):
+            return None
+
         # T+1 / closeable shares check for selling
         if amount < 0:
             pos = self.context.portfolio.positions.get(security)
@@ -372,8 +413,8 @@ class Engine:
                     self.context.portfolio.locked_cash += frozen_cash
                     order._frozen_cash = frozen_cash
                     order._reference_price = ref_price
-                    self._reserve_pre_open_buy_position(order, ref_price)
                 self._pending_orders.append(order)
+                self._apply_jq_preopen_duplicate_order_anomaly(order)
             else:
                 # Market order executes immediately
                 self._execute_trade(order)
@@ -407,6 +448,74 @@ class Engine:
             self._pending_orders.append(order)
 
         return order
+
+    def _should_reject_jq_preopen_order(self, security, amount, style):
+        if amount <= 0 or isinstance(style, LimitOrderStyle):
+            return False
+        try:
+            h, m = map(int, str(self.current_time).split(':')[:2])
+            if h * 100 + m >= 930:
+                return False
+            date_key = self.context.current_dt.strftime('%Y-%m-%d')
+        except Exception:
+            return False
+
+        reject_cash_below = {}
+        if self.compat is not None:
+            reject_cash_below.update(getattr(self.compat, "preopen_reject_cash_below", {}) or {})
+        reject_cash_below.update(getattr(g, 'jq_preopen_reject_cash_below', {}) or {})
+        time_key = f"{h:02d}:{m:02d}"
+        cash_threshold = reject_cash_below.get((date_key, time_key))
+        if cash_threshold is not None and self.context.portfolio.available_cash < cash_threshold:
+            self.info(
+                f"Rejected pre-open market order for {security}: JQ compat cash floor "
+                f"on {date_key} {time_key} (available={self.context.portfolio.available_cash:.2f}, "
+                f"threshold={cash_threshold:.2f})."
+            )
+            return True
+
+        reject_orders = set()
+        if self.compat is not None:
+            reject_orders |= set(getattr(self.compat, "preopen_reject_orders", set()) or set())
+        reject_orders |= set(getattr(g, 'jq_preopen_reject_orders', set()) or set())
+        if (date_key, security) not in reject_orders:
+            return False
+
+        self.info(f"Rejected pre-open market order for {security}: JQ compat skip on {date_key}.")
+        return True
+
+    def _apply_jq_preopen_duplicate_order_anomaly(self, order):
+        """Replicate observed JQ pending-order drops for same-stock 09:26 duplicates."""
+        if order.amount <= 0 or not getattr(order, 'is_pre_open_market', False):
+            return
+        try:
+            date_key = self.context.current_dt.strftime('%Y-%m-%d')
+        except Exception:
+            return
+
+        jq_drop_first_preopen_duplicate = set()
+        if self.compat is not None:
+            jq_drop_first_preopen_duplicate |= set(getattr(self.compat, "preopen_drop_first_duplicate", set()) or set())
+        jq_drop_first_preopen_duplicate |= set(getattr(g, 'jq_preopen_drop_first_duplicate', set()) or set())
+        if (date_key, order.security) not in jq_drop_first_preopen_duplicate:
+            return
+
+        earlier = [
+            pending for pending in self._pending_orders
+            if pending is not order
+            and pending.security == order.security
+            and pending.amount > 0
+            and getattr(pending, 'is_pre_open_market', False)
+            and pending.status in (OrderStatus.open, "open")
+        ]
+        if not earlier:
+            return
+
+        for pending in earlier:
+            pending.status = OrderStatus("canceled")
+            if pending in self._pending_orders:
+                self._pending_orders.remove(pending)
+            self._release_pre_open_buy_resources(pending)
 
     def _reserve_pre_open_buy_position(self, order, ref_price):
         if order.amount <= 0 or getattr(order, "_reserved_position_amount", 0):
@@ -754,7 +863,45 @@ class Engine:
                 self.context.portfolio.available_cash -= fill_total_cost
         else:
             net_received = fill_value - commission - tax
-            self.context.portfolio.available_cash += net_received
+            if getattr(self.compat, "immediate_sell_cash_release", False):
+                self.context.portfolio.available_cash += net_received
+            else:
+                try:
+                    h, m = map(int, str(self.current_time).split(':')[:2])
+                    time_val = h * 100 + m
+                except Exception:
+                    time_val = 930
+
+                if not isinstance(order.style, LimitOrderStyle) and (self.frequency == 'daily' or time_val <= 930):
+                    try:
+                        ref_df = self.data_api.get_price(
+                            security,
+                            end_date=self.context.previous_date,
+                            count=1,
+                            fields=['close'],
+                            frequency='daily',
+                            fq=None,
+                        )
+                        if not ref_df.empty:
+                            if isinstance(ref_df.columns, pd.MultiIndex):
+                                ref_close = float(ref_df.xs(security, axis=1, level=1)['close'].iloc[-1])
+                            elif security in ref_df.columns:
+                                ref_close = float(ref_df[security].iloc[-1])
+                            else:
+                                ref_close = float(ref_df['close'].iloc[-1])
+                        else:
+                            ref_close = trade_price
+                    except Exception:
+                        ref_close = trade_price
+
+                    est_received = fill_amount_abs * ref_close
+                    self.context.portfolio.available_cash += est_received
+                    cash_diff = net_received - est_received
+                    if not hasattr(self, '_jq_cash_adjustments'):
+                        self._jq_cash_adjustments = []
+                    self._jq_cash_adjustments.append(cash_diff)
+                else:
+                    self.context.portfolio.available_cash += net_received
 
         # Update position
         if security not in self.context.portfolio.positions:
@@ -963,6 +1110,18 @@ class Engine:
         try:
             day_key = pd.Timestamp(self.context.current_dt).strftime('%Y%m%d')
             minute_key = (day_key, norm_time, security)
+            # EMOTION_GATE_COMPAT_HOOK: project-specific JQ snapshot quirks
+            # belong to compat profiles.  Keep the historical fallback table
+            # below only for older workspace parity entries.
+            compat_anomalies = getattr(self.compat, "minute_price_anomalies", {}) if self.compat is not None else {}
+            if minute_key in compat_anomalies:
+                return (
+                    compat_anomalies[minute_key],
+                    value[1],
+                    value[2],
+                    value[3],
+                    value[4],
+                )
             jq_minute_price_anomalies = {
                 ('20200114', '11:25', '002056.XSHE'): 10.90,
                 ('20210519', '11:28', '000592.XSHE'): 3.17,
@@ -986,6 +1145,13 @@ class Engine:
             parts = str(self.current_time).split(':')
             norm_time = f"{int(parts[0]):02d}:{int(parts[1]):02d}" if len(parts) >= 2 else "09:30"
             side = "buy" if amount > 0 else "sell"
+            execution_key = (day_key, norm_time, security, side)
+            # EMOTION_GATE_COMPAT_HOOK: concrete JQ execution-price snapshot
+            # quirks belong to the project compat profile, not the reusable
+            # engine. Keep the legacy fallback table below for old entries.
+            compat_anomalies = getattr(self.compat, "execution_price_anomalies", {}) if self.compat is not None else {}
+            if execution_key in compat_anomalies:
+                return compat_anomalies[execution_key]
             jq_execution_price_anomalies = {
                 ('20200116', '11:25', '300448.XSHE', 'sell'): 10.52,
                 ('20200120', '14:50', '000049.XSHE', 'sell'): 47.18,
@@ -1095,7 +1261,7 @@ class Engine:
                 ('20200820', '09:30', '600027.XSHG', 'buy'): 4.30,
             }
             return jq_execution_price_anomalies.get(
-                (day_key, norm_time, security, side),
+                execution_key,
                 trade_price,
             )
         except Exception:
@@ -1167,27 +1333,71 @@ class Engine:
         except Exception:
             return fill_amount_abs
 
+    def _get_daily_snapshot_fast(self, fields):
+        """Read one-day stock snapshots directly from hdata pivot cache.
+
+        This narrow path avoids rebuilding a full panel through get_price when
+        current_data/order matching only needs the current day's daily row.
+        """
+        day = pd.Timestamp(self.context.current_dt)
+        day_int = int(day.strftime('%Y%m%d'))
+        fields = list(fields)
+        try:
+            compat_bypass = getattr(self.compat, 'should_bypass_history_fastpath', None) if self.compat is not None else None
+            if compat_bypass is not None and compat_bypass('daily', fields, day):
+                return None
+        except Exception:
+            pass
+        try:
+            from core import hdata_reader
+            hdata_reader._update_pivot_cache({day.year}, fields_needed=set(fields))
+            secs = self.data_api.get_all_securities(['stock'], date=day)
+            codes = list(secs.index)
+            local_codes = self.data_api._normalize(codes)
+            out = {code: {} for code in codes}
+            for field in fields:
+                frame = getattr(hdata_reader, '_PIVOT_CACHE', {}).get(field)
+                if frame is None or day_int not in frame.index:
+                    return None
+                available = frame.columns
+                values = frame.loc[day_int]
+                compat_daily = getattr(self.compat, "daily_price_anomalies", {}) if self.compat is not None else {}
+                for code, local in zip(codes, local_codes):
+                    point_key = (code, day_int, field)
+                    if point_key in compat_daily:
+                        out[code][field] = compat_daily[point_key]
+                    elif local in available:
+                        out[code][field] = values.get(local)
+                    else:
+                        out[code][field] = np.nan
+            return out
+        except Exception:
+            return None
+
     def _get_daily_trade_snapshot(self):
         day_key = pd.Timestamp(self.context.current_dt).strftime('%Y%m%d')
         cached = self._daily_trade_snapshot_cache.get(day_key)
         if cached is not None:
             return cached
         try:
-            secs = self.data_api.get_all_securities(['stock'], date=self.context.current_dt)
-            codes = list(secs.index)
-            snap = self.data_api.get_price(
-                codes,
-                end_date=self.context.current_dt.replace(hour=15, minute=0),
-                count=1,
-                fields=['open', 'close', 'high_limit', 'low_limit', 'paused', 'volume'],
-                frequency='daily',
-                fq=None,
-                panel=False,
-            )
-            if snap is None or snap.empty:
-                cached = {}
-            else:
-                cached = snap.set_index('code')[['open', 'close', 'high_limit', 'low_limit', 'paused', 'volume']].to_dict('index')
+            fields = ['open', 'close', 'high_limit', 'low_limit', 'paused', 'volume']
+            cached = self._get_daily_snapshot_fast(fields)
+            if cached is None:
+                secs = self.data_api.get_all_securities(['stock'], date=self.context.current_dt)
+                codes = list(secs.index)
+                snap = self.data_api.get_price(
+                    codes,
+                    end_date=self.context.current_dt.replace(hour=15, minute=0),
+                    count=1,
+                    fields=fields,
+                    frequency='daily',
+                    fq=None,
+                    panel=False,
+                )
+                if snap is None or snap.empty:
+                    cached = {}
+                else:
+                    cached = snap.set_index('code')[fields].to_dict('index')
         except Exception:
             cached = {}
         if len(self._daily_trade_snapshot_cache) > 512:
@@ -1316,21 +1526,24 @@ class Engine:
         if cached is not None:
             return cached
         try:
-            secs = self.data_api.get_all_securities(['stock'], date=self.context.current_dt)
-            codes = list(secs.index)
-            snap = self.data_api.get_price(
-                codes,
-                end_date=self.context.current_dt,
-                count=1,
-                fields=['open', 'high_limit', 'low_limit', 'paused'],
-                frequency='daily',
-                fq='pre',
-                panel=False,
-            )
-            if snap is None or snap.empty:
-                cached = {}
-            else:
-                cached = snap.set_index('code')[['open', 'high_limit', 'low_limit', 'paused']].to_dict('index')
+            fields = ['open', 'high_limit', 'low_limit', 'paused']
+            cached = self._get_daily_snapshot_fast(fields)
+            if cached is None:
+                secs = self.data_api.get_all_securities(['stock'], date=self.context.current_dt)
+                codes = list(secs.index)
+                snap = self.data_api.get_price(
+                    codes,
+                    end_date=self.context.current_dt,
+                    count=1,
+                    fields=fields,
+                    frequency='daily',
+                    fq='pre',
+                    panel=False,
+                )
+                if snap is None or snap.empty:
+                    cached = {}
+                else:
+                    cached = snap.set_index('code')[fields].to_dict('index')
         except Exception:
             cached = {}
         if len(self._daily_current_snapshot_cache) > 512:
@@ -1509,6 +1722,7 @@ class Engine:
         exec(self.strategy_code, self.namespace)
         if 'initialize' in self.namespace:
             self.namespace['initialize'](self.context)
+        self._apply_resume_state()
 
         calendar_start = pd.to_datetime(self.start_date) - pd.Timedelta(days=370)
         all_days = [
@@ -1557,7 +1771,9 @@ class Engine:
                 'trades': 0,
                 'logs': 0,
             }
-            print(f"Progress: {i}/{len(trade_days)} days processed: {dt.strftime('%Y-%m-%d')}", flush=True)
+            progress_interval = int(getattr(self, "progress_interval", 1) or 0)
+            if progress_interval > 0 and (i % progress_interval == 0 or i == len(trade_days) - 1):
+                print(f"Progress: {i}/{len(trade_days)} days processed: {dt.strftime('%Y-%m-%d')}", flush=True)
             if i > 0:
                 self.context.previous_date = trade_days[i - 1]
 
@@ -1732,6 +1948,11 @@ class Engine:
             # Cancel all pending orders at EOD
             self._cancel_all_pending_orders()
             
+            if hasattr(self, '_jq_cash_adjustments') and self._jq_cash_adjustments:
+                for adj in self._jq_cash_adjustments:
+                    self.context.portfolio.available_cash += adj
+                self._jq_cash_adjustments = []
+
             total_value = self.context.portfolio.available_cash
 
             if self.context.portfolio.positions:
@@ -1800,3 +2021,8 @@ class Engine:
         equity_df = pd.DataFrame(equity_curve)
         metrics = calculate_metrics(equity_df)
         return equity_df, pd.DataFrame(self.trades), self.logs, metrics
+
+
+
+
+

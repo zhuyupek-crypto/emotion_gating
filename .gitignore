@@ -1,4 +1,4 @@
-# Python/runtime caches
+﻿# Python/runtime caches
 __pycache__/
 *.py[cod]
 .pytest_cache/
@@ -13,6 +13,8 @@ _backtest_pid.json
 # Generated backtest/probe outputs
 output/
 project_cache/
+checkpoints/
+tmp/
 bare_runs_analysis/
 rebuild_*/
 rebuild_full_*/
@@ -27,6 +29,7 @@ repair_local_quant/
 # Generated compare/audit/result files
 *.csv
 *.parquet
+*.prof
 *.log
 *.err
 *.txt
@@ -68,3 +71,5 @@ codex_strategy_dissection/outputs/
 !rebuild_from_archive/**
 rebuild_from_archive/**/__pycache__/
 rebuild_from_archive/**/*.pyc
+
+

@@ -1,4 +1,4 @@
-import os
+﻿import os
 import sys, importlib
 _LOCAL_STRATEGY_DIR = os.path.dirname(os.path.abspath(globals().get("__file__", os.getcwd())))
 _LOCAL_JQ_ROOT = os.path.join(_LOCAL_STRATEGY_DIR, "rebuild_from_archive")
@@ -192,11 +192,11 @@ def initialize(context):
     g.fb_pct = 0.5
     g.fb_perf_history = deque(maxlen=FB_WINDOW)
 
-    run_daily(prepare_all, '9:05')
+    run_daily(probe_prepare_all, '9:05')
     run_daily(buy_auction_yiqian, '9:26')
     run_daily(buy_v227_一进二, '9:26')
-    run_daily(buy_rzq, '9:27')
-    run_daily(buy_zb, '9:28')
+    run_daily(probe_buy_rzq, '9:27')
+    run_daily(probe_buy_zb, '9:28')
     run_daily(buy_v227_天蝎座, '9:30')
     run_daily(sell_v227_morning, '11:25')
     run_daily(sell_auction_yiqian, '11:25')
@@ -2258,3 +2258,309 @@ def _record_trade(cost, last_price, stock=None):
             g.non_bull_consec_wins = 0
     if stock:
         g.buy_mode.pop(stock, None)
+
+# ======================================================================
+# Codex JQ runtime probe for 2024-04-11 rzq/zb split.
+# This block only logs runtime state; it does not change strategy decisions.
+# Run the backtest through 2024-04-11 and copy lines containing [CX-411].
+# ======================================================================
+import json as _cx_json
+
+CX411_DATES = set(['2024-04-10', '2024-04-11', '2024-04-12'])
+
+
+def _cx_in_window(context):
+    return context.current_dt.strftime('%Y-%m-%d') in CX411_DATES
+
+
+def _cx_num(x):
+    try:
+        if x is None:
+            return None
+        return float(x)
+    except Exception:
+        return None
+
+
+def _cx_obj(o):
+    if o is None:
+        return None
+    keys = [
+        'order_id', 'security', 'amount', 'filled', 'price', 'avg_cost',
+        'status', 'add_time', 'is_buy', 'side', 'action', 'style', 'limit',
+    ]
+    row = {}
+    for k in keys:
+        try:
+            v = getattr(o, k)
+        except Exception:
+            continue
+        try:
+            _cx_json.dumps(v)
+            row[k] = v
+        except Exception:
+            row[k] = str(v)
+    return row or str(o)
+
+
+def _cx_dump(label, payload):
+    try:
+        msg = _cx_json.dumps(payload, ensure_ascii=False, sort_keys=True)
+    except Exception as e:
+        msg = _cx_json.dumps({'dump_error': str(e), 'repr': repr(payload)}, ensure_ascii=False)
+    log.info('[CX-411] %s %s' % (label, msg))
+
+
+def _cx_positions(context):
+    rows = []
+    try:
+        for s, p in context.portfolio.positions.items():
+            try:
+                if p.total_amount <= 0:
+                    continue
+                rows.append({
+                    'code': s,
+                    'owner': getattr(g, 'owner', {}).get(s),
+                    'total_amount': int(p.total_amount),
+                    'closeable_amount': int(getattr(p, 'closeable_amount', 0) or 0),
+                    'avg_cost': _cx_num(getattr(p, 'avg_cost', None)),
+                    'price': _cx_num(getattr(p, 'price', None)),
+                })
+            except Exception as e:
+                rows.append({'code': s, 'error': str(e)})
+    except Exception as e:
+        rows.append({'positions_error': str(e)})
+    return rows
+
+
+def _cx_portfolio(context):
+    p = context.portfolio
+    return {
+        'available_cash': _cx_num(getattr(p, 'available_cash', None)),
+        'cash': _cx_num(getattr(p, 'cash', None)),
+        'total_value': _cx_num(getattr(p, 'total_value', None)),
+        'positions_value': _cx_num(getattr(p, 'positions_value', None)),
+        'positions': _cx_positions(context),
+        'owner': dict(getattr(g, 'owner', {})),
+    }
+
+
+def _cx_orders_snapshot():
+    out = {}
+    for fn_name in ['get_open_orders', 'get_orders', 'get_trades']:
+        try:
+            fn = globals().get(fn_name)
+            if fn is None:
+                out[fn_name] = 'NA'
+                continue
+            data = fn()
+            if isinstance(data, dict):
+                out[fn_name] = [_cx_obj(v) for v in data.values()]
+            elif isinstance(data, (list, tuple)):
+                out[fn_name] = [_cx_obj(v) for v in data]
+            else:
+                out[fn_name] = str(data)
+        except Exception as e:
+            out[fn_name] = 'ERR:%s' % e
+    return out
+
+
+def _cx_state(context, stage):
+    payload = {
+        'time': context.current_dt.strftime('%Y-%m-%d %H:%M:%S'),
+        'stage': stage,
+        'previous_date': str(context.previous_date),
+        'active': getattr(g, 'active', None),
+        'market_mode': getattr(g, 'market_mode', None),
+        'raw_market_mode': getattr(g, 'raw_market_mode', None),
+        'fb_pct': _cx_num(getattr(g, 'fb_pct', None)),
+        'first_board_perf': _cx_num(getattr(g, 'first_board_perf', None)),
+        'enable_rzq': bool(getattr(g, 'enable_rzq', False)),
+        'enable_zb': bool(getattr(g, 'enable_zb', False)),
+        'rzq_slots': int(getattr(g, 'rzq_slots', 0) or 0),
+        'zb_slots': int(getattr(g, 'zb_slots', 0) or 0),
+        'held_rzq': int(_held_count_by('rzq', context)),
+        'held_zb': int(_held_count_by('zb', context)),
+        'rzq_candidates': list(getattr(g, 'rzq_candidates', []) or []),
+        'zb_candidates': list(getattr(g, 'zb_candidates', []) or []),
+        'rzq_cooldown': int(getattr(g, 'rzq_cooldown', 0) or 0),
+        'bull_cooldown': int(getattr(g, 'bull_cooldown', 0) or 0),
+        'win_scale': _cx_num(_win_scale()),
+        'portfolio': _cx_portfolio(context),
+    }
+    _cx_dump('STATE', payload)
+
+
+def _cx_leg_plan(context, leg):
+    cd = get_current_data()
+    if leg == 'rzq':
+        candidates = list(getattr(g, 'rzq_candidates', []) or [])
+        yclose = getattr(g, 'rzq_yclose', {})
+        enable = bool(getattr(g, 'enable_rzq', False))
+        slots_config = int(getattr(g, 'rzq_slots', 0) or 0)
+        held = int(_held_count_by('rzq', context))
+        ratio_min, ratio_max = 0.96, 1.01
+        poison_bull_pct = True
+    else:
+        candidates = list(getattr(g, 'zb_candidates', []) or [])
+        yclose = getattr(g, 'zb_yclose', {})
+        enable = bool(getattr(g, 'enable_zb', False))
+        slots_config = int(getattr(g, 'zb_slots', 0) or 0)
+        held = int(_held_count_by('zb', context))
+        ratio_min, ratio_max = 0.97, 1.075
+        poison_bull_pct = False
+
+    rows = []
+    cands = []
+    for s in candidates:
+        reason = []
+        try:
+            d = cd[s]
+            yc = float(yclose.get(s, 0) or 0)
+            op = float(getattr(d, 'day_open', 0) or 0)
+            lp = float(getattr(d, 'last_price', 0) or 0)
+            hl = float(getattr(d, 'high_limit', 0) or 0)
+            ll = float(getattr(d, 'low_limit', 0) or 0)
+            paused = bool(getattr(d, 'paused', False))
+            ratio = op / yc if yc > 0 else None
+            held_now = bool(s in context.portfolio.positions and context.portfolio.positions[s].total_amount > 0)
+            if paused:
+                reason.append('paused')
+            if yc <= 0:
+                reason.append('bad_yclose')
+            if op <= 0:
+                reason.append('bad_open')
+            if ratio is None or not (ratio_min < ratio < ratio_max):
+                reason.append('ratio')
+            if lp >= hl * 0.999:
+                reason.append('high_limit')
+            if lp <= ll * 1.001:
+                reason.append('low_limit')
+            if held_now:
+                reason.append('already_held')
+            row = {
+                'code': s, 'yclose': yc, 'open': op, 'last_price': lp,
+                'high_limit': hl, 'low_limit': ll, 'ratio': ratio,
+                'paused': paused, 'held_now': held_now, 'reason': reason,
+            }
+            if not reason:
+                cands.append((s, op, yc))
+        except Exception as e:
+            row = {'code': s, 'reason': ['exception'], 'error': str(e)}
+        rows.append(row)
+
+    date_str = context.current_dt.strftime('%Y-%m-%d')
+    filtered = []
+    auction_rows = []
+    for s, op, yc in cands:
+        reason = []
+        buy_m = sell_m = None
+        try:
+            au = get_call_auction(s, start_date=date_str, end_date=date_str)
+            au_rows = 0 if au is None else len(au)
+            if au is None or au.empty:
+                reason.append('auction_empty')
+            else:
+                row = au.iloc[0]
+                buy_m = sum(row.get('b%d_p' % i, 0) * row.get('b%d_v' % i, 0) for i in range(1, 6))
+                sell_m = sum(row.get('a%d_p' % i, 0) * row.get('a%d_v' % i, 0) for i in range(1, 6))
+                if sell_m <= 0:
+                    reason.append('sell_m<=0')
+                elif (buy_m - sell_m) / sell_m <= 0:
+                    reason.append('buy_not_gt_sell')
+        except Exception as e:
+            au_rows = None
+            reason.append('auction_exception:%s' % e)
+        auction_rows.append({'code': s, 'auction_rows': au_rows, 'buy_m': _cx_num(buy_m), 'sell_m': _cx_num(sell_m), 'reason': reason})
+        if not reason:
+            filtered.append((s, op, yc, buy_m, sell_m))
+
+    codes = [s for s, _, _, _, _ in filtered]
+    try:
+        df_val = get_valuation(codes, start_date=context.previous_date, end_date=context.previous_date, fields=['turnover_ratio'])
+    except Exception:
+        df_val = pd.DataFrame()
+    tr_map = dict(zip(df_val['code'], df_val['turnover_ratio'])) if not df_val.empty else {}
+    scored = []
+    for s, op, yc, buy_m, sell_m in filtered:
+        tr = tr_map.get(s, 0) or 0
+        score = tr * (op / yc) * (buy_m / sell_m if sell_m > 0 else 1.0)
+        scored.append({'code': s, 'score': _cx_num(score), 'turnover_ratio': _cx_num(tr), 'open': _cx_num(op), 'yclose': _cx_num(yc), 'buy_m': _cx_num(buy_m), 'sell_m': _cx_num(sell_m)})
+    scored.sort(key=lambda x: -(x.get('score') or 0))
+
+    slots = max(0, slots_config - held)
+    take = min(slots, len(scored))
+    planned = []
+    cash = _cx_num(context.portfolio.available_cash)
+    scale = _cx_num(_win_scale())
+    if take > 0:
+        remain_cash = float(context.portfolio.available_cash)
+        for i, row in enumerate(scored[:take]):
+            alloc = remain_cash / max(take - i, 1)
+            planned.append({'code': row['code'], 'nominal_cash': alloc, 'scaled_cash': alloc * (scale or 0.0)})
+
+    blocks = []
+    if not enable:
+        blocks.append('disabled')
+    if leg == 'rzq' and getattr(g, 'market_mode', None) == 'bull' and 0.4 <= getattr(g, 'fb_pct', 0) < 0.6:
+        blocks.append('bull_pct_poison')
+    if getattr(g, 'market_mode', None) == 'cautious' and 0.4 <= getattr(g, 'fb_pct', 0) < 0.6:
+        blocks.append('cautious_pct_poison')
+    if getattr(g, 'market_mode', None) == 'bull' and getattr(g, 'bull_cooldown', 0) > 0:
+        blocks.append('bull_cooldown')
+    if _is_pass_month(context):
+        blocks.append('pass_month')
+    if leg == 'rzq' and getattr(g, 'rzq_cooldown', 0) > 0:
+        blocks.append('rzq_cooldown')
+    if not candidates:
+        blocks.append('no_candidates')
+    if scale == 0.0:
+        blocks.append('win_scale_zero')
+    if slots == 0:
+        blocks.append('slots_zero')
+
+    _cx_dump('LEG_PLAN', {
+        'time': context.current_dt.strftime('%Y-%m-%d %H:%M:%S'),
+        'leg': leg,
+        'blocks': blocks,
+        'enable': enable,
+        'slots_config': slots_config,
+        'held': held,
+        'slots_avail': slots,
+        'take': take,
+        'available_cash': cash,
+        'scale': scale,
+        'raw_rows': rows,
+        'auction_rows': auction_rows,
+        'scored': scored,
+        'planned_orders': planned,
+    })
+
+
+def probe_prepare_all(context):
+    result = prepare_all(context)
+    if _cx_in_window(context):
+        _cx_state(context, 'prepare_all:after')
+    return result
+
+
+def probe_buy_rzq(context):
+    if _cx_in_window(context):
+        _cx_state(context, 'buy_rzq:before')
+        _cx_leg_plan(context, 'rzq')
+    result = buy_rzq(context)
+    if _cx_in_window(context):
+        _cx_state(context, 'buy_rzq:after')
+        _cx_dump('ORDERS_AFTER_RZQ', _cx_orders_snapshot())
+    return result
+
+
+def probe_buy_zb(context):
+    if _cx_in_window(context):
+        _cx_state(context, 'buy_zb:before')
+        _cx_leg_plan(context, 'zb')
+    result = buy_zb(context)
+    if _cx_in_window(context):
+        _cx_state(context, 'buy_zb:after')
+        _cx_dump('ORDERS_AFTER_ZB', _cx_orders_snapshot())
+    return result

@@ -23,6 +23,7 @@ sys.modules["jqdata"] = importlib.import_module("jqdata_compat")
 
 from core import hdata_reader
 from engine.core import Engine
+from project_compat import EmotionGateJQCompat
 
 
 def _reset_auction_state(g):
@@ -102,7 +103,7 @@ def main() -> int:
 
     with STRATEGY.open("r", encoding="utf-8") as f:
         strategy_code = f.read()
-    engine = Engine(strategy_code, f"{args.year}-01-01", f"{args.year}-12-31", 1000000)
+    engine = Engine(strategy_code, f"{args.year}-01-01", f"{args.year}-12-31", 1000000, compat=EmotionGateJQCompat(ROOT))
     exec(strategy_code, engine.namespace)
     engine.namespace["initialize"](engine.context)
 
@@ -143,3 +144,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
