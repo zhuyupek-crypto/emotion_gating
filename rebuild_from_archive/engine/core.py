@@ -1206,11 +1206,14 @@ class Engine:
                     return None
                 available = frame.columns
                 values = frame.loc[day_int]
-                compat_daily = getattr(self.compat, "daily_price_anomalies", {}) if self.compat is not None else {}
                 for code, local in zip(codes, local_codes):
-                    point_key = (code, day_int, field)
-                    if point_key in compat_daily:
-                        out[code][field] = compat_daily[point_key]
+                    point_value = (
+                        self.compat.get_daily_field_override(code, day_int, field)
+                        if self.compat is not None and hasattr(self.compat, "get_daily_field_override")
+                        else None
+                    )
+                    if point_value is not None:
+                        out[code][field] = point_value
                     elif local in available:
                         out[code][field] = values.get(local)
                     else:
@@ -1866,8 +1869,3 @@ class Engine:
         equity_df = pd.DataFrame(equity_curve)
         metrics = calculate_metrics(equity_df)
         return equity_df, pd.DataFrame(self.trades), self.logs, metrics
-
-
-
-
-

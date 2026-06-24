@@ -466,6 +466,11 @@ def analyze_2020(args):
         "baseline_final_value": float(baseline_equity["value"].iloc[-1]),
         "current_final_value": float(current_equity["value"].iloc[-1]),
         "final_value_diff": float(current_equity["value"].iloc[-1] - baseline_equity["value"].iloc[-1]),
+        "validation_scope": {
+            "local_baseline_rebuild_match": "This check compares the refactored local run against the frozen pre-refactor local baseline. Zero diffs here mean the structural refactor preserved the local baseline behavior for 2020.",
+            "jq_trade_key_match": "The mother-log compare preserves JoinQuant trade-key alignment only. It does not claim JoinQuant amount, price, fee, cash, or candidate-state parity beyond the historical baseline scope.",
+            "jq_historical_residuals": "Real-trade amount/price differences and state-vs-mother candidate-count differences remain historical JoinQuant-vs-local residuals unless separately driven to zero; they are not treated as new regressions when the refactored run matches the frozen local baseline.",
+        },
         "mother_compare_stdout": mother_compare.stdout.strip().splitlines(),
         "real_compare_stdout": real_compare.stdout.strip().splitlines(),
         "state_vs_mother_stdout": state_vs_jq.stdout.strip().splitlines(),
@@ -559,16 +564,8 @@ def targeted_checks(args):
     high_limit_2026 = float(df_2026["high_limit"].iloc[-1]) if not df_2026.empty else None
     add_result("2026_corrupted_daily_fastpath", bypass_2026 and _float_equal(high_2026, 20.540000915527344) and _float_equal(high_limit_2026, 20.540000915527344), {"bypass": bypass_2026, "high": high_2026, "high_limit": high_limit_2026})
 
-    main_path_scan = subprocess.run(
-        [
-            "rg",
-            "-n",
-            "suspected_unused",
-            "rebuild_from_archive/engine",
-            "rebuild_from_archive/project_compat.py",
-            "rebuild_from_archive/project_preprocess.py",
-            "母版-20260506-Clone.py",
-        ],
+    repo_scan = subprocess.run(
+        ["rg", "-n", "suspected_unused", str(ROOT)],
         cwd=ROOT,
         text=True,
         encoding="utf-8",
@@ -576,14 +573,30 @@ def targeted_checks(args):
         capture_output=True,
         check=False,
     )
-    add_result("suspected_unused_static_main_path", main_path_scan.returncode == 1, {"stdout": main_path_scan.stdout.strip().splitlines()})
-
+    repo_hits = [line for line in repo_scan.stdout.strip().splitlines() if line.strip()]
+    blocking_prefixes = (
+        str(ROOT / "rebuild_from_archive" / "data_api.py"),
+        str(ROOT / "rebuild_from_archive" / "engine"),
+        str(ROOT / "rebuild_from_archive" / "project_compat.py"),
+        str(ROOT / "rebuild_from_archive" / "project_preprocess.py"),
+        str(ROOT / "母版-20260506-Clone.py"),
+    )
+    blocking_hits = [line for line in repo_hits if line.startswith(blocking_prefixes)]
+    add_result(
+        "suspected_unused_repo_scan",
+        len(blocking_hits) == 0,
+        {
+            "repo_hits": repo_hits,
+            "blocking_hits": blocking_hits,
+            "blocking_prefixes": list(blocking_prefixes),
+        },
+    )
     legacy_inventory = [
         {
-            "artifact": "rebuild_from_archive/suspected_unused/data_api_legacy.py",
+            "artifact": "rebuild_from_archive/legacy/data_api_legacy.py",
             "years": [2020, 2024],
             "categories": ["security_metadata.start_date_overrides", "instrument_fallback.price_fallback", "security_metadata.adjust_extras_is_st"],
-            "status": "2020 start_date path proven not required by runtime main path; 2024 fallback/ST logic retained until 2024 targeted checks complete",
+            "status": "Legacy public entry retained via rebuild_from_archive/data_api.py shim; current in-repo caller set is the shim itself, and no suspected_unused runtime dependency remains.",
         },
         {
             "artifact": "rebuild_from_archive/suspected_unused/core_diff_rebased.patch",
@@ -631,5 +644,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-

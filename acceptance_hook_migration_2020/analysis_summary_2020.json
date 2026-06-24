@@ -9,9 +9,14 @@
   "baseline_final_value": 2507117.2900000024,
   "current_final_value": 2507117.2900000024,
   "final_value_diff": 0.0,
+  "validation_scope": {
+    "local_baseline_rebuild_match": "This check compares the refactored local run against the frozen pre-refactor local baseline. Zero diffs here mean the structural refactor preserved the local baseline behavior for 2020.",
+    "jq_trade_key_match": "The mother-log compare preserves JoinQuant trade-key alignment only. It does not claim JoinQuant amount, price, fee, cash, or candidate-state parity beyond the historical baseline scope.",
+    "jq_historical_residuals": "Real-trade amount/price differences and state-vs-mother candidate-count differences remain historical JoinQuant-vs-local residuals unless separately driven to zero; they are not treated as new regressions when the refactored run matches the frozen local baseline."
+  },
   "mother_compare_stdout": [
     "YEAR=2020 mother=394 local=394 both=394 missing=0 extra=0",
-    "compare_csv=D:\\Work Space\\��ɽ֮ʯ\\�����ſ�\\acceptance_hook_migration_2020\\compare_actual_2020_mother_log_from_local_log.csv",
+    "compare_csv=D:\\Work Space\\他山之石\\情绪门控\\acceptance_hook_migration_2020\\compare_actual_2020_mother_log_from_local_log.csv",
     "missing:",
     "extra:"
   ],
@@ -20,9 +25,9 @@
     "sequence same date/code/action=392; exact seq rows=135",
     "key match both=395 jq_only=0 local_only=0",
     "both amount mismatches=117 price mismatches >0.005=66",
-    "wrote D:\\Work Space\\��ɽ֮ʯ\\�����ſ�\\jq_trades_2020_real_parsed_from_txt.csv",
-    "wrote D:\\Work Space\\��ɽ֮ʯ\\�����ſ�\\compare_real_trades_2020_by_sequence.csv",
-    "wrote D:\\Work Space\\��ɽ֮ʯ\\�����ſ�\\compare_real_trades_2020_by_key.csv",
+    "wrote D:\\Work Space\\他山之石\\情绪门控\\jq_trades_2020_real_parsed_from_txt.csv",
+    "wrote D:\\Work Space\\他山之石\\情绪门控\\compare_real_trades_2020_by_sequence.csv",
+    "wrote D:\\Work Space\\他山之石\\情绪门控\\compare_real_trades_2020_by_key.csv",
     "{'seq': 1, 'jq_time': '2020-01-02 09:26:00', 'local_time': '2020-01-02 09:30:00', 'jq_code': '002041.XSHE', 'local_code': '002041.XSHE', 'jq_action': 'buy', 'local_action': 'buy', 'jq_amount': 31100, 'local_amount': 31100, 'amount_diff': 0, 'jq_price': 9.96, 'local_price': 9.96, 'price_diff': 0.0, 'same_time': False, 'same_code': True, 'same_action': True, 'same_side_key': True}",
     "{'seq': 2, 'jq_time': '2020-01-07 09:30:00', 'local_time': '2020-01-07 09:30:00', 'jq_code': '002041.XSHE', 'local_code': '002041.XSHE', 'jq_action': 'sell', 'local_action': 'sell', 'jq_amount': -31100, 'local_amount': -31100, 'amount_diff': 0, 'jq_price': 11.8, 'local_price': 11.8, 'price_diff': 0.0, 'same_time': True, 'same_code': True, 'same_action': True, 'same_side_key': True}",
     "{'seq': 3, 'jq_time': '2020-01-13 09:26:00', 'local_time': '2020-01-13 09:30:00', 'jq_code': '002056.XSHE', 'local_code': '002056.XSHE', 'jq_action': 'buy', 'local_action': 'buy', 'jq_amount': 52900, 'local_amount': 52900, 'amount_diff': 0, 'jq_price': 10.08, 'local_price': 10.08, 'price_diff': 0.0, 'same_time': False, 'same_code': True, 'same_action': True, 'same_side_key': True}",
@@ -69,6 +74,6 @@
     "2020-02-19           1            7               7             0                0            1               1          18             15               15                  15",
     "2020-02-20           2            2               2             0                0            2               3          31             30               14                  14",
     "2020-02-24           2           10              10             0                0            0               0          25             24               18                  19",
-    "wrote D:\\Work Space\\��ɽ֮ʯ\\�����ſ�\\acceptance_hook_migration_2020\\compare_state_2020_vs_mother.csv"
+    "wrote D:\\Work Space\\他山之石\\情绪门控\\acceptance_hook_migration_2020\\compare_state_2020_vs_mother.csv"
   ]
 }

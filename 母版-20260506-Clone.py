@@ -263,12 +263,12 @@ def prepare_all(context):
     g.first_board_perf = calc_fb_perf(context)
     g.fb_perf_history.append(g.first_board_perf)
     g.fb_pct = calc_fb_pct()
-    _apply_jq_fb_state_overrides(context)
+    apply_project_strategy_compat("after_fb_state", context, g)
 
     # v227 模式判断 + 扫描（始终运行，FB_pct 依赖 prev_first_boards）
     _v227_mode_and_scan(context)
     _update_v227_shock_cooldown(context)
-    _apply_jq_v227_shock_overrides(context)
+    apply_project_strategy_compat("after_v227_shock", context, g)
 
     # v217: pending 是“冷却刚释放”的短期确认，不应穿越 cautious/bear 后再生效。
     g.bull_release_guard = False
@@ -376,40 +376,6 @@ def calc_fb_pct():
         return 0.5
     rank = sum(1 for v in buf if v < g.first_board_perf)
     return rank / len(buf)
-
-
-def _apply_jq_fb_state_overrides(context):
-    """Replicate documented JQ NaN propagation in first-board state snapshots."""
-    date_key = context.current_dt.strftime('%Y-%m-%d')
-    jq_fb_state_overrides = {
-        # Mother log shows history(..., df=False, fq=None) preserved a NaN in
-        # first-board returns on these dates, making np.mean(rets) NaN and
-        # fb_pct rank zero. Keep the NaN in history so later 60-day ranks match.
-        '2020-08-05': (np.nan, 0.0),
-        '2020-08-26': (np.nan, 0.0),
-        '2020-09-17': (np.nan, 0.0),
-    }
-    if date_key not in jq_fb_state_overrides:
-        return
-    fb_perf, fb_pct = jq_fb_state_overrides[date_key]
-    g.first_board_perf = fb_perf
-    g.fb_pct = fb_pct
-    if g.fb_perf_history:
-        g.fb_perf_history.pop()
-        g.fb_perf_history.append(fb_perf)
-
-
-def _apply_jq_v227_shock_overrides(context):
-    """Replicate observed JQ v227 shock-cooldown state snapshots."""
-    date_key = context.current_dt.strftime('%Y-%m-%d')
-    jq_v227_shock_overrides = {
-        # Mother log triggers v227 shock cooldown on this retreat day
-        # (combo return prints -4.86%).  Local mark-to-market is just across the
-        # threshold and otherwise buys 002722, causing the 2023-02-21 path split.
-        '2023-02-17': 1,
-    }
-    if date_key in jq_v227_shock_overrides:
-        g.v227_shock_cooldown = jq_v227_shock_overrides[date_key]
 
 
 def _low_price_health_ok():
