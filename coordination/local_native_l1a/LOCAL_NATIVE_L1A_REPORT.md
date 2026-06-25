@@ -10,7 +10,7 @@
 
 ## L0 Baseline Regression
 - trades_diff_rows: 0
-- state_diff_rows: 0
+- state_diff_rows: 5
 - equity_diff_rows: 0
 - portfolio_stats_diff_rows: 0
 - positions_diff_rows: 0
@@ -94,7 +94,7 @@
 - profile_disabled: 1
 
 ## Acceptance Gates
-- l0_baseline_regression: **PASS**
+- l0_baseline_regression: **FAIL**
 - l1a_exact_hook_set: **PASS**
 - jq_price_hooks_have_effective_hits: **PASS**
 - l1a_price_hooks_effective_hits_zero: **PASS**
@@ -108,4 +108,4 @@
 - account_invariants: **PASS**
 - deterministic_reports: **PASS**
 - required_artifacts_complete: **PASS**
-- implementation_acceptance: **PASS**
+- implementation_acceptance: **FAIL**

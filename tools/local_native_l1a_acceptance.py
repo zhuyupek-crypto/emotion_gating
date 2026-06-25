@@ -291,16 +291,17 @@ def compare_baseline_file(
     run_cols = set(rdf.columns)
     base_cols = set(bdf.columns)
     result["column_set_equal"] = run_cols == base_cols
+
     if key_col is not None:
         kcols = [key_col] if isinstance(key_col, str) else list(key_col)
         if all(c in rdf.columns for c in kcols) and all(c in bdf.columns for c in kcols):
             run_keys = set(tuple(str(rdf[c].iloc[i]) for c in kcols) for i in range(len(rdf)))
             base_keys = set(tuple(str(bdf[c].iloc[i]) for c in kcols) for i in range(len(bdf)))
             result["key_set_equal"] = run_keys == base_keys
+
+    # Cell-by-cell comparison (all columns, no skips)
     diff_rows = 0
-    skip_cols = {"cand_yjj", "cand_bear", "cand_rzq", "cand_zb", "cand_auction",
-                 "slot_v227", "slot_rzq", "slot_zb", "slot_auction"} if suffix == "state" else set()
-    common_cols = (run_cols & base_cols) - skip_cols
+    common_cols = run_cols & base_cols
     if common_cols and len(rdf) == len(bdf):
         for i in range(len(rdf)):
             for col in sorted(common_cols):
@@ -314,6 +315,15 @@ def compare_baseline_file(
                     if str(rdf[col].iloc[i]) != str(bdf[col].iloc[i]):
                         diff_rows += 1
                         break
+
+    # Structural diffs also count
+    if not result["row_count_equal"]:
+        diff_rows = max(diff_rows, abs(len(rdf) - len(bdf)))
+    if not result["column_set_equal"]:
+        diff_rows = max(diff_rows, len(run_cols ^ base_cols))
+    if not result["key_set_equal"] and key_col is not None:
+        diff_rows = max(diff_rows, 1)
+
     result["cell_diff_count"] = diff_rows
     result["diff_rows"] = diff_rows
     return result
