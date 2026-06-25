@@ -1,0 +1,6 @@
+row,date,column,current_value,baseline_value,diff
+0,2020-01-02,cand_yjj,1.0,0.0,1.0
+65,2020-04-13,cand_rzq,3.0,2.0,1.0
+140,2020-08-03,cand_yjj,6.0,5.0,1.0
+154,2020-08-21,cand_yjj,4.0,3.0,1.0
+201,2020-11-04,cand_bear,20.0,19.0,1.0
