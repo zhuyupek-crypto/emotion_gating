@@ -1026,8 +1026,25 @@ def cmd_determinism(args):
             results[name] = {"hash1": "MISSING", "hash2": "MISSING", "equal": False}
             all_pass = False
             continue
-        h1 = hashlib.sha256(f1.read_bytes()).hexdigest()
-        h2 = hashlib.sha256(f2.read_bytes()).hexdigest()
+        # For JSON, exclude non-deterministic fields before comparing
+        if name.endswith(".json"):
+            import json as _json
+            try:
+                d1_data = _json.loads(f1.read_text(encoding="utf-8"))
+                d2_data = _json.loads(f2.read_text(encoding="utf-8"))
+            except Exception:
+                results[name] = {"error": "parse_failed", "equal": False}
+                all_pass = False
+                continue
+            # Remove non-deterministic keys
+            for skip in ["source_commit", "run_timestamp", "run_commands"]:
+                d1_data.pop(skip, None)
+                d2_data.pop(skip, None)
+            h1 = hashlib.sha256(_json.dumps(d1_data, sort_keys=True).encode()).hexdigest()
+            h2 = hashlib.sha256(_json.dumps(d2_data, sort_keys=True).encode()).hexdigest()
+        else:
+            h1 = hashlib.sha256(f1.read_bytes()).hexdigest()
+            h2 = hashlib.sha256(f2.read_bytes()).hexdigest()
         eq = h1 == h2
         if not eq:
             all_pass = False
