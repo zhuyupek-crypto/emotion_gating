@@ -258,6 +258,63 @@ def _build_trade_keys(df: pd.DataFrame) -> list[str]:
     return keys
 
 
+def compare_baseline_file(
+    run_path: Path, baseline_path: Path, suffix: str,
+    key_col: str | list[str] | None = None,
+) -> dict:
+    """Compare a single baseline file for structural equality.
+    
+    Returns dict with: file_exists_current, file_exists_baseline, 
+    row_count_current, row_count_baseline, row_count_equal,
+    column_set_equal, key_set_equal, cell_diff_count, diff_rows.
+    """
+    result = {
+        "file_exists_current": run_path.exists() and run_path.stat().st_size > 2,
+        "file_exists_baseline": baseline_path.exists() and baseline_path.stat().st_size > 2,
+        "row_count_current": 0, "row_count_baseline": 0,
+        "row_count_equal": False, "column_set_equal": False,
+        "key_set_equal": False, "cell_diff_count": 0,
+        "diff_rows": 0,
+    }
+    if not result["file_exists_current"] or not result["file_exists_baseline"]:
+        result["diff_rows"] = -1
+        return result
+    rdf = pd.read_csv(run_path)
+    bdf = pd.read_csv(baseline_path)
+    result["row_count_current"] = len(rdf)
+    result["row_count_baseline"] = len(bdf)
+    result["row_count_equal"] = len(rdf) == len(bdf)
+    run_cols = set(rdf.columns)
+    base_cols = set(bdf.columns)
+    result["column_set_equal"] = run_cols == base_cols
+    if key_col is not None:
+        kcols = [key_col] if isinstance(key_col, str) else list(key_col)
+        if all(c in rdf.columns for c in kcols) and all(c in bdf.columns for c in kcols):
+            run_keys = set(tuple(str(rdf[c].iloc[i]) for c in kcols) for i in range(len(rdf)))
+            base_keys = set(tuple(str(bdf[c].iloc[i]) for c in kcols) for i in range(len(bdf)))
+            result["key_set_equal"] = run_keys == base_keys
+    diff_rows = 0
+    skip_cols = {"cand_yjj", "cand_bear", "cand_rzq", "cand_zb", "cand_auction",
+                 "slot_v227", "slot_rzq", "slot_zb", "slot_auction"} if suffix == "state" else set()
+    common_cols = (run_cols & base_cols) - skip_cols
+    if common_cols and len(rdf) == len(bdf):
+        for i in range(len(rdf)):
+            for col in sorted(common_cols):
+                try:
+                    v1 = float(rdf[col].iloc[i]) if pd.notna(rdf[col].iloc[i]) else float('nan')
+                    v2 = float(bdf[col].iloc[i]) if pd.notna(bdf[col].iloc[i]) else float('nan')
+                    if abs(v1 - v2) > FLOAT_TOL and not (pd.isna(v1) and pd.isna(v2)):
+                        diff_rows += 1
+                        break
+                except (ValueError, TypeError):
+                    if str(rdf[col].iloc[i]) != str(bdf[col].iloc[i]):
+                        diff_rows += 1
+                        break
+    result["cell_diff_count"] = diff_rows
+    result["diff_rows"] = diff_rows
+    return result
+
+
 def compare_runs(jq_dir: Path, l1a_dir: Path, out_dir: Path, baseline_dir: Path | None) -> dict:
     out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -440,45 +497,80 @@ def compare_runs(jq_dir: Path, l1a_dir: Path, out_dir: Path, baseline_dir: Path 
     state_diff_count = len(state_diff_rows)
 
     # ─── L0 baseline comparison ───
+def compare_baseline_file(
+    run_path: Path, baseline_path: Path, suffix: str,
+    key_col: str | list[str] | None = None,
+) -> dict:
+    """Compare a single baseline file for structural equality.
+    
+    Returns dict with: file_exists_current, file_exists_baseline, 
+    row_count_current, row_count_baseline, row_count_equal,
+    column_set_equal, key_set_equal, cell_diff_count, diff_rows.
+    """
+    result = {
+        "file_exists_current": run_path.exists() and run_path.stat().st_size > 2,
+        "file_exists_baseline": baseline_path.exists() and baseline_path.stat().st_size > 2,
+        "row_count_current": 0, "row_count_baseline": 0,
+        "row_count_equal": False, "column_set_equal": False,
+        "key_set_equal": False, "cell_diff_count": 0,
+        "diff_rows": 0,
+    }
+    if not result["file_exists_current"] or not result["file_exists_baseline"]:
+        result["diff_rows"] = -1  # missing file
+        return result
+
+    rdf = pd.read_csv(run_path)
+    bdf = pd.read_csv(baseline_path)
+    result["row_count_current"] = len(rdf)
+    result["row_count_baseline"] = len(bdf)
+    result["row_count_equal"] = len(rdf) == len(bdf)
+
+    run_cols = set(rdf.columns)
+    base_cols = set(bdf.columns)
+    result["column_set_equal"] = run_cols == base_cols
+
+    # Check key set equality
+    if key_col is not None:
+        kcols = [key_col] if isinstance(key_col, str) else list(key_col)
+        if all(c in rdf.columns for c in kcols) and all(c in bdf.columns for c in kcols):
+            run_keys = set(tuple(str(rdf[c].iloc[i]) for c in kcols) for i in range(len(rdf)))
+            base_keys = set(tuple(str(bdf[c].iloc[i]) for c in kcols) for i in range(len(bdf)))
+            result["key_set_equal"] = run_keys == base_keys
+
+    # Cell-by-cell comparison
+    diff_rows = 0
+    skip_cols = {"cand_yjj", "cand_bear", "cand_rzq", "cand_zb", "cand_auction",
+                 "slot_v227", "slot_rzq", "slot_zb", "slot_auction"} if suffix == "state" else set()
+    common_cols = run_cols & base_cols - skip_cols
+    if common_cols and len(rdf) == len(bdf):
+        for i in range(len(rdf)):
+            for col in sorted(common_cols):
+                try:
+                    v1 = float(rdf[col].iloc[i]) if pd.notna(rdf[col].iloc[i]) else float('nan')
+                    v2 = float(bdf[col].iloc[i]) if pd.notna(bdf[col].iloc[i]) else float('nan')
+                    if abs(v1 - v2) > FLOAT_TOL and not (pd.isna(v1) and pd.isna(v2)):
+                        diff_rows += 1
+                        break
+                except (ValueError, TypeError):
+                    if str(rdf[col].iloc[i]) != str(bdf[col].iloc[i]):
+                        diff_rows += 1
+                        break
+    result["cell_diff_count"] = diff_rows
+    result["diff_rows"] = diff_rows
+    return result
+
+    # ─── L0 baseline comparison ───
     baseline_results = {}
+    KEY_MAP = {
+        "trades": "time", "state": "date", "equity": "date",
+        "portfolio_stats": "date", "positions": ["date", "code"],
+    }
     if baseline_dir and baseline_dir.exists():
         for suffix in ["trades", "state", "equity", "portfolio_stats", "positions"]:
             rf = jq_dir / f"local_{suffix}_2020.csv"
             bf = baseline_dir / f"local_{suffix}_2020.csv"
-            if not rf.exists() or not bf.exists():
-                # Empty/missing positions on both sides = match
-                if suffix == "positions":
-                    baseline_results[f"{suffix}_diff_rows"] = 0
-                else:
-                    baseline_results[f"{suffix}_diff_rows"] = 0 if (not rf.exists() and not bf.exists()) else -2
-                continue
-            # Empty files match
-            if rf.stat().st_size <= 2 and bf.stat().st_size <= 2:
-                baseline_results[f"{suffix}_diff_rows"] = 0
-                continue
-            rdf = pd.read_csv(rf)
-            bdf = pd.read_csv(bf)
-            if rdf.empty and bdf.empty:
-                baseline_results[f"{suffix}_diff_rows"] = 0
-                continue
-            diff_rows = 0
-            # Skip transient scanning columns in state
-            if suffix == "state":
-                skip_cols = {"cand_yjj", "cand_bear", "cand_rzq", "cand_zb", "cand_auction",
-                             "slot_v227", "slot_rzq", "slot_zb", "slot_auction"}
-            else:
-                skip_cols = set()
-            for col in rdf.columns:
-                if col in bdf.columns and col not in skip_cols:
-                    for i in range(min(len(rdf), len(bdf))):
-                        try:
-                            if abs(float(rdf[col].iloc[i]) - float(bdf[col].iloc[i])) > FLOAT_TOL:
-                                diff_rows += 1
-                        except (ValueError, TypeError):
-                            if str(rdf[col].iloc[i]) != str(bdf[col].iloc[i]):
-                                diff_rows += 1
-            baseline_results[f"{suffix}_diff_rows"] = diff_rows
-        # Final value
+            cr = compare_baseline_file(rf, bf, suffix, key_col=KEY_MAP.get(suffix))
+            baseline_results[f"{suffix}_diff_rows"] = cr["diff_rows"]
         jqe = pd.read_csv(jq_dir / "local_equity_2020.csv")
         be_path = baseline_dir / "local_equity_2020.csv"
         if be_path.exists() and be_path.stat().st_size > 2:
@@ -487,7 +579,7 @@ def compare_runs(jq_dir: Path, l1a_dir: Path, out_dir: Path, baseline_dir: Path 
                 abs(float(jqe["value"].iloc[-1]) - float(be["value"].iloc[-1])), 6
             )
         else:
-            baseline_results["final_value_diff"] = -2
+            baseline_results["final_value_diff"] = -1
 
     # ─── Causal timing ───
     def first_date(col_name, df):
@@ -834,12 +926,12 @@ def compare_runs(jq_dir: Path, l1a_dir: Path, out_dir: Path, baseline_dir: Path 
         (out_dir / a).exists() for a in REQUIRED_ARTIFACTS
     ) else "FAIL"
 
-    # Final acceptance
-    blocking = {k: v for k, v in gates.items() if k not in ("deterministic_reports",)}
-    gates["implementation_acceptance"] = "PASS" if (
-        gates["l0_baseline_regression"] != "NOT_APPLICABLE"
-        and all(v == "PASS" for v in blocking.values())
-    ) else "FAIL"
+    # Final acceptance (all gates are blocking)
+    if gates["l0_baseline_regression"] == "NOT_APPLICABLE":
+        gates["implementation_acceptance"] = "FAIL"
+    else:
+        all_pass = all(v == "PASS" for v in gates.values())
+        gates["implementation_acceptance"] = "PASS" if all_pass else "FAIL"
 
     clean_report["acceptance_gates"] = gates
 
@@ -954,9 +1046,45 @@ def cmd_compare(args):
         out_dir=Path(args.out_dir),
         baseline_dir=Path(args.baseline_dir) if args.baseline_dir else None,
     )
-    print(f"implementation_acceptance = {report['acceptance_gates']['implementation_acceptance']}")
-    for gate, status in report["acceptance_gates"].items():
+    gates = report["acceptance_gates"]
+    print(f"implementation_acceptance = {gates['implementation_acceptance']}")
+    for gate, status in gates.items():
         print(f"  {gate}: {status}")
+    # Exit non-zero on FAIL
+    if gates.get("implementation_acceptance") != "PASS":
+        sys.exit(1)
+
+
+def cmd_determinism(args):
+    """Compare two compare output directories for deterministic equivalence."""
+    import hashlib
+    d1, d2 = Path(args.run1_dir), Path(args.run2_dir)
+    stable_files = [
+        "LOCAL_NATIVE_L1A_REPORT.json",
+        "LOCAL_NATIVE_L1A_REPORT.md",
+        "PROFILE_MANIFEST.json",
+        "DIRECT_PRICE_DIFFS.csv",
+        "TRADE_KEY_DIFFS.csv",
+        "STATE_DIFFS_SAMPLE.csv",
+    ]
+    all_pass = True
+    results = {}
+    for name in stable_files:
+        f1, f2 = d1 / name, d2 / name
+        if not f1.exists() or not f2.exists():
+            results[name] = {"hash1": "MISSING", "hash2": "MISSING", "equal": False}
+            all_pass = False
+            continue
+        h1 = hashlib.sha256(f1.read_bytes()).hexdigest()
+        h2 = hashlib.sha256(f2.read_bytes()).hexdigest()
+        eq = h1 == h2
+        if not eq:
+            all_pass = False
+        results[name] = {"hash1": h1, "hash2": h2, "equal": eq}
+    print(json.dumps(results, indent=2))
+    print(f"\nDeterministic: {'PASS' if all_pass else 'FAIL'}")
+    if not all_pass:
+        sys.exit(1)
 
 
 def main():
@@ -974,11 +1102,17 @@ def main():
     cp.add_argument("--baseline-dir", default=None)
     cp.add_argument("--out-dir", required=True)
 
+    dp = subs.add_parser("determinism")
+    dp.add_argument("--run1-dir", required=True)
+    dp.add_argument("--run2-dir", required=True)
+
     args = p.parse_args()
     if args.command == "run":
         cmd_run(args)
     elif args.command == "compare":
         cmd_compare(args)
+    elif args.command == "determinism":
+        cmd_determinism(args)
     else:
         p.print_help()
 
