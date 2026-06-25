@@ -1,6 +1,6 @@
 # LOCAL_NATIVE_L1A Acceptance Report
 
-- Source commit: `0246e42b8630541ae34fa38062679f92a87c8184`
+- Source commit: `3d6277f1e1bfd9fe368cc9bd104f64bd32320274`
 - Base main commit: `6369570406b77dda9903e832dccd5516fc9c5986`
 - Data root: `D:\work space\hdata`
 
@@ -10,10 +10,10 @@
 
 ## L0 Baseline Regression
 - trades_diff_rows: 0
-- state_diff_rows: 5
+- state_diff_rows: 0
 - equity_diff_rows: 0
 - portfolio_stats_diff_rows: 0
-- positions_diff_rows: -2
+- positions_diff_rows: 0
 - final_value_diff: 0.0
 
 ## L1A Trade Comparison
@@ -52,7 +52,7 @@
 
 ## Causal Timing
 - earliest_disabled_hook_hit: 20200114 11:25
-- earliest_trade_divergence: 2020-08-21
+- earliest_trade_divergence: 2020-01-14
 - earliest_state_divergence: 2020-01-15
 - earliest_equity_divergence: 2020-01-14
 - earliest_position_divergence: None
@@ -106,6 +106,6 @@
 - position_divergence_not_before_hit: **PASS**
 - pre_hit_exact_match: **PASS**
 - account_invariants: **PASS**
-- required_artifacts_complete: **PASS**
 - deterministic_reports: **PASS**
+- required_artifacts_complete: **PASS**
 - implementation_acceptance: **PASS**
