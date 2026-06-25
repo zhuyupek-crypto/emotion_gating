@@ -1,58 +1,80 @@
 # HData Handoff
 
-Hooks below should move into HData or data-quality metadata because they represent source-content truth rather than strategy logic.
+## Confirmed HData Issues
 
-## `market_data.corrupted_daily_limit_windows`
-- symbol: `CORRUPTED_DAILY_LIMIT_WINDOWS`
-- semantic_type / disposition: `data_correction` / `move_to_hdata`
-- affects: selection=yes, state=yes, order=no, fill=no, nav=yes
-- reason: The 2026 corruption window is a source-data quality problem and should be expressed in data lineage, not in project compat forever.
-- evidence: alignment_reports/data_quality_propagation_2026.md proves raw pivot corruption from 2026-05-25 forward and shows current runtime guards are only partial.
-- runtime call sites: `rebuild_from_archive/project_compat.py:212:    def should_bypass_history_fastpath(self, unit, fields, end_dt):; rebuild_from_archive/engine\data_api.py:143:    def _should_bypass_history_fastpath(self, unit, fields, end_dt):; rebuild_from_archive/engine\data_api.py:149:                return bool(compat.should_bypass_history_fastpath(unit, fields, end_dt)); rebuild_from_archive/engine\data_api.py:438:                if self._should_bypass_history_fastpath(unit, fields_to_get, end_dt):; rebuild_from_archive/project_compat.py:224:    def load_first_seal_year(self, year):; rebuild_from_archive/engine\data_api.py:820:            return self.compat.load_first_seal_year(year); 母版-20260506-Clone.py:564:        board_df = get_project_board_snapshot(context.previous_date); 母版-20260506-Clone.py:666:        board_df = get_project_board_snapshot(context.previous_date); rebuild_from_archive/project_compat.py:67:                engine.data_api.get_project_board_snapshot(*a, **kw); rebuild_from_archive/project_compat.py:247:    def get_project_board_snapshot(self, date):; rebuild_from_archive/engine\data_api.py:823:    def get_project_board_snapshot(self, date):; rebuild_from_archive/engine\data_api.py:825:            return self.compat.get_project_board_snapshot(date)`
-- handoff requirement: HData or upstream cache metadata must publish corruption windows and field-level quarantine signals.
-- disable requirement: Disable only after raw-data quality flags propagate through cache build and runtime readers.
-- delete requirement: Delete after HData versioned quality metadata replaces project-specific date guards and all dependent caches respect the same rule.
+当前没有足够证据把任何钩子直接认定为HData已确认错误。
 
-## `security_metadata.start_date_overrides`
-- symbol: `SECURITY_START_DATE_OVERRIDES`
-- semantic_type / disposition: `data_correction` / `move_to_hdata`
-- affects: selection=yes, state=no, order=no, fill=no, nav=no
-- reason: Listing-date truth belongs to the data layer, not to a strategy-specific compat profile.
-- evidence: engine/data_api.py applies get_security_start_date_override while building _stock_basic for get_all_securities().
-- runtime call sites: `rebuild_from_archive/project_compat.py:118:    def get_security_start_date_override(self, security):; rebuild_from_archive/engine\data_api.py:992:                    start_date = self.compat.get_security_start_date_override(code)`
-- handoff requirement: HData needs a corrected listing-date source or overlay for these securities.
-- disable requirement: Disable only after stock_basic or its replacement publishes correct PIT listing dates.
-- delete requirement: Delete after HData ships corrected listing dates and all IPO-age filters read them directly.
+所有疑似数据问题均需进一步调查才能确定归属。
 
-## `security_metadata.non_st_name_windows`
-- symbol: `NON_ST_NAME_WINDOWS`
-- semantic_type / disposition: `data_correction` / `move_to_hdata`
-- affects: selection=yes, state=no, order=no, fill=no, nav=no
-- reason: Historical security-name state is source metadata, not project logic.
-- evidence: project_compat.apply_security_name_overrides applies NON_ST_NAME_WINDOWS after reading daily ST state and before strategy filters consume display_name.
-- runtime call sites: `rebuild_from_archive/project_compat.py:310:    def apply_security_name_overrides(self, api, out, date):; rebuild_from_archive/engine\data_api.py:107:            return self.compat.apply_security_name_overrides(self, out, date)`
-- handoff requirement: HData needs PIT name history or equivalent metadata to eliminate these date-window strips.
-- disable requirement: Disable only after display_name is PIT-correct for affected windows.
-- delete requirement: Delete after PIT name history is available and strategy filters no longer need compat name surgery.
+## HData Verification Queue
 
-## `security_metadata.adjust_extras_is_st`
-- symbol: `EmotionGateJQCompat.adjust_extras_is_st`
-- semantic_type / disposition: `data_correction` / `move_to_hdata`
-- affects: selection=yes, state=no, order=no, fill=no, nav=no
-- reason: ST state and delisting-state truth should come from source metadata instead of project-side postprocessing.
-- evidence: engine/data_api.py calls compat.adjust_extras_is_st from get_extras('is_st', ...), and project_compat.py embeds date windows and name/end_date heuristics.
-- runtime call sites: `rebuild_from_archive/project_compat.py:354:    def adjust_extras_is_st(self, api, security, date, is_st):; rebuild_from_archive/engine\data_api.py:1031:                is_st = self.compat.adjust_extras_is_st(self, s, ds_dt, is_st)`
-- handoff requirement: HData needs PIT ST status and delisting-state history that match the project’s required query dates.
-- disable requirement: Disable only after get_extras('is_st') reads corrected PIT ST state directly.
-- delete requirement: Delete after ST state is natively correct and the project no longer patches it post-query.
+以下项目需要HData核实后才能确定最终归属。每一行说明观察到什么、为什么怀疑HData、还有其他可能解释、需要什么证据。
 
-## `instrument_fallbacks.price_fallbacks`
-- symbol: `INSTRUMENT_PRICE_FALLBACKS`
-- semantic_type / disposition: `data_correction` / `move_to_hdata`
-- affects: selection=yes, state=no, order=yes, fill=no, nav=yes
-- reason: Instrument price history should come from the data layer; synthetic prices are a stopgap for missing upstream content.
-- evidence: engine/data_api.py short-circuits get_price via compat.get_instrument_price_fallback before touching local price tables.
-- runtime call sites: `rebuild_from_archive/project_compat.py:121:    def get_instrument_price_fallback(self, security, start_date=None, end_date=None):; rebuild_from_archive/engine\data_api.py:400:            fallback = self.compat.get_instrument_price_fallback(`
-- handoff requirement: HData needs complete and trustworthy history for the fallback instruments or an explicit supported-source overlay.
-- disable requirement: Disable only after local data can serve these instruments directly without synthetic rows.
-- delete requirement: Delete after HData publishes native coverage and no call path reaches get_instrument_price_fallback.
+### `market_data.corrupted_daily_limit_windows`
+- **观察到什么**: Quarantine a known daily-data corruption window by bypassing fast-path history and suppressing selected cached features.
+- **当前证据**: Project currently has an explicit data isolation window used at runtime to bypass fast-path and caching. The root cause and full impact range still need HData audit confirmation.
+- **为什么怀疑HData**: The 2026 corruption window is a source-data quality concern, but the full root cause and impact scope have not yet been independently verified. JQ vs local data difference possible.
+- **其他可能解释**: 
+  - 聚宽历史数据形态差异
+  - 本地数据缺失
+  - 平台数据同步时间差异
+- **需要什么证据**: 
+  - 确认2026-05-25起数据污染根因是HData上游问题
+  - 当前分支的外部线索（codex/data-quality-propagation-audit 未验收）不能作为已确认依据
+- **确认后如何修复**: HData修复数据源或发布字段级质量标记
+- **确认前项目如何处理**: 保持当前compat钩子，标记为investigation_pending
+
+### `security_metadata.start_date_overrides`
+- **观察到什么**: Replace listing dates for specific securities before IPO-age filters run.
+- **当前证据**: engine/data_api.py applies get_security_start_date_override while building _stock_basic for get_all_securities().
+- **为什么怀疑HData**: Listing-date truth belongs to the data layer, but the discrepancy may reflect JoinQuant listing-date conventions rather than HData errors. Pending independent verification.
+- **其他可能解释**: 
+  - 聚宽历史截面口径差异
+  - 公告日与生效日差异
+- **需要什么证据**: 
+  - 逐笔对比聚宽与本地同一时间截面的原始数据
+  - 确认差异来源（口径 vs 错误）
+- **确认后如何修复**: HData修复数据源或发布字段级质量标记
+- **确认前项目如何处理**: 保持当前compat钩子，标记为investigation_pending
+
+### `security_metadata.non_st_name_windows`
+- **观察到什么**: Strip future ST or delisting markers from PIT display names inside explicit date windows.
+- **当前证据**: project_compat.apply_security_name_overrides applies NON_ST_NAME_WINDOWS after reading daily ST state and before strategy filters consume display_name.
+- **为什么怀疑HData**: Historical security-name state is source metadata, but the divergence may stem from JoinQuant name-history conventions vs local data PIT snapshots. Pending independent verification.
+- **其他可能解释**: 
+  - 名称/ST/退市状态口径差异
+  - 聚宽与本地复权口径差异
+  - 平台数据同步时间
+- **需要什么证据**: 
+  - 逐笔对比聚宽与本地同一时间截面的原始数据
+  - 确认差异来源（口径 vs 错误）
+- **确认后如何修复**: HData修复数据源或发布字段级质量标记
+- **确认前项目如何处理**: 保持当前compat钩子，标记为investigation_pending
+
+### `security_metadata.adjust_extras_is_st`
+- **观察到什么**: Override is_st results using PIT name and end-date heuristics for specific windows and codes.
+- **当前证据**: engine/data_api.py calls compat.adjust_extras_is_st from get_extras('is_st', ...), and project_compat.py embeds date windows and name/end_date heuristics.
+- **为什么怀疑HData**: ST state and delisting-state truth should come from source metadata, but the divergence may reflect JoinQuant ST classification conventions rather than HData errors. Pending verification.
+- **其他可能解释**: 
+  - 名称/ST/退市状态口径差异
+  - 聚宽与本地复权口径差异
+  - 平台数据同步时间
+- **需要什么证据**: 
+  - 逐笔对比聚宽与本地同一时间截面的原始数据
+  - 确认差异来源（口径 vs 错误）
+- **确认后如何修复**: HData修复数据源或发布字段级质量标记
+- **确认前项目如何处理**: 保持当前compat钩子，标记为investigation_pending
+
+### `instrument_fallbacks.price_fallbacks`
+- **观察到什么**: Serve synthetic daily prices for instruments missing or unusable in the local data path.
+- **当前证据**: engine/data_api.py short-circuits get_price via compat.get_instrument_price_fallback before touching local price tables.
+- **为什么怀疑HData**: Instrument price history should come from the data layer, but the absence may reflect data-coverage gaps rather than HData errors. Pending verification.
+- **其他可能解释**: 
+  - 名称/ST/退市状态口径差异
+  - 聚宽与本地复权口径差异
+  - 平台数据同步时间
+- **需要什么证据**: 
+  - 逐笔对比聚宽与本地同一时间截面的原始数据
+  - 确认差异来源（口径 vs 错误）
+- **确认后如何修复**: HData修复数据源或发布字段级质量标记
+- **确认前项目如何处理**: 保持当前compat钩子，标记为investigation_pending
