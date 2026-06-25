@@ -4,13 +4,13 @@
   "run2_dir": "D:\\Work Space\\他山之石\\情绪门控\\temp_envs\\env_run1\\out_compare",
   "files": {
     "LOCAL_NATIVE_L1A_REPORT.json": {
-      "hash1": "f4e57c3d1d81ca6a3c8f062c4f534c5f22b1c6d27b433f92ddefec98864f55fc",
-      "hash2": "f4e57c3d1d81ca6a3c8f062c4f534c5f22b1c6d27b433f92ddefec98864f55fc",
+      "hash1": "de0c694e8fac16ce72aef5368e40c3ba28fc824116cc18c686cc357563032c72",
+      "hash2": "de0c694e8fac16ce72aef5368e40c3ba28fc824116cc18c686cc357563032c72",
       "equal": 1
     },
     "LOCAL_NATIVE_L1A_REPORT.md": {
-      "hash1": "031e95ab746075bb13e9930675eab50fc1f25f6968ac5ff2f72ae621456a7a03",
-      "hash2": "031e95ab746075bb13e9930675eab50fc1f25f6968ac5ff2f72ae621456a7a03",
+      "hash1": "ef6b47bf53341bf8bf9d0c95273a01e1d8de63dc1686f9d42248b018d9dbc07e",
+      "hash2": "ef6b47bf53341bf8bf9d0c95273a01e1d8de63dc1686f9d42248b018d9dbc07e",
       "equal": 1
     },
     "PROFILE_MANIFEST.json": {
