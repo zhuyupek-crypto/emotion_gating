@@ -187,6 +187,10 @@ def test_emotion_gate_compat_public_methods_covered():
         "load_project_call_auction_day": "project_feature.call_auction_day_loader",
         "namespace_entries": "project_feature.strategy_namespace_bridge",
         "apply_project_strategy_compat": "project_feature.strategy_namespace_bridge",
+        "profile": None,           # profile property - not a compat hook
+        "disabled_hook_ids": None, # property - not a compat hook
+        "is_hook_enabled": None,   # profile query - not a compat hook
+        "profile_manifest": None,  # profile query - not a compat hook
         "_feature_path": None,
         "_load_feature_year": None,
     }

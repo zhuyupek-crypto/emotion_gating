@@ -1,0 +1,7 @@
+{
+  "profile": "local_native_l1a",
+  "disabled_hook_ids": [
+    "execution.execution_price_anomalies",
+    "market_data.minute_price_anomalies"
+  ]
+}
