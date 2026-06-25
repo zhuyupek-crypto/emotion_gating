@@ -451,8 +451,8 @@ HOOK_SPECS: list[HookSpec] = [
         behavior="Patch specific daily field values before selection/state logic consumes them.",
         semantic_type="data_correction",
         disposition="investigate",
-        reason="Some rows align with proven source corruption, while others are isolated point answers whose root cause is not yet assigned.",
-        evidence="engine/data_api.py and engine/core.py both query get_daily_field_override; 2026 high/high_limit overrides are also covered by the data-quality audit.",
+        reason="Some rows overlap the externally reported 2026 anomaly window, but that external audit has not been accepted or merged. Others are isolated point answers whose root cause is not yet assigned.",
+        evidence="engine/data_api.py and engine/core.py both query get_daily_field_override. Some entries overlap the 2026 window reported in an external, unmerged branch.",
         affects_selection=True,
         affects_state=True,
         affects_order=False,
@@ -468,6 +468,8 @@ HOOK_SPECS: list[HookSpec] = [
         acceptance_test="tools/hook_migration_acceptance.py targeted 2026 corrupted daily fastpath check",
         status="investigation_pending",
         call_site_patterns=["get_daily_field_override("],
+        external_evidence_ref="codex/data-quality-propagation-audit branch, commit b951d3885f09fcc6d455675799a295c569af5439",
+        external_evidence_status="unreviewed",
     ),
     HookSpec(
         hook_id="execution.preopen_reject_cash_below",
@@ -1362,7 +1364,10 @@ def build_answers(inventory: list[dict[str, Any]]) -> dict[str, list[str]]:
 
     return {
         "general_market_rules": dedupe(ids(filter_hooks(inventory, semantic_type="market_rule"))),
-        "hdata_verification_queue": dedupe(ids([row for row in inventory if row["target_owner"] == "hdata_candidate"])),
+        "hdata_verification_queue_core": dedupe(ids([row for row in inventory if row["target_owner"] == "hdata_candidate"])),
+        "hdata_verification_queue_all": dedupe(ids([row for row in inventory if row["target_owner"] == "hdata_candidate" or (
+            row["target_owner"] == "investigation" and row["semantic_type"] in ("data_correction", "unknown")
+        )])),
         "jq_history_replay_only": dedupe(ids(filter_hooks(inventory, semantic_type="jq_platform_behavior"))),
         "project_logic": dedupe(ids(filter_hooks(inventory, semantic_type="project_logic"))),
         "project_infrastructure": dedupe(ids(filter_hooks(inventory, semantic_type="project_infrastructure"))),
@@ -1417,14 +1422,15 @@ def render_inventory_markdown(inventory: list[dict[str, Any]], summary: dict[str
     lines.append(f"2. **project_infrastructure hooks**: {summary['project_infrastructure_count']} — These are project cache access, namespace wiring, and checkpoint infrastructure.")
     lines.append(f"3. **HData confirmed**: {summary['hdata_confirmed_count']} — No hook has sufficient in-branch evidence to be classified as a confirmed HData error.")
     lines.append(f"4. **HData verification queue**: {summary['hdata_verification_queue_count']} — These need HData investigation before ownership assignment.")
-    lines.append(f"5. **zero-consumer entries**: {summary['zero_consumer_count']} — Entries with no real strategy consumer needing investigation.")
+    lines.append(f"5. **zero-consumer entries**: {summary['zero_consumer_count']} — 无直接消费者的条目（consumer_count仅表示对该hook入口的直接消费，不代表不存在通过DataAPI转发产生的间接业务影响）。真正可视为清理候选的条目需逐个审查。")
     lines.append(f"6. **empty_config entries**: {summary['empty_config_count']} — Interface registrations with empty data that should not count as active behavior.")
     lines.append("")
     lines.append("## Questions")
     lines.append("")
     qa_map = [
         ("1. 哪些钩子属于通用市场规则？", "general_market_rules"),
-        ("2. 哪些钩子是HData核实候选（待调查）？", "hdata_verification_queue"),
+        ("2a. 哪些钩子是HData主要候选（高嫌疑）？", "hdata_verification_queue_core"),
+        ("2b. 哪些钩子需HData参与核实队列？", "hdata_verification_queue_all"),
         ("3. 哪些钩子只是聚宽历史复刻？", "jq_history_replay_only"),
         ("4. 哪些钩子真正属于项目策略逻辑？", "project_logic"),
         ("5. 哪些钩子是项目基础设施？", "project_infrastructure"),

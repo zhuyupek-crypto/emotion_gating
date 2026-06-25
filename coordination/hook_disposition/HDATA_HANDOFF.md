@@ -82,8 +82,8 @@
 
 ### `market_data.daily_field_anomalies`
 - **观察到什么**: Patch specific daily field values before selection/state logic consumes them.
-- **当前证据**: engine/data_api.py and engine/core.py both query get_daily_field_override; 2026 high/high_limit overrides are also covered by the data-quality audit.
-- **为什么怀疑HData**: Some rows align with proven source corruption, while others are isolated point answers whose root cause is not yet assigned.
+- **当前证据**: engine/data_api.py and engine/core.py both query get_daily_field_override. Some entries overlap the 2026 window reported in an external, unmerged branch.
+- **为什么怀疑HData**: Some rows overlap the externally reported 2026 anomaly window, but that external audit has not been accepted or merged. Others are isolated point answers whose root cause is not yet assigned.
 - **其他可能解释**: 
   - 聚宽历史数据形态差异
   - 本地数据缺失

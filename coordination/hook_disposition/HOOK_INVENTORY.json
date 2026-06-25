@@ -224,11 +224,25 @@
       "engine.immediate_sell_cash_release",
       "instrument_fallbacks.zero_fee_overrides"
     ],
-    "hdata_verification_queue": [
+    "hdata_verification_queue_core": [
       "instrument_fallbacks.price_fallbacks",
       "market_data.corrupted_daily_limit_windows",
       "security_metadata.adjust_extras_is_st",
       "security_metadata.non_st_name_windows",
+      "security_metadata.start_date_overrides"
+    ],
+    "hdata_verification_queue_all": [
+      "call_auction.allow_only",
+      "call_auction.depth_overrides",
+      "call_auction.empty_anomalies",
+      "instrument_fallbacks.price_fallbacks",
+      "market_data.corrupted_daily_limit_windows",
+      "market_data.daily_field_anomalies",
+      "market_data.tail_seal_anomalies",
+      "security_metadata.adjust_extras_is_st",
+      "security_metadata.billboard_row_filters",
+      "security_metadata.non_st_name_windows",
+      "security_metadata.special_display_name_rules",
       "security_metadata.start_date_overrides"
     ],
     "jq_history_replay_only": [
@@ -299,7 +313,8 @@
       "execution.preopen_reject_orders"
     ],
     "external_evidence_refs": [
-      "market_data.corrupted_daily_limit_windows"
+      "market_data.corrupted_daily_limit_windows",
+      "market_data.daily_field_anomalies"
     ]
   },
   "inventory": [
@@ -390,10 +405,10 @@
         "alignment_reports\\alignment_summary_2020_2026.md:205:- `load_first_seal_year()` 在污染窗口跳过对应快缓存。",
         "alignment_reports\\alignment_summary_2020_2026.md:206:- `get_project_board_snapshot()` 在污染窗口直接返回空 `DataFrame()`，避免使用脏首板快照。",
         "alignment_reports\\alignment_summary_2020_2026.md:217:- 当 `compat.should_bypass_history_fastpath('daily', fields, day)` 返回 true 时，不再继续快取，直接回退到旧路径。",
-        "tools\\audit_hook_disposition.py:1003:        evidence=\"母版-20260506-Clone.py reads get_project_board_snapshot(context.previous_date) for board scans; engine/data_api.py delegates through compat.\",",
-        "tools\\audit_hook_disposition.py:1018:        call_site_patterns=[\"get_project_board_snapshot(\"],",
+        "tools\\audit_hook_disposition.py:1005:        evidence=\"母版-20260506-Clone.py reads get_project_board_snapshot(context.previous_date) for board scans; engine/data_api.py delegates through compat.\",",
+        "tools\\audit_hook_disposition.py:1020:        call_site_patterns=[\"get_project_board_snapshot(\"],",
         "tools\\audit_hook_disposition.py:360:        call_site_patterns=[\"should_bypass_history_fastpath(\", \"load_first_seal_year(\", \"get_project_board_snapshot(\"],",
-        "tools\\audit_hook_disposition.py:990:        call_site_patterns=[\"load_first_seal_year(\", \"get_batch_sealing_points(\"],",
+        "tools\\audit_hook_disposition.py:992:        call_site_patterns=[\"load_first_seal_year(\", \"get_batch_sealing_points(\"],",
         "tools\\hook_migration_acceptance.py:166:    def should_bypass_history_fastpath(self, unit, fields, end_dt):",
         "tools\\hook_migration_acceptance.py:167:        value = self._base.should_bypass_history_fastpath(unit, fields, end_dt)",
         "tools\\hook_migration_acceptance.py:561:    bypass_2026 = compat.should_bypass_history_fastpath(\"1d\", [\"high\", \"high_limit\"], pd.Timestamp(\"2026-05-27\"))"
@@ -707,8 +722,8 @@
       "behavior": "Patch specific daily field values before selection/state logic consumes them.",
       "semantic_type": "data_correction",
       "disposition": "investigate",
-      "reason": "Some rows align with proven source corruption, while others are isolated point answers whose root cause is not yet assigned.",
-      "evidence": "engine/data_api.py and engine/core.py both query get_daily_field_override; 2026 high/high_limit overrides are also covered by the data-quality audit.",
+      "reason": "Some rows overlap the externally reported 2026 anomaly window, but that external audit has not been accepted or merged. Others are isolated point answers whose root cause is not yet assigned.",
+      "evidence": "engine/data_api.py and engine/core.py both query get_daily_field_override. Some entries overlap the 2026 window reported in an external, unmerged branch.",
       "affects_selection": true,
       "affects_state": true,
       "affects_order": false,
@@ -741,8 +756,8 @@
       "definition_count": 1,
       "forwarder_count": 0,
       "consumer_count": 3,
-      "external_evidence_ref": null,
-      "external_evidence_status": null
+      "external_evidence_ref": "codex/data-quality-propagation-audit branch, commit b951d3885f09fcc6d455675799a295c569af5439",
+      "external_evidence_status": "unreviewed"
     },
     {
       "hook_id": "execution.preopen_reject_cash_below",
@@ -753,7 +768,7 @@
         "rebuild_from_archive/project_compat.py:104:    def should_reject_preopen_cash(self, date_key, time_key, available_cash):"
       ],
       "secondary_references": [
-        "tools\\audit_hook_disposition.py:497:        call_site_patterns=[\"should_reject_preopen_cash(\"],",
+        "tools\\audit_hook_disposition.py:499:        call_site_patterns=[\"should_reject_preopen_cash(\"],",
         "tools\\hook_migration_acceptance.py:130:    def should_reject_preopen_cash(self, date_key, time_key, available_cash):",
         "tools\\hook_migration_acceptance.py:131:        reject, threshold = self._base.should_reject_preopen_cash(date_key, time_key, available_cash)",
         "tools\\hook_migration_acceptance.py:558:    reject_2025, threshold_2025 = compat.should_reject_preopen_cash(\"2025-03-19\", \"09:28\", 19999.99)"
@@ -810,7 +825,7 @@
         "rebuild_from_archive/project_compat.py:108:    def should_reject_preopen_order(self, date_key, security):"
       ],
       "secondary_references": [
-        "tools\\audit_hook_disposition.py:525:        call_site_patterns=[\"should_reject_preopen_order(\"],",
+        "tools\\audit_hook_disposition.py:527:        call_site_patterns=[\"should_reject_preopen_order(\"],",
         "tools\\hook_migration_acceptance.py:135:    def should_reject_preopen_order(self, date_key, security):",
         "tools\\hook_migration_acceptance.py:136:        reject = self._base.should_reject_preopen_order(date_key, security)"
       ],
@@ -861,7 +876,7 @@
         "rebuild_from_archive/project_compat.py:111:    def should_drop_first_preopen_duplicate(self, date_key, security):"
       ],
       "secondary_references": [
-        "tools\\audit_hook_disposition.py:552:        call_site_patterns=[\"should_drop_first_preopen_duplicate(\"],",
+        "tools\\audit_hook_disposition.py:554:        call_site_patterns=[\"should_drop_first_preopen_duplicate(\"],",
         "tools\\hook_migration_acceptance.py:140:    def should_drop_first_preopen_duplicate(self, date_key, security):",
         "tools\\hook_migration_acceptance.py:141:        drop = self._base.should_drop_first_preopen_duplicate(date_key, security)",
         "tools\\hook_migration_acceptance.py:536:    dup = compat.should_drop_first_preopen_duplicate(\"2021-12-01\", \"600072.XSHG\")"
@@ -931,7 +946,7 @@
       ],
       "secondary_references": [
         "tests\\test_compat_entrypoints.py:12:    assert compat.get_execution_price_override(\"20230323\", \"09:30\", \"600518.XSHG\", \"buy\") == 2.16",
-        "tools\\audit_hook_disposition.py:579:        call_site_patterns=[\"get_execution_price_override(\"],",
+        "tools\\audit_hook_disposition.py:581:        call_site_patterns=[\"get_execution_price_override(\"],",
         "tools\\hook_migration_acceptance.py:115:    def get_execution_price_override(self, date_key, time_key, security, side):",
         "tools\\hook_migration_acceptance.py:116:        value = self._base.get_execution_price_override(date_key, time_key, security, side)"
       ],
@@ -1144,7 +1159,7 @@
       ],
       "secondary_references": [
         "tests\\test_compat_entrypoints.py:17:    assert compat.get_order_amount_override(\"20200518\", \"09:26\", \"000987.XSHE\") == [38600, 33800]",
-        "tools\\audit_hook_disposition.py:606:        call_site_patterns=[\"get_order_amount_override(\"],",
+        "tools\\audit_hook_disposition.py:608:        call_site_patterns=[\"get_order_amount_override(\"],",
         "tools\\hook_migration_acceptance.py:120:    def get_order_amount_override(self, date_key, time_key, security):",
         "tools\\hook_migration_acceptance.py:121:        value = self._base.get_order_amount_override(date_key, time_key, security)"
       ],
@@ -1250,7 +1265,7 @@
       ],
       "secondary_references": [
         "tests\\test_compat_entrypoints.py:18:    assert compat.get_fill_amount_override(\"20200416\", \"09:30\", \"002041.XSHE\") == 39300",
-        "tools\\audit_hook_disposition.py:633:        call_site_patterns=[\"get_fill_amount_override(\"],",
+        "tools\\audit_hook_disposition.py:635:        call_site_patterns=[\"get_fill_amount_override(\"],",
         "tools\\hook_migration_acceptance.py:125:    def get_fill_amount_override(self, date_key, time_key, security):",
         "tools\\hook_migration_acceptance.py:126:        value = self._base.get_fill_amount_override(date_key, time_key, security)"
       ],
@@ -1310,9 +1325,9 @@
       ],
       "secondary_references": [
         "tests\\test_compat_entrypoints.py:31:    out = compat.apply_call_auction_overrides(frame)",
-        "tools\\audit_hook_disposition.py:660:        call_site_patterns=[\"apply_call_auction_overrides(\"],",
-        "tools\\audit_hook_disposition.py:687:        call_site_patterns=[\"apply_call_auction_overrides(\"],",
-        "tools\\audit_hook_disposition.py:714:        call_site_patterns=[\"apply_call_auction_overrides(\"],",
+        "tools\\audit_hook_disposition.py:662:        call_site_patterns=[\"apply_call_auction_overrides(\"],",
+        "tools\\audit_hook_disposition.py:689:        call_site_patterns=[\"apply_call_auction_overrides(\"],",
+        "tools\\audit_hook_disposition.py:716:        call_site_patterns=[\"apply_call_auction_overrides(\"],",
         "tools\\hook_migration_acceptance.py:176:    def apply_call_auction_overrides(self, frame):",
         "tools\\hook_migration_acceptance.py:178:        out = self._base.apply_call_auction_overrides(frame)"
       ],
@@ -1376,9 +1391,9 @@
       ],
       "secondary_references": [
         "tests\\test_compat_entrypoints.py:31:    out = compat.apply_call_auction_overrides(frame)",
-        "tools\\audit_hook_disposition.py:660:        call_site_patterns=[\"apply_call_auction_overrides(\"],",
-        "tools\\audit_hook_disposition.py:687:        call_site_patterns=[\"apply_call_auction_overrides(\"],",
-        "tools\\audit_hook_disposition.py:714:        call_site_patterns=[\"apply_call_auction_overrides(\"],",
+        "tools\\audit_hook_disposition.py:662:        call_site_patterns=[\"apply_call_auction_overrides(\"],",
+        "tools\\audit_hook_disposition.py:689:        call_site_patterns=[\"apply_call_auction_overrides(\"],",
+        "tools\\audit_hook_disposition.py:716:        call_site_patterns=[\"apply_call_auction_overrides(\"],",
         "tools\\hook_migration_acceptance.py:176:    def apply_call_auction_overrides(self, frame):",
         "tools\\hook_migration_acceptance.py:178:        out = self._base.apply_call_auction_overrides(frame)"
       ],
@@ -1437,9 +1452,9 @@
       ],
       "secondary_references": [
         "tests\\test_compat_entrypoints.py:31:    out = compat.apply_call_auction_overrides(frame)",
-        "tools\\audit_hook_disposition.py:660:        call_site_patterns=[\"apply_call_auction_overrides(\"],",
-        "tools\\audit_hook_disposition.py:687:        call_site_patterns=[\"apply_call_auction_overrides(\"],",
-        "tools\\audit_hook_disposition.py:714:        call_site_patterns=[\"apply_call_auction_overrides(\"],",
+        "tools\\audit_hook_disposition.py:662:        call_site_patterns=[\"apply_call_auction_overrides(\"],",
+        "tools\\audit_hook_disposition.py:689:        call_site_patterns=[\"apply_call_auction_overrides(\"],",
+        "tools\\audit_hook_disposition.py:716:        call_site_patterns=[\"apply_call_auction_overrides(\"],",
         "tools\\hook_migration_acceptance.py:176:    def apply_call_auction_overrides(self, frame):",
         "tools\\hook_migration_acceptance.py:178:        out = self._base.apply_call_auction_overrides(frame)"
       ],
@@ -1499,7 +1514,7 @@
         "rebuild_from_archive/project_compat.py:118:    def get_security_start_date_override(self, security):"
       ],
       "secondary_references": [
-        "tools\\audit_hook_disposition.py:741:        call_site_patterns=[\"get_security_start_date_override(\"],",
+        "tools\\audit_hook_disposition.py:743:        call_site_patterns=[\"get_security_start_date_override(\"],",
         "tools\\hook_migration_acceptance.py:171:    def get_security_start_date_override(self, security):",
         "tools\\hook_migration_acceptance.py:172:        value = self._base.get_security_start_date_override(security)",
         "tools\\hook_migration_acceptance.py:506:        start_override = compat.get_security_start_date_override(case[\"code\"])"
@@ -1557,8 +1572,8 @@
       ],
       "secondary_references": [
         "alignment_reports\\align_worktree_diff_2020-01-02_2021-12-31.patch:394:+            return self.compat.apply_security_name_overrides(self, out, date)",
-        "tools\\audit_hook_disposition.py:768:        call_site_patterns=[\"apply_security_name_overrides(\"],",
-        "tools\\audit_hook_disposition.py:795:        call_site_patterns=[\"apply_security_name_overrides(\"],",
+        "tools\\audit_hook_disposition.py:770:        call_site_patterns=[\"apply_security_name_overrides(\"],",
+        "tools\\audit_hook_disposition.py:797:        call_site_patterns=[\"apply_security_name_overrides(\"],",
         "tools\\hook_migration_acceptance.py:188:    def apply_security_name_overrides(self, api, out, date):",
         "tools\\hook_migration_acceptance.py:190:        result = self._base.apply_security_name_overrides(api, out, date)"
       ],
@@ -1694,8 +1709,8 @@
       ],
       "secondary_references": [
         "alignment_reports\\align_worktree_diff_2020-01-02_2021-12-31.patch:394:+            return self.compat.apply_security_name_overrides(self, out, date)",
-        "tools\\audit_hook_disposition.py:768:        call_site_patterns=[\"apply_security_name_overrides(\"],",
-        "tools\\audit_hook_disposition.py:795:        call_site_patterns=[\"apply_security_name_overrides(\"],",
+        "tools\\audit_hook_disposition.py:770:        call_site_patterns=[\"apply_security_name_overrides(\"],",
+        "tools\\audit_hook_disposition.py:797:        call_site_patterns=[\"apply_security_name_overrides(\"],",
         "tools\\hook_migration_acceptance.py:188:    def apply_security_name_overrides(self, api, out, date):",
         "tools\\hook_migration_acceptance.py:190:        result = self._base.apply_security_name_overrides(api, out, date)"
       ],
@@ -1756,7 +1771,7 @@
       ],
       "secondary_references": [
         "alignment_reports\\align_worktree_diff_2020-01-02_2021-12-31.patch:633:+                is_st = self.compat.adjust_extras_is_st(self, s, ds_dt, is_st)",
-        "tools\\audit_hook_disposition.py:825:        call_site_patterns=[\"adjust_extras_is_st(\"],",
+        "tools\\audit_hook_disposition.py:827:        call_site_patterns=[\"adjust_extras_is_st(\"],",
         "tools\\hook_migration_acceptance.py:199:    def adjust_extras_is_st(self, api, security, date, is_st):",
         "tools\\hook_migration_acceptance.py:200:        value = self._base.adjust_extras_is_st(api, security, date, is_st)"
       ],
@@ -1819,7 +1834,7 @@
       ],
       "secondary_references": [
         "alignment_reports\\align_worktree_diff_2020-01-02_2021-12-31.patch:649:+                df = self.compat.filter_billboard_rows(df)",
-        "tools\\audit_hook_disposition.py:855:        call_site_patterns=[\"filter_billboard_rows(\"],",
+        "tools\\audit_hook_disposition.py:857:        call_site_patterns=[\"filter_billboard_rows(\"],",
         "tools\\hook_migration_acceptance.py:204:    def filter_billboard_rows(self, frame):",
         "tools\\hook_migration_acceptance.py:205:        out = self._base.filter_billboard_rows(frame)",
         "tools\\run_counterfactual_2024_000506_billboard_filter.py:29:    def filter_billboard_rows(self, frame):",
@@ -1882,7 +1897,7 @@
       ],
       "secondary_references": [
         "tests\\test_compat_entrypoints.py:52:    fallback = compat.get_instrument_price_fallback(\"511880.XSHG\", end_date=\"2024-01-02\")",
-        "tools\\audit_hook_disposition.py:882:        call_site_patterns=[\"get_instrument_price_fallback(\"],",
+        "tools\\audit_hook_disposition.py:884:        call_site_patterns=[\"get_instrument_price_fallback(\"],",
         "tools\\hook_migration_acceptance.py:151:    def get_instrument_price_fallback(self, security, start_date=None, end_date=None):",
         "tools\\hook_migration_acceptance.py:152:        value = self._base.get_instrument_price_fallback(security, start_date=start_date, end_date=end_date)"
       ],
@@ -1975,7 +1990,7 @@
       ],
       "secondary_references": [
         "tests\\test_compat_entrypoints.py:54:    assert compat.has_zero_fee_override(\"511880.XSHG\") is True",
-        "tools\\audit_hook_disposition.py:909:        call_site_patterns=[\"has_zero_fee_override(\"],",
+        "tools\\audit_hook_disposition.py:911:        call_site_patterns=[\"has_zero_fee_override(\"],",
         "tools\\hook_migration_acceptance.py:156:    def has_zero_fee_override(self, security):",
         "tools\\hook_migration_acceptance.py:157:        value = self._base.has_zero_fee_override(security)",
         "tools\\hook_migration_acceptance.py:546:    zero_fee = compat.has_zero_fee_override(\"511880.XSHG\")"
@@ -2036,12 +2051,12 @@
         "alignment_reports\\compat_hook_migration_report.md:54:当前运行时代码中，兼容事实应通过 `EmotionGateJQCompat` 或 `apply_project_strategy_compat(...)` 暴露，不再由调用点各自维护散落字典。",
         "tests\\test_compat_entrypoints.py:43:    compat.apply_strategy_state_override(\"after_fb_state\", context, state)",
         "tests\\test_compat_entrypoints.py:49:    compat.apply_strategy_state_override(\"after_v227_shock\", context2, state)",
-        "tools\\audit_hook_disposition.py:1115:        evidence=\"Engine.__init__ merges compat.namespace_entries(self), and 母版-20260506-Clone.py calls apply_project_strategy_compat(...) at fixed stages.\",",
-        "tools\\audit_hook_disposition.py:1130:        call_site_patterns=[\"namespace_entries(\", \"apply_project_strategy_compat(\"],",
-        "tools\\audit_hook_disposition.py:921:        evidence=\"母版-20260506-Clone.py calls apply_project_strategy_compat('after_fb_state', ...) and project_compat.apply_strategy_state_override applies FB_STATE_OVERRIDES.\",",
-        "tools\\audit_hook_disposition.py:936:        call_site_patterns=[\"apply_project_strategy_compat(\", \"apply_strategy_state_override(\"],",
-        "tools\\audit_hook_disposition.py:948:        evidence=\"母版-20260506-Clone.py calls apply_project_strategy_compat('after_v227_shock', ...) and project_compat.apply_strategy_state_override applies V227_SHOCK_OVERRIDES.\",",
-        "tools\\audit_hook_disposition.py:963:        call_site_patterns=[\"apply_project_strategy_compat(\", \"apply_strategy_state_override(\"],",
+        "tools\\audit_hook_disposition.py:1117:        evidence=\"Engine.__init__ merges compat.namespace_entries(self), and 母版-20260506-Clone.py calls apply_project_strategy_compat(...) at fixed stages.\",",
+        "tools\\audit_hook_disposition.py:1132:        call_site_patterns=[\"namespace_entries(\", \"apply_project_strategy_compat(\"],",
+        "tools\\audit_hook_disposition.py:923:        evidence=\"母版-20260506-Clone.py calls apply_project_strategy_compat('after_fb_state', ...) and project_compat.apply_strategy_state_override applies FB_STATE_OVERRIDES.\",",
+        "tools\\audit_hook_disposition.py:938:        call_site_patterns=[\"apply_project_strategy_compat(\", \"apply_strategy_state_override(\"],",
+        "tools\\audit_hook_disposition.py:950:        evidence=\"母版-20260506-Clone.py calls apply_project_strategy_compat('after_v227_shock', ...) and project_compat.apply_strategy_state_override applies V227_SHOCK_OVERRIDES.\",",
+        "tools\\audit_hook_disposition.py:965:        call_site_patterns=[\"apply_project_strategy_compat(\", \"apply_strategy_state_override(\"],",
         "tools\\hook_migration_acceptance.py:145:    def apply_strategy_state_override(self, stage, context, state=None):",
         "tools\\hook_migration_acceptance.py:146:        value = self._base.apply_strategy_state_override(stage, context, state)",
         "tools\\hook_migration_acceptance.py:541:    override = compat.apply_strategy_state_override(\"after_v227_shock\", context, state)",
@@ -2108,12 +2123,12 @@
         "alignment_reports\\compat_hook_migration_report.md:54:当前运行时代码中，兼容事实应通过 `EmotionGateJQCompat` 或 `apply_project_strategy_compat(...)` 暴露，不再由调用点各自维护散落字典。",
         "tests\\test_compat_entrypoints.py:43:    compat.apply_strategy_state_override(\"after_fb_state\", context, state)",
         "tests\\test_compat_entrypoints.py:49:    compat.apply_strategy_state_override(\"after_v227_shock\", context2, state)",
-        "tools\\audit_hook_disposition.py:1115:        evidence=\"Engine.__init__ merges compat.namespace_entries(self), and 母版-20260506-Clone.py calls apply_project_strategy_compat(...) at fixed stages.\",",
-        "tools\\audit_hook_disposition.py:1130:        call_site_patterns=[\"namespace_entries(\", \"apply_project_strategy_compat(\"],",
-        "tools\\audit_hook_disposition.py:921:        evidence=\"母版-20260506-Clone.py calls apply_project_strategy_compat('after_fb_state', ...) and project_compat.apply_strategy_state_override applies FB_STATE_OVERRIDES.\",",
-        "tools\\audit_hook_disposition.py:936:        call_site_patterns=[\"apply_project_strategy_compat(\", \"apply_strategy_state_override(\"],",
-        "tools\\audit_hook_disposition.py:948:        evidence=\"母版-20260506-Clone.py calls apply_project_strategy_compat('after_v227_shock', ...) and project_compat.apply_strategy_state_override applies V227_SHOCK_OVERRIDES.\",",
-        "tools\\audit_hook_disposition.py:963:        call_site_patterns=[\"apply_project_strategy_compat(\", \"apply_strategy_state_override(\"],",
+        "tools\\audit_hook_disposition.py:1117:        evidence=\"Engine.__init__ merges compat.namespace_entries(self), and 母版-20260506-Clone.py calls apply_project_strategy_compat(...) at fixed stages.\",",
+        "tools\\audit_hook_disposition.py:1132:        call_site_patterns=[\"namespace_entries(\", \"apply_project_strategy_compat(\"],",
+        "tools\\audit_hook_disposition.py:923:        evidence=\"母版-20260506-Clone.py calls apply_project_strategy_compat('after_fb_state', ...) and project_compat.apply_strategy_state_override applies FB_STATE_OVERRIDES.\",",
+        "tools\\audit_hook_disposition.py:938:        call_site_patterns=[\"apply_project_strategy_compat(\", \"apply_strategy_state_override(\"],",
+        "tools\\audit_hook_disposition.py:950:        evidence=\"母版-20260506-Clone.py calls apply_project_strategy_compat('after_v227_shock', ...) and project_compat.apply_strategy_state_override applies V227_SHOCK_OVERRIDES.\",",
+        "tools\\audit_hook_disposition.py:965:        call_site_patterns=[\"apply_project_strategy_compat(\", \"apply_strategy_state_override(\"],",
         "tools\\hook_migration_acceptance.py:145:    def apply_strategy_state_override(self, stage, context, state=None):",
         "tools\\hook_migration_acceptance.py:146:        value = self._base.apply_strategy_state_override(stage, context, state)",
         "tools\\hook_migration_acceptance.py:541:    override = compat.apply_strategy_state_override(\"after_v227_shock\", context, state)",
@@ -2181,7 +2196,7 @@
         "alignment_reports\\alignment_summary_2020_2026.md:212:- `get_batch_sealing_points()` 改为使用 `get_price(... fields=['high_limit'], panel=False)`，避免直接依赖 `_history_cached(...)` 旧路径。",
         "alignment_reports\\alignment_summary_2020_2026.md:396:- `get_batch_sealing_points()` 从直接用底层缓存，改为走可控的 `get_price(... panel=False)`；",
         "tools\\audit_hook_disposition.py:360:        call_site_patterns=[\"should_bypass_history_fastpath(\", \"load_first_seal_year(\", \"get_project_board_snapshot(\"],",
-        "tools\\audit_hook_disposition.py:990:        call_site_patterns=[\"load_first_seal_year(\", \"get_batch_sealing_points(\"],",
+        "tools\\audit_hook_disposition.py:992:        call_site_patterns=[\"load_first_seal_year(\", \"get_batch_sealing_points(\"],",
         "tools\\hook_migration_acceptance.py:529:    tail = api.get_batch_sealing_points([\"000420.XSHE\"], \"2021-11-15\").get(\"000420.XSHE\")"
       ],
       "trigger_dates": [],
@@ -2240,8 +2255,8 @@
         "alignment_reports\\align_worktree_diff_2020-01-02_2021-12-31.patch:465:     def get_project_board_snapshot(self, date):",
         "alignment_reports\\align_worktree_diff_2020-01-02_2021-12-31.patch:481:+            return self.compat.get_project_board_snapshot(date)",
         "alignment_reports\\alignment_summary_2020_2026.md:206:- `get_project_board_snapshot()` 在污染窗口直接返回空 `DataFrame()`，避免使用脏首板快照。",
-        "tools\\audit_hook_disposition.py:1003:        evidence=\"母版-20260506-Clone.py reads get_project_board_snapshot(context.previous_date) for board scans; engine/data_api.py delegates through compat.\",",
-        "tools\\audit_hook_disposition.py:1018:        call_site_patterns=[\"get_project_board_snapshot(\"],",
+        "tools\\audit_hook_disposition.py:1005:        evidence=\"母版-20260506-Clone.py reads get_project_board_snapshot(context.previous_date) for board scans; engine/data_api.py delegates through compat.\",",
+        "tools\\audit_hook_disposition.py:1020:        call_site_patterns=[\"get_project_board_snapshot(\"],",
         "tools\\audit_hook_disposition.py:360:        call_site_patterns=[\"should_bypass_history_fastpath(\", \"load_first_seal_year(\", \"get_project_board_snapshot(\"],"
       ],
       "trigger_dates": [],
@@ -2298,7 +2313,7 @@
         "alignment_reports\\align_worktree_diff_2020-01-02_2021-12-31.patch:233:-            'get_project_master_prepare_index': lambda *a, **kw: self._wrap_pandas(self.data_api.get_project_master_prepare_index(*a, **kw)),",
         "alignment_reports\\align_worktree_diff_2020-01-02_2021-12-31.patch:484:     def get_project_master_prepare_index(self, date):",
         "alignment_reports\\align_worktree_diff_2020-01-02_2021-12-31.patch:500:+            return self.compat.get_project_master_prepare_index(date)",
-        "tools\\audit_hook_disposition.py:1046:        call_site_patterns=[\"get_project_master_prepare_index(\"],"
+        "tools\\audit_hook_disposition.py:1048:        call_site_patterns=[\"get_project_master_prepare_index(\"],"
       ],
       "trigger_dates": [],
       "trigger_codes": [],
@@ -2353,8 +2368,8 @@
         "alignment_reports\\align_worktree_diff_2020-01-02_2021-12-31.patch:234:-            'get_project_auction_yiqian_prepare': lambda *a, **kw: self._wrap_pandas(self.data_api.get_project_auction_yiqian_prepare(*a, **kw)),",
         "alignment_reports\\align_worktree_diff_2020-01-02_2021-12-31.patch:503:     def get_project_auction_yiqian_prepare(self, date):",
         "alignment_reports\\align_worktree_diff_2020-01-02_2021-12-31.patch:522:+            return self.compat.get_project_auction_yiqian_prepare(date)",
-        "tools\\audit_hook_disposition.py:1059:        evidence=\"母版-20260506-Clone.py reads get_project_auction_yiqian_prepare(context.current_dt), and project_compat.get_project_auction_yiqian_prepare also runs project-specific left-pressure logic.\",",
-        "tools\\audit_hook_disposition.py:1074:        call_site_patterns=[\"get_project_auction_yiqian_prepare(\"],"
+        "tools\\audit_hook_disposition.py:1061:        evidence=\"母版-20260506-Clone.py reads get_project_auction_yiqian_prepare(context.current_dt), and project_compat.get_project_auction_yiqian_prepare also runs project-specific left-pressure logic.\",",
+        "tools\\audit_hook_disposition.py:1076:        call_site_patterns=[\"get_project_auction_yiqian_prepare(\"],"
       ],
       "trigger_dates": [],
       "trigger_codes": [],
@@ -2407,7 +2422,7 @@
         "alignment_reports\\align_worktree_diff_2020-01-02_2021-12-31.patch:404:-        out = self._load_project_call_auction_day(day)",
         "alignment_reports\\align_worktree_diff_2020-01-02_2021-12-31.patch:407:+            out = self.compat.load_project_call_auction_day(self, day)",
         "alignment_reports\\align_worktree_diff_2020-01-02_2021-12-31.patch:415:-    def _load_project_call_auction_day(self, day):",
-        "tools\\audit_hook_disposition.py:1102:        call_site_patterns=[\"load_project_call_auction_day(\"],"
+        "tools\\audit_hook_disposition.py:1104:        call_site_patterns=[\"load_project_call_auction_day(\"],"
       ],
       "trigger_dates": [],
       "trigger_codes": [],
@@ -2463,12 +2478,12 @@
         "alignment_reports\\compat_hook_migration_report.md:54:当前运行时代码中，兼容事实应通过 `EmotionGateJQCompat` 或 `apply_project_strategy_compat(...)` 暴露，不再由调用点各自维护散落字典。",
         "tests\\test_hook_disposition_inventory.py:221:    \"\"\"namespace_entries() exposed methods must each have an inventory owner.\"\"\"",
         "tests\\test_hook_disposition_inventory.py:572:    \"\"\"namespace_entries() returned keys must each map to a hook_id in inventory.\"\"\"",
-        "tools\\audit_hook_disposition.py:1115:        evidence=\"Engine.__init__ merges compat.namespace_entries(self), and 母版-20260506-Clone.py calls apply_project_strategy_compat(...) at fixed stages.\",",
-        "tools\\audit_hook_disposition.py:1130:        call_site_patterns=[\"namespace_entries(\", \"apply_project_strategy_compat(\"],",
-        "tools\\audit_hook_disposition.py:921:        evidence=\"母版-20260506-Clone.py calls apply_project_strategy_compat('after_fb_state', ...) and project_compat.apply_strategy_state_override applies FB_STATE_OVERRIDES.\",",
-        "tools\\audit_hook_disposition.py:936:        call_site_patterns=[\"apply_project_strategy_compat(\", \"apply_strategy_state_override(\"],",
-        "tools\\audit_hook_disposition.py:948:        evidence=\"母版-20260506-Clone.py calls apply_project_strategy_compat('after_v227_shock', ...) and project_compat.apply_strategy_state_override applies V227_SHOCK_OVERRIDES.\",",
-        "tools\\audit_hook_disposition.py:963:        call_site_patterns=[\"apply_project_strategy_compat(\", \"apply_strategy_state_override(\"],",
+        "tools\\audit_hook_disposition.py:1117:        evidence=\"Engine.__init__ merges compat.namespace_entries(self), and 母版-20260506-Clone.py calls apply_project_strategy_compat(...) at fixed stages.\",",
+        "tools\\audit_hook_disposition.py:1132:        call_site_patterns=[\"namespace_entries(\", \"apply_project_strategy_compat(\"],",
+        "tools\\audit_hook_disposition.py:923:        evidence=\"母版-20260506-Clone.py calls apply_project_strategy_compat('after_fb_state', ...) and project_compat.apply_strategy_state_override applies FB_STATE_OVERRIDES.\",",
+        "tools\\audit_hook_disposition.py:938:        call_site_patterns=[\"apply_project_strategy_compat(\", \"apply_strategy_state_override(\"],",
+        "tools\\audit_hook_disposition.py:950:        evidence=\"母版-20260506-Clone.py calls apply_project_strategy_compat('after_v227_shock', ...) and project_compat.apply_strategy_state_override applies V227_SHOCK_OVERRIDES.\",",
+        "tools\\audit_hook_disposition.py:965:        call_site_patterns=[\"apply_project_strategy_compat(\", \"apply_strategy_state_override(\"],",
         "tools\\hook_migration_acceptance.py:86:    def namespace_entries(self, engine):",
         "tools\\hook_migration_acceptance.py:87:        entries = self._base.namespace_entries(engine) if hasattr(self._base, 'namespace_entries') else {}"
       ],
@@ -2523,9 +2538,9 @@
         "rebuild_from_archive/engine\\core.py:235:        \"\"\"EMOTION_GATE_COMPAT_HOOK: restore portfolio and strategy globals.\"\"\""
       ],
       "secondary_references": [
-        "tools\\audit_hook_disposition.py:1143:        evidence=\"engine/core.py marks the resume hook with EMOTION_GATE_COMPAT_HOOK comments and tools/run_counterfactual_2024_000506_billboard_filter.py uses engine.set_resume_state(...).\",",
-        "tools\\audit_hook_disposition.py:1156:        acceptance_test=\"Inventory scan of EMOTION_GATE_COMPAT_HOOK sites and manual workflow reference in tools/run_counterfactual_2024_000506_billboard_filter.py\",",
-        "tools\\audit_hook_disposition.py:1158:        call_site_patterns=[\"set_resume_state(\", \"_apply_resume_state(\", \"EMOTION_GATE_COMPAT_HOOK\"],",
+        "tools\\audit_hook_disposition.py:1145:        evidence=\"engine/core.py marks the resume hook with EMOTION_GATE_COMPAT_HOOK comments and tools/run_counterfactual_2024_000506_billboard_filter.py uses engine.set_resume_state(...).\",",
+        "tools\\audit_hook_disposition.py:1158:        acceptance_test=\"Inventory scan of EMOTION_GATE_COMPAT_HOOK sites and manual workflow reference in tools/run_counterfactual_2024_000506_billboard_filter.py\",",
+        "tools\\audit_hook_disposition.py:1160:        call_site_patterns=[\"set_resume_state(\", \"_apply_resume_state(\", \"EMOTION_GATE_COMPAT_HOOK\"],",
         "tools\\run_counterfactual_2024_000506_billboard_filter.py:53:    engine.set_resume_state(load_engine_checkpoint(CHECKPOINT))"
       ],
       "trigger_dates": [],
@@ -2579,11 +2594,11 @@
         "rebuild_from_archive/legacy\\README.md:13:- `rebuild_from_archive/data_api.py` public shim.",
         "rebuild_from_archive/legacy\\README.md:19:- the `rebuild_from_archive/data_api.py` shim is deleted;",
         "rebuild_from_archive/legacy\\README.md:9:  re-exported by the public `rebuild_from_archive/data_api.py` shim.",
-        "tools\\audit_hook_disposition.py:1165:        data_obj={\"legacy_entrypoint\": \"rebuild_from_archive/data_api.py\"},",
-        "tools\\audit_hook_disposition.py:1171:        evidence=\"rebuild_from_archive/data_api.py dynamically loads rebuild_from_archive/legacy/data_api_legacy.py; legacy/README.md lists only the public shim as a known in-repo caller.\",",
-        "tools\\audit_hook_disposition.py:1187:            \"from rebuild_from_archive.data_api\",",
-        "tools\\audit_hook_disposition.py:1188:            \"import rebuild_from_archive.data_api\",",
-        "tools\\audit_hook_disposition.py:1189:            \"rebuild_from_archive/data_api.py\",",
+        "tools\\audit_hook_disposition.py:1167:        data_obj={\"legacy_entrypoint\": \"rebuild_from_archive/data_api.py\"},",
+        "tools\\audit_hook_disposition.py:1173:        evidence=\"rebuild_from_archive/data_api.py dynamically loads rebuild_from_archive/legacy/data_api_legacy.py; legacy/README.md lists only the public shim as a known in-repo caller.\",",
+        "tools\\audit_hook_disposition.py:1189:            \"from rebuild_from_archive.data_api\",",
+        "tools\\audit_hook_disposition.py:1190:            \"import rebuild_from_archive.data_api\",",
+        "tools\\audit_hook_disposition.py:1191:            \"rebuild_from_archive/data_api.py\",",
         "tools\\audit_hook_disposition.py:57:    \"rebuild_from_archive/data_api.py\",",
         "tools\\audit_hook_disposition.py:69:    \"rebuild_from_archive/data_api.py\",",
         "tools\\hook_migration_acceptance.py:599:            \"status\": \"Legacy public entry retained via rebuild_from_archive/data_api.py shim; current in-repo caller set is the shim itself, and no suspected_unused runtime dependency remains.\","
@@ -2632,8 +2647,8 @@
       "symbol": "get_price_fallback/has_zero_fee_fallback",
       "call_sites": [],
       "secondary_references": [
-        "tools\\audit_hook_disposition.py:1219:            \"from rebuild_from_archive.engine.temporary_fallbacks import\",",
-        "tools\\audit_hook_disposition.py:1220:            \"import rebuild_from_archive.engine.temporary_fallbacks\","
+        "tools\\audit_hook_disposition.py:1221:            \"from rebuild_from_archive.engine.temporary_fallbacks import\",",
+        "tools\\audit_hook_disposition.py:1222:            \"import rebuild_from_archive.engine.temporary_fallbacks\","
       ],
       "trigger_dates": [],
       "trigger_codes": [],
