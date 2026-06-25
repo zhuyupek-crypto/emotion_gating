@@ -276,7 +276,11 @@ def compare_baseline_file(
         "key_set_equal": False, "cell_diff_count": 0,
         "diff_rows": 0,
     }
-    if not result["file_exists_current"] or not result["file_exists_baseline"]:
+    # Both missing or both empty = match (handles positions files)
+    if not result["file_exists_current"] and not result["file_exists_baseline"]:
+        return result
+    # One exists, other doesn't = mismatch
+    if result["file_exists_current"] != result["file_exists_baseline"]:
         result["diff_rows"] = -1
         return result
     rdf = pd.read_csv(run_path)
@@ -495,69 +499,6 @@ def compare_runs(jq_dir: Path, l1a_dir: Path, out_dir: Path, baseline_dir: Path 
     state_diff_df = pd.DataFrame(state_diff_rows) if state_diff_rows else pd.DataFrame()
     state_diff_df.to_csv(out_dir / "STATE_DIFFS_SAMPLE.csv", index=False)
     state_diff_count = len(state_diff_rows)
-
-    # ─── L0 baseline comparison ───
-def compare_baseline_file(
-    run_path: Path, baseline_path: Path, suffix: str,
-    key_col: str | list[str] | None = None,
-) -> dict:
-    """Compare a single baseline file for structural equality.
-    
-    Returns dict with: file_exists_current, file_exists_baseline, 
-    row_count_current, row_count_baseline, row_count_equal,
-    column_set_equal, key_set_equal, cell_diff_count, diff_rows.
-    """
-    result = {
-        "file_exists_current": run_path.exists() and run_path.stat().st_size > 2,
-        "file_exists_baseline": baseline_path.exists() and baseline_path.stat().st_size > 2,
-        "row_count_current": 0, "row_count_baseline": 0,
-        "row_count_equal": False, "column_set_equal": False,
-        "key_set_equal": False, "cell_diff_count": 0,
-        "diff_rows": 0,
-    }
-    if not result["file_exists_current"] or not result["file_exists_baseline"]:
-        result["diff_rows"] = -1  # missing file
-        return result
-
-    rdf = pd.read_csv(run_path)
-    bdf = pd.read_csv(baseline_path)
-    result["row_count_current"] = len(rdf)
-    result["row_count_baseline"] = len(bdf)
-    result["row_count_equal"] = len(rdf) == len(bdf)
-
-    run_cols = set(rdf.columns)
-    base_cols = set(bdf.columns)
-    result["column_set_equal"] = run_cols == base_cols
-
-    # Check key set equality
-    if key_col is not None:
-        kcols = [key_col] if isinstance(key_col, str) else list(key_col)
-        if all(c in rdf.columns for c in kcols) and all(c in bdf.columns for c in kcols):
-            run_keys = set(tuple(str(rdf[c].iloc[i]) for c in kcols) for i in range(len(rdf)))
-            base_keys = set(tuple(str(bdf[c].iloc[i]) for c in kcols) for i in range(len(bdf)))
-            result["key_set_equal"] = run_keys == base_keys
-
-    # Cell-by-cell comparison
-    diff_rows = 0
-    skip_cols = {"cand_yjj", "cand_bear", "cand_rzq", "cand_zb", "cand_auction",
-                 "slot_v227", "slot_rzq", "slot_zb", "slot_auction"} if suffix == "state" else set()
-    common_cols = run_cols & base_cols - skip_cols
-    if common_cols and len(rdf) == len(bdf):
-        for i in range(len(rdf)):
-            for col in sorted(common_cols):
-                try:
-                    v1 = float(rdf[col].iloc[i]) if pd.notna(rdf[col].iloc[i]) else float('nan')
-                    v2 = float(bdf[col].iloc[i]) if pd.notna(bdf[col].iloc[i]) else float('nan')
-                    if abs(v1 - v2) > FLOAT_TOL and not (pd.isna(v1) and pd.isna(v2)):
-                        diff_rows += 1
-                        break
-                except (ValueError, TypeError):
-                    if str(rdf[col].iloc[i]) != str(bdf[col].iloc[i]):
-                        diff_rows += 1
-                        break
-    result["cell_diff_count"] = diff_rows
-    result["diff_rows"] = diff_rows
-    return result
 
     # ─── L0 baseline comparison ───
     baseline_results = {}

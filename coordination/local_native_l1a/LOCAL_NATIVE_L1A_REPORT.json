@@ -1,10 +1,10 @@
 {
-  "source_commit": "3d6277f1e1bfd9fe368cc9bd104f64bd32320274",
+  "source_commit": "cde36c34eaee60131cf7318e19a54daadfdf373e",
   "base_main_commit": "6369570406b77dda9903e832dccd5516fc9c5986",
   "data_root": "D:\\work space\\hdata",
   "run_commands": {
-    "jq_parity": "python tools/local_native_l1a_acceptance.py run --profile jq_parity --year 2020 --out-dir .artifacts\\l1a_v3\\jq_parity",
-    "local_native_l1a": "python tools/local_native_l1a_acceptance.py run --profile local_native_l1a --year 2020 --out-dir .artifacts\\l1a_v3\\local_native_l1a"
+    "jq_parity": "python tools/local_native_l1a_acceptance.py run --profile jq_parity --year 2020 --out-dir .artifacts\\l1a_final_run1\\jq_parity",
+    "local_native_l1a": "python tools/local_native_l1a_acceptance.py run --profile local_native_l1a --year 2020 --out-dir .artifacts\\l1a_final_run1\\local_native_l1a"
   },
   "profile_definitions": {
     "jq_parity": {
