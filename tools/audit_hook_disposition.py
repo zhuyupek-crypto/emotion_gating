@@ -95,7 +95,7 @@ ALLOWED_STATUSES = {
     "investigation_pending", "retain",
 }
 ALLOWED_WAVES = {"L1A", "L1B", "L2", "L3", "L4", "cleanup-only", None}
-ALLOWED_DIRECT_EFFECT = {"none", "price", "size", "order_presence", "state", "selection", "data_shape", "infrastructure"}
+ALLOWED_DIRECT_EFFECT = {"none", "price", "size", "order_presence", "state", "selection", "data_shape", "infrastructure", "cash_settlement", "fee"}
 ALLOWED_DOWNSTREAM_RISK = {"none", "nav_only", "cash_path", "position_path", "strategy_path", "unknown"}
 
 
@@ -224,6 +224,36 @@ def collect_call_sites(patterns: list[str]) -> tuple[list[str], list[str]]:
     return sorted(runtime_hits), sorted(secondary_hits)
 
 
+def classify_call_lines(lines: list[str]) -> tuple[int, int, int]:
+    """Classify a list of rg hit lines into definition/forwarder/consumer counts.
+    
+    - definition: line contains 'def ' (method/function definition)
+    - forwarder: line is a pass-through call that delegates to another method
+    - consumer: anything else — actual strategy logic or conditional use
+    """
+    definitions = 0
+    forwarders = 0
+    consumers = 0
+    for line in lines:
+        content = line.split(":", 2)[-1] if line.count(":") >= 2 else ""
+        if "def " in content:
+            definitions += 1
+        elif "return self.compat." in content or "return self.compat." in line:
+            forwarders += 1
+        elif "return self.data_api." in content or "return self.data_api." in line:
+            forwarders += 1
+        elif "self.compat." in content and "return" in content:
+            forwarders += 1
+        elif "engine.data_api." in content and "return" not in content:
+            # Namespace forwarding call (no return keyword in lambda)
+            forwarders += 1
+        elif "self.data_api." in content:
+            forwarders += 1
+        else:
+            consumers += 1
+    return definitions, forwarders, consumers
+
+
 def build_trigger_info(
     data_obj: Any = None,
     manual_dates: list[str] | None = None,
@@ -293,7 +323,7 @@ HOOK_SPECS: list[HookSpec] = [
         affects_nav=True,
         target_owner="local_quant",
         wave=None,
-        direct_effect_scope=["price", "order"],
+        direct_effect_scope=["cash_settlement"],
         downstream_risk="cash_path",
         handoff_requirement="local_quant needs a first-class switch for sell-cash release timing so project code stops carrying the behavior flag.",
         disable_requirement="Disable only after local_quant can reproduce the intended cash-release policy in native mode.",
@@ -325,7 +355,7 @@ HOOK_SPECS: list[HookSpec] = [
         handoff_requirement="HData or upstream cache metadata must publish corruption windows and field-level quarantine signals.",
         disable_requirement="Disable only after raw-data quality flags propagate through cache build and runtime readers.",
         delete_requirement="Delete after HData versioned quality metadata replaces project-specific date guards and all dependent caches respect the same rule.",
-        acceptance_test="tests/test_data_quality_audit.py; external investigation branch codex/data-quality-propagation-audit at commit b951d3885f09fcc6d455675799a295c569af5439 (not accepted/not merged)",
+        acceptance_test="External investigation branch codex/data-quality-propagation-audit at commit b951d3885f09fcc6d455675799a295c569af5439 (not accepted/not merged); requires verification via hdata_candidate queue",
         status="investigation_pending",
         call_site_patterns=["should_bypass_history_fastpath(", "load_first_seal_year(", "get_project_board_snapshot("],
         external_evidence_ref="codex/data-quality-propagation-audit branch, commit b951d3885f09fcc6d455675799a295c569af5439",
@@ -350,7 +380,7 @@ HOOK_SPECS: list[HookSpec] = [
         target_owner="investigation",
         wave=None,
         direct_effect_scope=["data_shape"],
-        downstream_risk="selection",
+        downstream_risk="strategy_path",
         handoff_requirement="Need side-by-side evidence from minute source, derived first-seal cache, and mother reference to decide HData vs JQ archive ownership.",
         disable_requirement="In local-native mode this group can be disabled only after first-seal behavior is proven acceptable without parity timestamps.",
         delete_requirement="Delete after either HData is fixed and caches are rebuilt, or the project explicitly archives JoinQuant-only seal answers.",
@@ -404,7 +434,7 @@ HOOK_SPECS: list[HookSpec] = [
         target_owner="jq_archive",
         wave="L4",
         direct_effect_scope=["data_shape"],
-        downstream_risk="selection",
+        downstream_risk="strategy_path",
         handoff_requirement="Retain only under a JoinQuant parity profile or archived replay mode.",
         disable_requirement="Can be disabled in local-native mode once IPO handling is expected to follow local data directly.",
         delete_requirement="Delete after the project drops JoinQuant daily-history shape parity.",
@@ -566,7 +596,7 @@ HOOK_SPECS: list[HookSpec] = [
         affects_nav=True,
         target_owner="jq_archive",
         wave="L1B",
-        direct_effect_scope=["size", "order"],
+        direct_effect_scope=["size"],
         downstream_risk="position_path",
         handoff_requirement="Keep only with the archived mother/JQ parity profile.",
         disable_requirement="Can be disabled in local-native mode; expect trade-size and NAV drift but not upstream candidate changes.",
@@ -593,7 +623,7 @@ HOOK_SPECS: list[HookSpec] = [
         affects_nav=True,
         target_owner="jq_archive",
         wave="L1B",
-        direct_effect_scope=["size", "fill"],
+        direct_effect_scope=["size"],
         downstream_risk="position_path",
         handoff_requirement="Archive with other JQ-only fill answer hooks.",
         disable_requirement="Can be disabled with only fill and NAV consequences once parity mode is not required.",
@@ -621,7 +651,7 @@ HOOK_SPECS: list[HookSpec] = [
         target_owner="investigation",
         wave=None,
         direct_effect_scope=["data_shape"],
-        downstream_risk="selection",
+        downstream_risk="strategy_path",
         handoff_requirement="Need source-vs-reference row-level evidence before assigning to HData or JQ archive.",
         disable_requirement="Disable only after call-auction candidate behavior is accepted without these row deletions.",
         delete_requirement="Delete once the source owner is assigned and either repaired upstream or archived as JQ-only.",
@@ -648,7 +678,7 @@ HOOK_SPECS: list[HookSpec] = [
         target_owner="investigation",
         wave=None,
         direct_effect_scope=["data_shape"],
-        downstream_risk="selection",
+        downstream_risk="strategy_path",
         handoff_requirement="Need per-day upstream data evidence to decide whether this belongs in HData or the JQ archive bucket.",
         disable_requirement="Disable only after accepting candidate drift for the affected dates in non-parity mode.",
         delete_requirement="Delete after root-cause assignment and either source repair or archival.",
@@ -675,7 +705,7 @@ HOOK_SPECS: list[HookSpec] = [
         target_owner="investigation",
         wave=None,
         direct_effect_scope=["data_shape"],
-        downstream_risk="selection",
+        downstream_risk="strategy_path",
         handoff_requirement="Need raw call-auction depth evidence and a source owner before handoff.",
         disable_requirement="Disable only after proving candidate ranking is acceptable without the patched depth values.",
         delete_requirement="Delete after source ownership is resolved and the patch is either repaired upstream or archived.",
@@ -702,7 +732,7 @@ HOOK_SPECS: list[HookSpec] = [
         target_owner="hdata_candidate",
         wave=None,
         direct_effect_scope=["data_shape"],
-        downstream_risk="selection",
+        downstream_risk="strategy_path",
         handoff_requirement="HData needs a corrected listing-date source or overlay for these securities.",
         disable_requirement="Disable only after stock_basic or its replacement publishes correct PIT listing dates.",
         delete_requirement="Delete after HData ships corrected listing dates and all IPO-age filters read them directly.",
@@ -729,7 +759,7 @@ HOOK_SPECS: list[HookSpec] = [
         target_owner="hdata_candidate",
         wave=None,
         direct_effect_scope=["data_shape"],
-        downstream_risk="selection",
+        downstream_risk="strategy_path",
         handoff_requirement="HData needs PIT name history or equivalent metadata to eliminate these date-window strips.",
         disable_requirement="Disable only after display_name is PIT-correct for affected windows.",
         delete_requirement="Delete after PIT name history is available and strategy filters no longer need compat name surgery.",
@@ -756,7 +786,7 @@ HOOK_SPECS: list[HookSpec] = [
         target_owner="investigation",
         wave=None,
         direct_effect_scope=["data_shape"],
-        downstream_risk="selection",
+        downstream_risk="strategy_path",
         handoff_requirement="Split general PIT name logic from single-stock legacy rules and re-evaluate ownership.",
         disable_requirement="Disable only after each remaining special-case is either absorbed by PIT metadata or explicitly archived as JQ-only.",
         delete_requirement="Delete after the method no longer needs stock-specific name branches.",
@@ -786,7 +816,7 @@ HOOK_SPECS: list[HookSpec] = [
         target_owner="hdata_candidate",
         wave=None,
         direct_effect_scope=["data_shape"],
-        downstream_risk="selection",
+        downstream_risk="strategy_path",
         handoff_requirement="HData needs PIT ST status and delisting-state history that match the project's required query dates.",
         disable_requirement="Disable only after get_extras('is_st') reads corrected PIT ST state directly.",
         delete_requirement="Delete after ST state is natively correct and the project no longer patches it post-query.",
@@ -816,7 +846,7 @@ HOOK_SPECS: list[HookSpec] = [
         target_owner="investigation",
         wave=None,
         direct_effect_scope=["data_shape"],
-        downstream_risk="selection",
+        downstream_risk="strategy_path",
         handoff_requirement="Need row-level upstream billboard evidence before assigning to HData or archive-only replay.",
         disable_requirement="Disable only after validating candidate behavior on affected dates without the row drop.",
         delete_requirement="Delete after root cause is assigned and addressed by the right owner.",
@@ -869,7 +899,7 @@ HOOK_SPECS: list[HookSpec] = [
         affects_nav=True,
         target_owner="local_quant",
         wave=None,
-        direct_effect_scope=["size", "fill"],
+        direct_effect_scope=["fee"],
         downstream_risk="nav_only",
         handoff_requirement="local_quant needs instrument-class-aware fee configuration that covers these cases natively.",
         disable_requirement="Disable only after fee policy is modeled in local_quant by instrument type or explicit configuration.",
@@ -951,11 +981,11 @@ HOOK_SPECS: list[HookSpec] = [
         target_owner="emotion_gating_project",
         wave=None,
         direct_effect_scope=["infrastructure"],
-        downstream_risk="selection",
+        downstream_risk="strategy_path",
         handoff_requirement="Retain while project-specific feature caches remain part of the strategy runtime.",
         disable_requirement="Disable only if first-seal cache loading is removed or replaced by a different project feature pipeline.",
         delete_requirement="Delete after the project no longer uses first_seal_time cache lookups in runtime or has moved them into a different project-owned service.",
-        acceptance_test="Inventory scan and 2026 data-quality audit for first_seal_time cache lineage",
+        acceptance_test="Inventory scan: verifies first_seal_time cache is loaded through compat integration point",
         status="retain",
         call_site_patterns=["load_first_seal_year(", "get_batch_sealing_points("],
         count_override=1,
@@ -983,7 +1013,7 @@ HOOK_SPECS: list[HookSpec] = [
         handoff_requirement="Retain while the strategy depends on board_snapshot cache acceleration and project-specific data-quality policy.",
         disable_requirement="Disable only if strategy switches to a different project-owned feature source or recomputes the logic natively.",
         delete_requirement="Delete after project runtime no longer depends on board_snapshot compat exposure.",
-        acceptance_test="alignment_reports/data_quality_propagation_2026.md documents current board_snapshot propagation risk",
+        acceptance_test="Inventory scan: verifies board_snapshot compat is used by strategy code on main path",
         status="retain",
         call_site_patterns=["get_project_board_snapshot("],
         count_override=1,
@@ -1039,7 +1069,7 @@ HOOK_SPECS: list[HookSpec] = [
         handoff_requirement="Retain while auction_yiqian_prepare remains part of the project feature graph.",
         disable_requirement="Disable only if the project removes this cache path or replaces it with a different project-owned feature service.",
         delete_requirement="Delete after no runtime caller depends on auction_yiqian_prepare compat exposure.",
-        acceptance_test="alignment_reports/data_quality_propagation_2026.md documents current auction_yiqian_prepare lineage and empty-cache behavior",
+        acceptance_test="Inventory scan: verifies auction_yiqian_prepare compat is consumed by strategy code",
         status="retain",
         call_site_patterns=["get_project_auction_yiqian_prepare("],
         count_override=1,
@@ -1063,11 +1093,11 @@ HOOK_SPECS: list[HookSpec] = [
         target_owner="emotion_gating_project",
         wave=None,
         direct_effect_scope=["infrastructure"],
-        downstream_risk="selection",
+        downstream_risk="strategy_path",
         handoff_requirement="Retain while the project prefers its by-date call-auction cache layout.",
         disable_requirement="Disable only if runtime stops consulting the project call_auction_by_date cache.",
         delete_requirement="Delete after the project no longer needs this alternate loader path.",
-        acceptance_test="alignment_reports/data_quality_propagation_2026.md audits call_auction_by_date lineage separately from raw pivot corruption",
+        acceptance_test="Inventory scan: verifies call_auction_by_date cache loader is consumed via compat",
         status="retain",
         call_site_patterns=["load_project_call_auction_day("],
         count_override=1,
@@ -1203,6 +1233,7 @@ def build_inventory() -> list[dict[str, Any]]:
             manual_codes=spec.manual_codes,
         )
         runtime_call_sites, secondary_refs = collect_call_sites(spec.call_site_patterns)
+        def_cnt, fwd_cnt, cons_cnt = classify_call_lines(runtime_call_sites)
         record = {
             "hook_id": spec.hook_id,
             "module": spec.module,
@@ -1237,9 +1268,9 @@ def build_inventory() -> list[dict[str, Any]]:
             "direct_effect_scope": spec.direct_effect_scope or ["unknown"],
             "downstream_risk": spec.downstream_risk or "unknown",
             "empty_config": spec.empty_config,
-            "definition_count": 1 if spec.symbol and ("def " in spec.symbol or "." in spec.symbol) else 0,
-            "forwarder_count": 0,
-            "consumer_count": len(runtime_call_sites),
+            "definition_count": def_cnt,
+            "forwarder_count": fwd_cnt,
+            "consumer_count": cons_cnt,
             "external_evidence_ref": spec.external_evidence_ref,
             "external_evidence_status": spec.external_evidence_status,
         }
@@ -1292,7 +1323,7 @@ def summarize_inventory(inventory: list[dict[str, Any]]) -> dict[str, Any]:
         "empty_config_count": sum(1 for row in inventory if row["empty_config"]),
         "zero_consumer_count": sum(1 for row in inventory if row["consumer_count"] == 0),
         "hdata_confirmed_count": 0,
-        "hdata_verification_queue_count": sum(1 for row in inventory if row["target_owner"] == "hdata_candidate"),
+        "hdata_verification_queue_count": sum(1 for row in inventory if row["target_owner"] == "hdata_candidate" or (row["target_owner"] == "investigation" and row["semantic_type"] in ("data_correction", "unknown"))),
         "project_logic_count": sum(1 for row in inventory if row["semantic_type"] == "project_logic"),
         "project_infrastructure_count": sum(1 for row in inventory if row["semantic_type"] == "project_infrastructure"),
     }
@@ -1494,7 +1525,17 @@ def render_handoff_markdown(title: str, intro: str, rows: list[dict[str, Any]]) 
 
 def render_hdata_handoff(inventory: list[dict[str, Any]]) -> str:
     confirmed = [row for row in inventory if row["disposition"] == "move_to_hdata"]
-    queue = [row for row in inventory if row["target_owner"] == "hdata_candidate"]
+    # HData verification queue: all hdata_candidate + data_correction items under investigation
+    queue_core = [row for row in inventory if row["target_owner"] == "hdata_candidate"]
+    queue_investigation = [
+        row for row in inventory
+        if row["target_owner"] == "investigation"
+        and row["semantic_type"] in ("data_correction", "unknown")
+        and row["hook_id"] not in {r["hook_id"] for r in queue_core}
+    ]
+    queue = queue_core + queue_investigation
+    # Sort by hook_id for stability
+    queue.sort(key=lambda r: r["hook_id"])
 
     lines = [
         "# HData Handoff",

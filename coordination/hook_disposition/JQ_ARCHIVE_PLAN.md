@@ -14,9 +14,9 @@ These hooks exist to replay archived JoinQuant behavior and should not be carrie
 ### L1B — 数量类钩子（第二批关闭）
 
 - `execution.order_amount_anomalies`
-  - direct: ['size', 'order'], downstream: position_path
+  - direct: ['size'], downstream: position_path
 - `execution.fill_amount_anomalies`
-  - direct: ['size', 'fill'], downstream: position_path
+  - direct: ['size'], downstream: position_path
 
 ### L2 — 订单存在性类钩子（第三批关闭）
 
@@ -39,7 +39,7 @@ These hooks exist to replay archived JoinQuant behavior and should not be carrie
 只有在本地原生模式明确接受本地数据形态后再关闭。
 
 - `market_data.daily_ipo_close_anomalies`
-  - direct: ['data_shape'], downstream: selection
+  - direct: ['data_shape'], downstream: strategy_path
 
 ## 非消融项（Legacy Cleanup）
 
@@ -62,7 +62,7 @@ These hooks exist to replay archived JoinQuant behavior and should not be carrie
 ### `market_data.daily_ipo_close_anomalies`
 - 消融波次: `L4`
 - direct_effect_scope: `['data_shape']`
-- downstream_risk: `selection`
+- downstream_risk: `strategy_path`
 - reason: This behavior exists to mimic the historical JoinQuant return shape, not to express a stable local market-data rule.
 - affects selection/state/order/fill/nav: yes/yes/no/no/no
 - empty_config: `no`
@@ -111,7 +111,7 @@ These hooks exist to replay archived JoinQuant behavior and should not be carrie
 
 ### `execution.order_amount_anomalies`
 - 消融波次: `L1B`
-- direct_effect_scope: `['size', 'order']`
+- direct_effect_scope: `['size']`
 - downstream_risk: `position_path`
 - reason: These are historical mother-path answers, not reusable sizing logic.
 - affects selection/state/order/fill/nav: no/no/yes/yes/yes
@@ -121,7 +121,7 @@ These hooks exist to replay archived JoinQuant behavior and should not be carrie
 
 ### `execution.fill_amount_anomalies`
 - 消融波次: `L1B`
-- direct_effect_scope: `['size', 'fill']`
+- direct_effect_scope: `['size']`
 - downstream_risk: `position_path`
 - reason: This is fill-answer replay, not a generic exchange or broker rule.
 - affects selection/state/order/fill/nav: no/no/no/yes/yes

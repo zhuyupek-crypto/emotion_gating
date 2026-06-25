@@ -411,25 +411,91 @@ def test_l3_wave():
     ], f"L3 contains unexpected entries: {l3_ids}"
 
 
-# ── Test 17: wave descriptions in JQ_ARCHIVE_PLAN must match inventory waves ──
+# ── Test 17: four-way wave consistency ──
 
-def test_archive_plan_wave_consistency():
-    """JQ_ARCHIVE_PLAN.md wave descriptions must be consistent with inventory assignments."""
-    archive_path = OUT_DIR / "JQ_ARCHIVE_PLAN.md"
-    archive_text = archive_path.read_text(encoding="utf-8")
+def test_four_way_wave_consistency():
+    """wave must be identical across JSON, CSV, HOOK_INVENTORY.md table, and JQ_ARCHIVE_PLAN.md sections."""
+    from tools.audit_hook_disposition import audit_hook_disposition
+    import tempfile, json, csv, re
 
     inventory = build_inventory()
 
-    # Check each archive-only entry mentioned in archive plan
-    archive_rows = [r for r in inventory if r["disposition"] == "archive_jq_only" or r["semantic_type"] == "jq_platform_behavior"]
-    for row in archive_rows:
-        hook_id = row["hook_id"]
-        wave = row["wave"]
-        if wave is None:
-            # Should still be mentioned
-            assert hook_id in archive_text, f"{hook_id} not mentioned in archive plan"
-        else:
-            assert hook_id in archive_text, f"{hook_id} (wave={wave}) not mentioned in archive plan"
+    with tempfile.TemporaryDirectory() as tmp:
+        result = audit_hook_disposition(Path(tmp))
+        payload = json.loads(Path(result["artifacts"]["json"]).read_text(encoding="utf-8"))
+
+        # 1. JSON wave
+        json_wave = {r["hook_id"]: r["wave"] for r in payload["inventory"]}
+
+        # 2. CSV wave
+        csv_wave = {}
+        with open(Path(result["artifacts"]["csv"]), "r", encoding="utf-8-sig", newline="") as f:
+            for row in csv.DictReader(f):
+                csv_wave[row["hook_id"]] = row.get("wave", "") or None
+
+        # 3. HOOK_INVENTORY.md table wave column
+        md_text = Path(result["artifacts"]["markdown"]).read_text(encoding="utf-8")
+        md_wave = {}
+        in_table = False
+        for line in md_text.split("\n"):
+            if "| hook_id | semantic_type | disposition | status | wave " in line:
+                in_table = True
+                continue
+            if in_table and line.startswith("| ---"):
+                continue
+            if in_table and line.startswith("|"):
+                parts = [p.strip() for p in line.split("|")]
+                if len(parts) >= 6:
+                    hook_id = parts[1].strip("`")
+                    wave_val = parts[5].strip("`")
+                    md_wave[hook_id] = wave_val if wave_val and wave_val != "—" else None
+            elif in_table and not line.startswith("|"):
+                break
+
+        # 4. JQ_ARCHIVE_PLAN.md section wave
+        archive_path = Path(result["artifacts"]["archive"])
+        archive_text = archive_path.read_text(encoding="utf-8")
+        section_wave_map = {
+            "L1A": "L1A — 价格类钩子",
+            "L1B": "L1B — 数量类钩子",
+            "L2": "L2 — 订单存在性类钩子",
+            "L3": "L3 — 状态历史答案类钩子",
+            "L4": "L4 — JQ数据形态类钩子",
+        }
+        archive_wave = {}
+        current_section = None
+        for line in archive_text.split("\n"):
+            for wave_key, section_title in section_wave_map.items():
+                if section_title in line:
+                    current_section = wave_key
+                    break
+            if line.strip().startswith("- `") and "`" in line:
+                m = re.match(r"- `([^`]+)`", line)
+                if m and current_section:
+                    archive_wave[m.group(1)] = current_section
+            elif line.strip().startswith("## 非消融项"):
+                current_section = "cleanup-only"
+            elif line.strip().startswith("## `"):
+                m = re.match(r"## `([^`]+)`", line)
+                if m:
+                    # This is a detail section - don't set wave here
+                    pass
+            elif line.strip().startswith("## 所有"):
+                current_section = None
+
+    # Compare all four
+    for row in inventory:
+        hid = row["hook_id"]
+        expected = row["wave"]
+        assert json_wave.get(hid) == expected, f"{hid}: JSON wave={json_wave.get(hid)} vs expected={expected}"
+        assert csv_wave.get(hid) == expected, f"{hid}: CSV wave={csv_wave.get(hid)} vs expected={expected}"
+        assert md_wave.get(hid) == expected, f"{hid}: MD wave={md_wave.get(hid)} vs expected={expected}"
+        # Archive plan only covers archive-only items
+        if row["disposition"] == "archive_jq_only" or row["semantic_type"] == "jq_platform_behavior":
+            if expected is not None:
+                assert archive_wave.get(hid) == expected, (
+                    f"{hid}: Archive wave={archive_wave.get(hid)} vs expected={expected}"
+                )
 
 
 # ── Test 18: no direct move_to_hdata disposition ──
@@ -442,3 +508,106 @@ def test_no_premature_hdata_claim():
         f"Found {len(hdata_dispositions)} entries with move_to_hdata: "
         f"{[r['hook_id'] for r in hdata_dispositions]}"
     )
+
+
+# ── Test 19: direct_effect_scope and downstream_risk values are valid ──
+
+def test_direct_effect_and_downstream_values():
+    """Every direct_effect_scope and downstream_risk field must use only allowed values."""
+    from tools.audit_hook_disposition import ALLOWED_DIRECT_EFFECT, ALLOWED_DOWNSTREAM_RISK
+    inventory = build_inventory()
+    for row in inventory:
+        for val in (row.get("direct_effect_scope") or []):
+            assert val in ALLOWED_DIRECT_EFFECT, (
+                f"{row['hook_id']}: direct_effect_scope contains '{val}' "
+                f"which is not in {ALLOWED_DIRECT_EFFECT}"
+            )
+        dr = row.get("downstream_risk")
+        assert dr is None or dr in ALLOWED_DOWNSTREAM_RISK, (
+            f"{row['hook_id']}: downstream_risk='{dr}' "
+            f"not in {ALLOWED_DOWNSTREAM_RISK}"
+        )
+
+
+# ── Test 20: comprehensive evidence path validation ──
+
+def test_evidence_paths_exist_comprehensive():
+    """All evidence and acceptance_test file references must exist in current branch."""
+    import re
+    inventory = build_inventory()
+
+    # Define path prefixes to check
+    known_prefixes = (
+        "rebuild_from_archive/",
+        "tests/",
+        "tools/",
+        "alignment_reports/",
+        "coordination/",
+        "母版-",
+    )
+
+    for row in inventory:
+        for field_name in ("evidence", "acceptance_test"):
+            text = row.get(field_name, "")
+            if not text:
+                continue
+            # Find all file references (not URLs, not descriptions)
+            refs = re.findall(r'(?:rebuild_from_archive/[a-zA-Z0-9_/.]+\.(?:py|md))', text)
+            refs += re.findall(r'(?:tests/[a-zA-Z0-9_/.]+\.(?:py|md))', text)
+            refs += re.findall(r'(?:tools/[a-zA-Z0-9_/.]+\.(?:py|md))', text)
+            refs += re.findall(r'(?:alignment_reports/[a-zA-Z0-9_/.]+\.(?:py|md))', text)
+            refs += re.findall(r'(?:coordination/[a-zA-Z0-9_/.]+\.(?:py|md))', text)
+            refs += re.findall(r'(?:母版-[a-zA-Z0-9_-]+\.py)', text)
+            for ref in refs:
+                full_path = ROOT / ref
+                assert full_path.exists(), (
+                    f"{row['hook_id']}.{field_name} references non-existent file: {ref}. "
+                    f"If the file is on an unmerged branch, move the reference to external_evidence_ref."
+                )
+
+
+# ── Test 21: namespace_entries real key coverage ──
+
+def test_namespace_entries_actual_keys():
+    """namespace_entries() returned keys must each map to a hook_id in inventory."""
+    import ast
+    inventory = build_inventory()
+    inventory_ids = set(row["hook_id"] for row in inventory)
+
+    compat_path = ROOT / "rebuild_from_archive" / "project_compat.py"
+    tree = ast.parse(compat_path.read_text(encoding="utf-8"))
+
+    # Extract return dict keys from namespace_entries method
+    ns_keys = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.FunctionDef) and node.name == "namespace_entries":
+            for child in ast.walk(node):
+                if isinstance(child, ast.Dict):
+                    for key in child.keys:
+                        if isinstance(key, ast.Constant):
+                            ns_keys.add(key.value)
+                    break
+
+    assert len(ns_keys) > 0, "Could not parse namespace_entries return keys"
+
+    # Map of known namespace keys to hook_id
+    ns_to_hook = {
+        "apply_project_strategy_compat": "project_feature.strategy_namespace_bridge",
+    }
+
+    for key in sorted(ns_keys):
+        if key in ns_to_hook:
+            assert ns_to_hook[key] in inventory_ids, (
+                f"namespace entry '{key}' maps to {ns_to_hook[key]} but that hook_id is not in inventory"
+            )
+        else:
+            # Check if any inventory entry covers this key
+            covered = False
+            for inv in inventory:
+                if key in inv["symbol"] or key in inv["hook_id"]:
+                    covered = True
+                    break
+            assert covered, (
+                f"namespace entry '{key}' is not covered by any inventory entry. "
+                f"Either add it to ns_to_hook mapping or create an inventory entry."
+            )

@@ -7,7 +7,7 @@ local_quant 不应为 emotion_gating 项目提供专用 boolean 开关，而应�
 - symbol: `EmotionGateJQCompat.immediate_sell_cash_release`
 - semantic_type / disposition: `market_rule` / `move_to_local_quant`
 - affects: selection=no, state=no, order=yes, fill=yes, nav=yes
-- direct_effect_scope: `['price', 'order']`
+- direct_effect_scope: `['cash_settlement']`
 - downstream_risk: `cash_path`
 - reason: This is account and cash-settlement semantics, not project alpha logic.
 - evidence: rebuild_from_archive/project_compat.py sets immediate_sell_cash_release=True and engine/core.py consumes it in the sell-fill cash path.
@@ -20,7 +20,7 @@ local_quant 不应为 emotion_gating 项目提供专用 boolean 开关，而应�
 - symbol: `ZERO_FEE_OVERRIDES`
 - semantic_type / disposition: `market_rule` / `move_to_local_quant`
 - affects: selection=no, state=no, order=no, fill=yes, nav=yes
-- direct_effect_scope: `['size', 'fill']`
+- direct_effect_scope: `['fee']`
 - downstream_risk: `nav_only`
 - reason: Fee classification belongs in the generic instrument/fee model, not in project compat constants.
 - evidence: engine/core.py calls compat.has_zero_fee_override from buy/sell fee estimation and realized fee logic.
