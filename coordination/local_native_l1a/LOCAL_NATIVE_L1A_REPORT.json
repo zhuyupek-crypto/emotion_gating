@@ -22,7 +22,7 @@
     "state_diff_rows": 5,
     "equity_diff_rows": 0,
     "portfolio_stats_diff_rows": 0,
-    "positions_diff_rows": 0,
+    "positions_diff_rows": -1,
     "final_value_diff": 0.0
   },
   "l1a_trade_comparison": {
@@ -69,12 +69,12 @@
     "earliest_position_divergence": null
   },
   "pre_hit_exact_match": {
-    "trades": 1,
-    "state": 1,
-    "equity": 1,
-    "portfolio": 1,
-    "positions": 1,
-    "all": 1
+    "trades": true,
+    "state": true,
+    "equity": true,
+    "portfolio": true,
+    "positions": true,
+    "all": true
   },
   "hook_hits_jq": {
     "execution.execution_price_anomalies": {
@@ -94,18 +94,18 @@
     "execution.execution_price_anomalies": {
       "queries": 395,
       "effective_hits": 0,
-      "would_have_hit": 1,
+      "would_have_hit": true,
       "would_have_hit_keys_count": 107,
       "first_would_have_hit": "20200116 11:25",
-      "profile_disabled": 1
+      "profile_disabled": true
     },
     "market_data.minute_price_anomalies": {
       "queries": 3448,
       "effective_hits": 0,
-      "would_have_hit": 1,
+      "would_have_hit": true,
       "would_have_hit_keys_count": 1,
       "first_would_have_hit": "20200114 11:25",
-      "profile_disabled": 1
+      "profile_disabled": true
     }
   },
   "acceptance_gates": {
@@ -121,7 +121,7 @@
     "position_divergence_not_before_hit": "PASS",
     "pre_hit_exact_match": "PASS",
     "account_invariants": "PASS",
-    "deterministic_reports": "PASS",
+    "deterministic_reports": "FAIL",
     "required_artifacts_complete": "PASS",
     "implementation_acceptance": "FAIL"
   }

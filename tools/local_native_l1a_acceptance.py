@@ -40,6 +40,10 @@ REQUIRED_ARTIFACTS = [
     "DIRECT_PRICE_DIFFS.csv",
     "TRADE_KEY_DIFFS.csv",
     "STATE_DIFFS_SAMPLE.csv",
+    "LOCAL_NATIVE_L1A_REPORT.json",
+    "LOCAL_NATIVE_L1A_REPORT.md",
+    "PROFILE_MANIFEST.json",
+    "ARTIFACT_HASHES.json",
 ]
 
 L1A_HOOK_IDS = frozenset({
@@ -276,11 +280,8 @@ def compare_baseline_file(
         "key_set_equal": False, "cell_diff_count": 0,
         "diff_rows": 0,
     }
-    # Both missing or both empty = match (handles positions files)
-    if not result["file_exists_current"] and not result["file_exists_baseline"]:
-        return result
-    # One exists, other doesn't = mismatch
-    if result["file_exists_current"] != result["file_exists_baseline"]:
+    # Either side missing = mismatch (-1)
+    if not result["file_exists_current"] or not result["file_exists_baseline"]:
         result["diff_rows"] = -1
         return result
     rdf = pd.read_csv(run_path)
@@ -865,44 +866,51 @@ def compare_runs(jq_dir: Path, l1a_dir: Path, out_dir: Path, baseline_dir: Path 
     clean_report = _jsonable(report)
     clean_report["acceptance_gates"] = gates
 
-    # Deterministic check (requires DETERMINISM_VERIFIED=yes env var)
-    det_verified = os.environ.get("DETERMINISM_VERIFIED", "")
-    det_pass = det_verified.lower() in ("1", "true", "yes")
-    gates["deterministic_reports"] = "PASS" if det_pass else "NOT_VERIFIED"
+    # Deterministic check (requires --verified-dir from CLI)
+    # In compare_runs we can't access args; cmd_compare will handle this
+    # Default: NOT_VERIFIED (determinism CLI checks externally)
+    gates["deterministic_reports"] = "NOT_VERIFIED"
 
-    # Required artifacts (CSVs written above)
+    # Write all CSVs + manifest + report to disk
+    (out_dir / "PROFILE_MANIFEST.json").write_text(
+        json.dumps(l1a_manifest, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    (out_dir / "LOCAL_NATIVE_L1A_REPORT.json").write_text(
+        json.dumps(clean_report, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    (out_dir / "LOCAL_NATIVE_L1A_REPORT.md").write_text(
+        _render_md(clean_report), encoding="utf-8"
+    )
+
+    # Hashes after all other files written
+    hashes = {}
+    for a in REQUIRED_ARTIFACTS:
+        p = out_dir / a
+        if p.exists():
+            hashes[a] = hashlib.sha256(p.read_bytes()).hexdigest()
+    (out_dir / "ARTIFACT_HASHES.json").write_text(
+        json.dumps(hashes, indent=2, sort_keys=True), encoding="utf-8"
+    )
+
+    # Then check required artifacts (all 7 files now exist)
     gates["required_artifacts_complete"] = "PASS" if all(
         (out_dir / a).exists() for a in REQUIRED_ARTIFACTS
     ) else "FAIL"
 
-    # Final acceptance (all gates must be PASS, including deterministic)
+    # Final acceptance (all gates must be PASS)
     if gates["l0_baseline_regression"] == "NOT_APPLICABLE":
         gates["implementation_acceptance"] = "FAIL"
     else:
         all_pass = all(v == "PASS" for v in gates.values())
         gates["implementation_acceptance"] = "PASS" if all_pass else "FAIL"
 
+    # Rewrite report with final gates
     clean_report["acceptance_gates"] = gates
-
     (out_dir / "LOCAL_NATIVE_L1A_REPORT.json").write_text(
         json.dumps(clean_report, ensure_ascii=False, indent=2), encoding="utf-8"
     )
-    (out_dir / "PROFILE_MANIFEST.json").write_text(
-        json.dumps(l1a_manifest, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
     (out_dir / "LOCAL_NATIVE_L1A_REPORT.md").write_text(
         _render_md(clean_report), encoding="utf-8"
-    )
-
-    # Hashes after all files written
-    hashes = {}
-    for a in ["LOCAL_NATIVE_L1A_REPORT.json", "LOCAL_NATIVE_L1A_REPORT.md", "PROFILE_MANIFEST.json",
-              "DIRECT_PRICE_DIFFS.csv", "TRADE_KEY_DIFFS.csv", "STATE_DIFFS_SAMPLE.csv"]:
-        p = out_dir / a
-        if p.exists():
-            hashes[a] = hashlib.sha256(p.read_bytes()).hexdigest()
-    (out_dir / "ARTIFACT_HASHES.json").write_text(
-        json.dumps(hashes, indent=2, sort_keys=True), encoding="utf-8"
     )
 
     return report
@@ -995,7 +1003,61 @@ def cmd_compare(args):
         out_dir=Path(args.out_dir),
         baseline_dir=Path(args.baseline_dir) if args.baseline_dir else None,
     )
-    gates = report["acceptance_gates"]
+    gates = dict(report["acceptance_gates"])
+
+    # If --determinism-dir provided, verify 6 stable file SHAs against it
+    if args.determinism_dir:
+        ref_dir = Path(args.determinism_dir)
+        stable_files = [
+            "LOCAL_NATIVE_L1A_REPORT.json", "LOCAL_NATIVE_L1A_REPORT.md",
+            "PROFILE_MANIFEST.json", "DIRECT_PRICE_DIFFS.csv",
+            "TRADE_KEY_DIFFS.csv", "STATE_DIFFS_SAMPLE.csv",
+        ]
+        all_match = True
+        for name in stable_files:
+            f_out = Path(args.out_dir) / name
+            f_ref = ref_dir / name
+            if not f_out.exists() or not f_ref.exists():
+                all_match = False
+                continue
+            # For JSON, strip non-deterministic fields before SHA
+            if name.endswith(".json"):
+                try:
+                    d_out = _jsonable(json.loads(f_out.read_text(encoding="utf-8")))
+                    d_ref = _jsonable(json.loads(f_ref.read_text(encoding="utf-8")))
+                    is_dict = isinstance(d_out, dict) and isinstance(d_ref, dict)
+                    if is_dict:
+                        for skip in ["source_commit", "run_timestamp", "run_commands",
+                                     "l0_baseline", "acceptance_gates",
+                                     "hook_hits_jq", "hook_hits_l1a"]:
+                            d_out.pop(skip, None)
+                            d_ref.pop(skip, None)
+                    content_out = json.dumps(d_out, sort_keys=True) if is_dict else d_out
+                    content_ref = json.dumps(d_ref, sort_keys=True) if is_dict else d_ref
+                    h_out = hashlib.sha256(content_out.encode() if is_dict else f_out.read_bytes()).hexdigest()
+                    h_ref = hashlib.sha256(content_ref.encode() if is_dict else f_ref.read_bytes()).hexdigest()
+                except Exception:
+                    h_out = hashlib.sha256(f_out.read_bytes()).hexdigest()
+                    h_ref = hashlib.sha256(f_ref.read_bytes()).hexdigest()
+            else:
+                h_out = hashlib.sha256(f_out.read_bytes()).hexdigest()
+                h_ref = hashlib.sha256(f_ref.read_bytes()).hexdigest()
+            if h_out != h_ref:
+                all_match = False
+        gates["deterministic_reports"] = "PASS" if all_match else "FAIL"
+        # Recompute final acceptance
+        if gates.get("l0_baseline_regression") == "NOT_APPLICABLE":
+            gates["implementation_acceptance"] = "FAIL"
+        else:
+            gates["implementation_acceptance"] = "PASS" if all(
+                v == "PASS" for v in gates.values()
+            ) else "FAIL"
+        # Rewrite report with updated gates
+        report["acceptance_gates"] = dict(gates)
+        (Path(args.out_dir) / "LOCAL_NATIVE_L1A_REPORT.json").write_text(
+            json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+
     print(f"implementation_acceptance = {gates['implementation_acceptance']}")
     for gate, status in gates.items():
         print(f"  {gate}: {status}")
@@ -1005,7 +1067,8 @@ def cmd_compare(args):
 
 
 def cmd_determinism(args):
-    """Compare two compare output directories for deterministic equivalence."""
+    """Compare two compare output directories. If all 6 stable files match,
+    rewrite the gate in run1's report to set deterministic_reports = PASS."""
     import hashlib
     d1, d2 = Path(args.run1_dir), Path(args.run2_dir)
     stable_files = [
@@ -1021,35 +1084,53 @@ def cmd_determinism(args):
     for name in stable_files:
         f1, f2 = d1 / name, d2 / name
         if not f1.exists() or not f2.exists():
-            results[name] = {"hash1": "MISSING", "hash2": "MISSING", "equal": False}
+            results[name] = {"hash1": f1.exists() and "MISSING" or hashlib.sha256(f1.read_bytes()).hexdigest(),
+                             "hash2": f2.exists() and "MISSING" or hashlib.sha256(f2.read_bytes()).hexdigest(),
+                             "equal": False}
             all_pass = False
             continue
-        # For JSON, exclude non-deterministic fields before comparing
-        if name.endswith(".json"):
-            import json as _json
-            try:
-                d1_data = _json.loads(f1.read_text(encoding="utf-8"))
-                d2_data = _json.loads(f2.read_text(encoding="utf-8"))
-            except Exception:
-                results[name] = {"error": "parse_failed", "equal": False}
-                all_pass = False
-                continue
-            # Remove non-deterministic keys
-            for skip in ["source_commit", "run_timestamp", "run_commands"]:
-                d1_data.pop(skip, None)
-                d2_data.pop(skip, None)
-            h1 = hashlib.sha256(_json.dumps(d1_data, sort_keys=True).encode()).hexdigest()
-            h2 = hashlib.sha256(_json.dumps(d2_data, sort_keys=True).encode()).hexdigest()
-        else:
-            h1 = hashlib.sha256(f1.read_bytes()).hexdigest()
-            h2 = hashlib.sha256(f2.read_bytes()).hexdigest()
+        h1 = hashlib.sha256(f1.read_bytes()).hexdigest()
+        h2 = hashlib.sha256(f2.read_bytes()).hexdigest()
         eq = h1 == h2
         if not eq:
             all_pass = False
         results[name] = {"hash1": h1, "hash2": h2, "equal": eq}
     print(json.dumps(results, indent=2))
-    print(f"\nDeterministic: {'PASS' if all_pass else 'FAIL'}")
-    if not all_pass:
+
+    if all_pass:
+        # Update run1's report with deterministic_reports = PASS
+        rpt_path = d1 / "LOCAL_NATIVE_L1A_REPORT.json"
+        rpt_md_path = d1 / "LOCAL_NATIVE_L1A_REPORT.md"
+        if rpt_path.exists():
+            rpt = json.loads(rpt_path.read_text(encoding="utf-8"))
+            gates = rpt.get("acceptance_gates", {})
+            gates["deterministic_reports"] = "PASS"
+            # Recompute final acceptance
+            if gates.get("l0_baseline_regression") == "NOT_APPLICABLE":
+                gates["implementation_acceptance"] = "FAIL"
+            else:
+                gates["implementation_acceptance"] = "PASS" if all(v == "PASS" for v in gates.values()) else "FAIL"
+            rpt["acceptance_gates"] = gates
+            rpt_path.write_text(json.dumps(rpt, ensure_ascii=False, indent=2), encoding="utf-8")
+            # Regenerate MD
+            from tools.local_native_l1a_acceptance import _render_md as _rm
+            rpt_md_path.write_text(_rm(rpt), encoding="utf-8")
+            # Recompute ARTIFACT_HASHES.json
+            hashes = {}
+            hashlib_ = hashlib
+            for a in REQUIRED_ARTIFACTS:
+                p = d1 / a
+                if p.exists():
+                    hashes[a] = hashlib_.sha256(p.read_bytes()).hexdigest()
+            (d1 / "ARTIFACT_HASHES.json").write_text(
+                json.dumps(hashes, indent=2, sort_keys=True), encoding="utf-8"
+            )
+            print(f"\nDeterministic: PASS — report in {d1} updated")
+        else:
+            print(f"\nDeterministic: PASS but no report to update at {rpt_path}")
+        sys.exit(0)
+    else:
+        print(f"\nDeterministic: FAIL")
         sys.exit(1)
 
 
@@ -1067,8 +1148,8 @@ def main():
     cp.add_argument("--l1a-dir", required=True)
     cp.add_argument("--baseline-dir", default=None)
     cp.add_argument("--out-dir", required=True)
-    cp.add_argument("--verified-deterministic", default=None,
-                    help="Set to 'yes' to confirm determinism was verified externally")
+    cp.add_argument("--determinism-dir", default=None,
+                    help="Reference compare output dir; verify 6 stable file SHAs against it")
 
     dp = subs.add_parser("determinism")
     dp.add_argument("--run1-dir", required=True)

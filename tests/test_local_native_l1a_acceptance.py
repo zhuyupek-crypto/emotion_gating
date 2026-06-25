@@ -104,11 +104,11 @@ class TestCompareBaselineFile:
         r = compare_baseline_file(a, b, "test")
         assert r["diff_rows"] == 0
 
-    def test_both_missing_match(self, tmp_path):
+    def test_both_missing_fails(self, tmp_path):
         a = tmp_path / "missing1.csv"
         b = tmp_path / "missing2.csv"
         r = compare_baseline_file(a, b, "test")
-        assert r["diff_rows"] == 0
+        assert r["diff_rows"] == -1, "Both missing should return -1"
 
     def test_state_all_columns(self, tmp_path):
         """State comparison must NOT skip cand_* columns."""

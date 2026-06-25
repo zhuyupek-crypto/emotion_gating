@@ -13,7 +13,7 @@
 - state_diff_rows: 5
 - equity_diff_rows: 0
 - portfolio_stats_diff_rows: 0
-- positions_diff_rows: 0
+- positions_diff_rows: -1
 - final_value_diff: 0.0
 
 ## L1A Trade Comparison
@@ -106,6 +106,6 @@
 - position_divergence_not_before_hit: **PASS**
 - pre_hit_exact_match: **PASS**
 - account_invariants: **PASS**
-- deterministic_reports: **PASS**
+- deterministic_reports: **NOT_VERIFIED**
 - required_artifacts_complete: **PASS**
 - implementation_acceptance: **FAIL**
