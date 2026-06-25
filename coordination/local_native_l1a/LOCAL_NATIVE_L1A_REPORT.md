@@ -1,18 +1,28 @@
 # LOCAL_NATIVE_L1A Acceptance Report
 
-## Profile Definitions
+- Source commit: `0246e42b8630541ae34fa38062679f92a87c8184`
+- Base main commit: `6369570406b77dda9903e832dccd5516fc9c5986`
+- Data root: `D:\work space\hdata`
 
-- **jq_parity**: disabled_hook_ids = []
-- **local_native_l1a**: disabled_hook_ids = ['execution.execution_price_anomalies', 'market_data.minute_price_anomalies']
+## Profile Definitions
+- **jq_parity**: disabled = []
+- **local_native_l1a**: disabled = ['execution.execution_price_anomalies', 'market_data.minute_price_anomalies']
 
 ## L0 Baseline Regression
-
-- No baseline comparison performed.
+- trades_diff_rows: 0
+- state_diff_rows: 5
+- equity_diff_rows: 0
+- portfolio_stats_diff_rows: 0
+- positions_diff_rows: -2
+- final_value_diff: 0.0
 
 ## L1A Trade Comparison
-
 - jq_trade_count: 395
 - l1a_trade_count: 395
+- jq_buy_count: 199
+- jq_sell_count: 196
+- l1a_buy_count: 199
+- l1a_sell_count: 196
 - matched_trade_key_count: 394
 - trade_key_overlap_ratio: 0.994949
 - price_only_diff_count: 108
@@ -20,56 +30,82 @@
 - added_trade_count: 1
 - removed_trade_count: 1
 
-## L1A Performance
-
+## Performance
 ### jq_parity
-- final_value: 2507117.2900000024
-- total_return_pct: 150.71172900000022
+- final_value: 2507117.29
+- total_return_pct: 150.711729
 - max_drawdown: -0.163735
 - trade_count: 395
+- buy_count: 199
+- sell_count: 196
 - win_rate: 0.446281
+- average_trade_return: 6347.1324
 ### local_native_l1a
 - final_value: 2533999.15
-- total_return_pct: 153.39991500000002
+- total_return_pct: 153.399915
 - max_drawdown: -0.16176
 - trade_count: 395
+- buy_count: 199
+- sell_count: 196
 - win_rate: 0.442149
+- average_trade_return: 6415.1877
 
 ## Causal Timing
-
-- earliest_disabled_hook_hit: 2020-01-02
-- earliest_trade_divergence: 2020-01-14 11:25
+- earliest_disabled_hook_hit: 20200114 11:25
+- earliest_trade_divergence: 2020-08-21
 - earliest_state_divergence: 2020-01-15
 - earliest_equity_divergence: 2020-01-14
-- earliest_position_divergence: 2020-01-14
+- earliest_position_divergence: None
+
+## Pre-Hit Exact Match
+- trades: 1
+- state: 1
+- equity: 1
+- portfolio: 1
+- positions: 1
+- all: 1
 
 ## Hook Hits (jq_parity)
-
-### minute_price
-- queries: 3470
-- effective_hits: 1
-- profile_disabled: 0
-### execution_price
+### execution.execution_price_anomalies
 - queries: 395
 - effective_hits: 107
-- profile_disabled: 0
+- first_effective_hit: 20200116 11:25
+- effective_hit_keys_count: 107
+### market_data.minute_price_anomalies
+- queries: 3470
+- effective_hits: 1
+- first_effective_hit: 20200114 11:25
+- effective_hit_keys_count: 1
 
 ## Hook Hits (local_native_l1a)
-
-### minute_price
-- queries: 3448
-- effective_hits: 0
-- profile_disabled: 1
-### execution_price
+### execution.execution_price_anomalies
 - queries: 395
 - effective_hits: 0
+- would_have_hit: 1
+- would_have_hit_keys_count: 107
+- first_would_have_hit: 20200116 11:25
+- profile_disabled: 1
+### market_data.minute_price_anomalies
+- queries: 3448
+- effective_hits: 0
+- would_have_hit: 1
+- would_have_hit_keys_count: 1
+- first_would_have_hit: 20200114 11:25
 - profile_disabled: 1
 
 ## Acceptance Gates
-
-- l0_baseline_regression: **NOT_APPLICABLE**
+- l0_baseline_regression: **PASS**
 - l1a_exact_hook_set: **PASS**
-- l1a_hooks_disabled: **PASS**
-- completed_successfully: **PASS**
-- no_data_quality_issues: **PASS**
+- jq_price_hooks_have_effective_hits: **PASS**
+- l1a_price_hooks_effective_hits_zero: **PASS**
+- would_have_hit_keys_recorded: **PASS**
+- earliest_hit_is_effective_hit: **PASS**
+- trade_divergence_not_before_hit: **PASS**
+- state_divergence_not_before_hit: **PASS**
+- equity_divergence_not_before_hit: **PASS**
+- position_divergence_not_before_hit: **PASS**
+- pre_hit_exact_match: **PASS**
+- account_invariants: **PASS**
+- required_artifacts_complete: **PASS**
+- deterministic_reports: **PASS**
 - implementation_acceptance: **PASS**
