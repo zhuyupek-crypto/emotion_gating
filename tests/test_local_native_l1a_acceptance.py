@@ -328,3 +328,100 @@ class TestFinalAcceptance:
         else:
             final = "PASS" if all(v == "PASS" for v in gates.values()) else "FAIL"
         assert final == "FAIL"
+
+
+class TestProductionFunctionExtended:
+    """Extended tests directly calling production functions to satisfy all task criteria."""
+
+    def test_two_valid_empty_positions_pass(self, tmp_path):
+        header = "date,code,amount,avg_cost,price\n"
+        f1 = tmp_path / "f1.csv"
+        f2 = tmp_path / "f2.csv"
+        f1.write_text(header, encoding="utf-8")
+        f2.write_text(header, encoding="utf-8")
+        r = compare_baseline_file(f1, f2, "positions", key_col=["date", "code"])
+        assert r["diff_rows"] == 0
+        assert r["row_count_equal"] is True
+        assert r["column_set_equal"] is True
+        assert r["key_set_equal"] is True
+
+    def test_verify_determinism_one_changed_byte_fails(self, tmp_path):
+        from tools.local_native_l1a_acceptance import verify_determinism_and_finalize
+        d1 = tmp_path / "d1"
+        d2 = tmp_path / "d2"
+        d1.mkdir()
+        d2.mkdir()
+        stable = [
+            "LOCAL_NATIVE_L1A_REPORT.json", "LOCAL_NATIVE_L1A_REPORT.md",
+            "PROFILE_MANIFEST.json", "DIRECT_PRICE_DIFFS.csv",
+            "TRADE_KEY_DIFFS.csv", "STATE_DIFFS_SAMPLE.csv"
+        ]
+        for name in stable:
+            if name.endswith(".json"):
+                (d1 / name).write_text(json.dumps({"acceptance_gates": {}}), encoding="utf-8")
+                (d2 / name).write_text(json.dumps({"acceptance_gates": {}}), encoding="utf-8")
+            else:
+                (d1 / name).write_text("content", encoding="utf-8")
+                (d2 / name).write_text("content", encoding="utf-8")
+        
+        # Change one byte in one file in d2
+        (d2 / "PROFILE_MANIFEST.json").write_text("contentx", encoding="utf-8")
+        
+        res = verify_determinism_and_finalize(d1, d2)
+        assert res["status"] == "FAIL"
+        assert res["files"]["PROFILE_MANIFEST.json"]["equal"] is False
+
+    def test_verify_determinism_missing_stable_file_fails(self, tmp_path):
+        from tools.local_native_l1a_acceptance import verify_determinism_and_finalize
+        d1 = tmp_path / "d1"
+        d2 = tmp_path / "d2"
+        d1.mkdir()
+        d2.mkdir()
+        stable = [
+            "LOCAL_NATIVE_L1A_REPORT.json", "LOCAL_NATIVE_L1A_REPORT.md",
+            "PROFILE_MANIFEST.json", "DIRECT_PRICE_DIFFS.csv",
+            "TRADE_KEY_DIFFS.csv", "STATE_DIFFS_SAMPLE.csv"
+        ]
+        for name in stable:
+            if name.endswith(".json"):
+                (d1 / name).write_text(json.dumps({"acceptance_gates": {}}), encoding="utf-8")
+                if name != "PROFILE_MANIFEST.json":
+                    (d2 / name).write_text(json.dumps({"acceptance_gates": {}}), encoding="utf-8")
+            else:
+                (d1 / name).write_text("content", encoding="utf-8")
+                if name != "PROFILE_MANIFEST.json":
+                    (d2 / name).write_text("content", encoding="utf-8")
+        
+        res = verify_determinism_and_finalize(d1, d2)
+        assert res["status"] == "FAIL"
+        assert res["files"]["PROFILE_MANIFEST.json"]["equal"] is False
+
+    def test_final_json_md_hash_consistency(self, tmp_path):
+        from tools.local_native_l1a_acceptance import verify_determinism_and_finalize
+        d1 = tmp_path / "d1"
+        d2 = tmp_path / "d2"
+        d1.mkdir()
+        d2.mkdir()
+        stable = [
+            "LOCAL_NATIVE_L1A_REPORT.json", "LOCAL_NATIVE_L1A_REPORT.md",
+            "PROFILE_MANIFEST.json", "DIRECT_PRICE_DIFFS.csv",
+            "TRADE_KEY_DIFFS.csv", "STATE_DIFFS_SAMPLE.csv"
+        ]
+        for name in stable:
+            if name.endswith(".json"):
+                (d1 / name).write_text(json.dumps({"acceptance_gates": {"l0_baseline_regression": "PASS"}}), encoding="utf-8")
+                (d2 / name).write_text(json.dumps({"acceptance_gates": {"l0_baseline_regression": "PASS"}}), encoding="utf-8")
+            else:
+                (d1 / name).write_text("content", encoding="utf-8")
+                (d2 / name).write_text("content", encoding="utf-8")
+                
+        res = verify_determinism_and_finalize(d1, d2)
+        assert res["status"] == "PASS"
+        
+        hash_file = d1 / "ARTIFACT_HASHES.json"
+        assert hash_file.exists()
+        hashes = json.loads(hash_file.read_text(encoding="utf-8"))
+        for a in stable:
+            assert a in hashes
+            assert hashes[a] == hashlib.sha256((d1 / a).read_bytes()).hexdigest()
+
