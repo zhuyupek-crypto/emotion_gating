@@ -46,6 +46,7 @@ from tools.acceptance_common import (
     compare_baseline_file,
     compare_state_files,
     FLOAT_TOL,
+    HDATA_ROOT,
 )
 
 # Reuse generate_l0_report from L1A tool to avoid duplication
