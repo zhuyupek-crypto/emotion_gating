@@ -910,7 +910,7 @@ def compare_runs(jq_dir: Path, l1a_dir: Path, out_dir: Path, baseline_dir: Path 
     if gates["l0_baseline_regression"] == "NOT_APPLICABLE":
         gates["implementation_acceptance"] = "FAIL"
     else:
-        all_pass = all(v == "PASS" for v in gates.values())
+        all_pass = all(v == "PASS" for k, v in gates.items() if k != "implementation_acceptance")
         gates["implementation_acceptance"] = "PASS" if all_pass else "FAIL"
 
     # Rewrite report with final gates
@@ -1057,7 +1057,7 @@ def verify_determinism_and_finalize(out_dir: Path, ref_dir: Path) -> dict:
             if gates.get("l0_baseline_regression") == "NOT_APPLICABLE":
                 gates["implementation_acceptance"] = "FAIL"
             else:
-                gates["implementation_acceptance"] = "PASS" if all(v == "PASS" for v in gates.values()) else "FAIL"
+                gates["implementation_acceptance"] = "PASS" if all(v == "PASS" for k, v in gates.items() if k != "implementation_acceptance") else "FAIL"
                 
             rpt["acceptance_gates"] = gates
             
