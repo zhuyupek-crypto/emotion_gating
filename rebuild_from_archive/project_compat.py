@@ -49,6 +49,8 @@ class EmotionGateJQCompat:
 
     _HOOK_ID_MINUTE_PRICE = "market_data.minute_price_anomalies"
     _HOOK_ID_EXECUTION_PRICE = "execution.execution_price_anomalies"
+    _HOOK_ID_ORDER_AMOUNT = "execution.order_amount_anomalies"
+    _HOOK_ID_FILL_AMOUNT = "execution.fill_amount_anomalies"
 
     immediate_sell_cash_release = True
 
@@ -91,6 +93,13 @@ class EmotionGateJQCompat:
         self._hook_hits: dict[str, int] = {}
         self._hook_hit_keys: list[dict] = []
         self._hook_would_have_hit_keys: list[dict] = []
+        # L1B specific query ordinal counters
+        self._order_query_counts = {}
+        self._fill_query_counts = {}
+        self._order_global_query_count = 0
+        self._fill_global_query_count = 0
+        self.size_hook_events = []
+        self.engine = None
 
     @property
     def profile(self) -> str:
@@ -111,37 +120,42 @@ class EmotionGateJQCompat:
             "disabled_hook_ids": sorted(self.disabled_hook_ids),
         }
 
-    def _record_hook_query(self, hook_id: str, hit: bool, would_have_hit: bool = False, key=None, override_value=None):
+    def _record_hook_query(self, hook_id: str, hit: bool, would_have_hit: bool = False, key=None, override_value=None, key_query_ordinal=None, sequence_index=None):
         """Record hook telemetry for acceptance testing."""
         self._hook_queries[hook_id] = self._hook_queries.get(hook_id, 0) + 1
+        
+        # Track would-have hits
+        if not hasattr(self, "_hook_would_have_hits"):
+            self._hook_would_have_hits = {}
+        if would_have_hit:
+            self._hook_would_have_hits[hook_id] = self._hook_would_have_hits.get(hook_id, 0) + 1
+
         if hit:
             self._hook_hits[hook_id] = self._hook_hits.get(hook_id, 0) + 1
-        if hit and key is not None:
+            
+        if (hit or would_have_hit) and key is not None:
             date_str = str(key[0]) if len(key) > 0 and key[0] else ""
             time_str = str(key[1]) if len(key) > 1 and key[1] else ""
             code_str = str(key[2]) if len(key) > 2 and key[2] else ""
             side_str = str(key[3]) if len(key) > 3 and key[3] else None
-            self._hook_hit_keys.append({
+            
+            event = {
                 "date": date_str,
                 "time": time_str,
                 "code": code_str,
                 "side": side_str,
                 "hook_id": hook_id,
                 "override_value": override_value,
-            })
-        if would_have_hit and key is not None and not hit:
-            date_str = str(key[0]) if len(key) > 0 and key[0] else ""
-            time_str = str(key[1]) if len(key) > 1 and key[1] else ""
-            code_str = str(key[2]) if len(key) > 2 and key[2] else ""
-            side_str = str(key[3]) if len(key) > 3 and key[3] else None
-            self._hook_would_have_hit_keys.append({
-                "date": date_str,
-                "time": time_str,
-                "code": code_str,
-                "side": side_str,
-                "hook_id": hook_id,
-                "override_value": override_value,
-            })
+                "key_query_ordinal": key_query_ordinal,
+                "sequence_index": sequence_index,
+                "effective_hit": hit,
+                "would_have_hit": would_have_hit,
+            }
+            
+            if hit:
+                self._hook_hit_keys.append(event)
+            if would_have_hit and not hit:
+                self._hook_would_have_hit_keys.append(event)
 
     def namespace_entries(self, engine):
         return {
@@ -203,11 +217,146 @@ class EmotionGateJQCompat:
         )
         return raw_override
 
-    def get_order_amount_override(self, date_key, time_key, security):
-        return ORDER_AMOUNT_ANOMALIES.get((date_key, time_key, security))
+    def get_order_amount_override(self, date_key, time_key, security, amount=None):
+        key = (date_key, time_key, security)
+        self._order_global_query_count += 1
+        query_ord = self._order_global_query_count
+        
+        # Track query count per key
+        key_ord = self._order_query_counts.get(key, 0) + 1
+        self._order_query_counts[key] = key_ord
+        
+        raw_override = ORDER_AMOUNT_ANOMALIES.get(key)
+        
+        # Resolve specific override value for this query ordinal
+        override_val = None
+        seq_idx = 0
+        has_cand = False
+        if raw_override is not None:
+            if isinstance(raw_override, list):
+                seq_idx = key_ord - 1
+                if seq_idx < len(raw_override):
+                    override_val = raw_override[seq_idx]
+                    has_cand = True
+            else:
+                seq_idx = 0
+                if key_ord == 1:
+                    override_val = raw_override
+                    has_cand = True
+                    
+        enabled = self.is_hook_enabled(self._HOOK_ID_ORDER_AMOUNT)
+        hit = enabled and has_cand
+        would_have = (not enabled) and has_cand
+        
+        # Record hook query telemetry
+        self._record_hook_query(
+            self._HOOK_ID_ORDER_AMOUNT,
+            hit=hit,
+            would_have_hit=would_have,
+            key=key,
+            override_value=override_val,
+            key_query_ordinal=key_ord,
+            sequence_index=seq_idx
+        )
+        
+        # Record detailed size hook event for SIZE_HOOK_EVENTS.csv
+        final_amt = override_val if hit else amount
+        
+        order_id = str(self.engine._order_id_counter) if (self.engine is not None) else ""
+        side = "buy" if (amount is not None and amount > 0) else "sell"
+        
+        self.size_hook_events.append({
+            "hook_id": self._HOOK_ID_ORDER_AMOUNT,
+            "date": date_key,
+            "time": time_key,
+            "code": security,
+            "side": side,
+            "order_id": order_id,
+            "query_ordinal": query_ord,
+            "key_query_ordinal": key_ord,
+            "sequence_index": seq_idx,
+            "computed_amount_before_override": amount,
+            "override_amount": override_val,
+            "final_order_amount": final_amt,
+            "final_fill_amount": None,
+            "profile": self.profile,
+            "effective_hit": hit,
+            "would_have_hit": would_have,
+        })
+        
+        return raw_override if enabled else None
 
-    def get_fill_amount_override(self, date_key, time_key, security):
-        return FILL_AMOUNT_ANOMALIES.get((date_key, time_key, security))
+    def get_fill_amount_override(self, date_key, time_key, security, amount=None):
+        key = (date_key, time_key, security)
+        self._fill_global_query_count += 1
+        query_ord = self._fill_global_query_count
+        
+        # Track query count per key
+        key_ord = self._fill_query_counts.get(key, 0) + 1
+        self._fill_query_counts[key] = key_ord
+        
+        raw_override = FILL_AMOUNT_ANOMALIES.get(key)
+        
+        # Resolve specific override value for this query ordinal
+        override_val = None
+        seq_idx = 0
+        has_cand = False
+        if raw_override is not None:
+            if isinstance(raw_override, list):
+                seq_idx = key_ord - 1
+                if seq_idx < len(raw_override):
+                    override_val = raw_override[seq_idx]
+                    has_cand = True
+            else:
+                seq_idx = 0
+                if key_ord == 1:
+                    override_val = raw_override
+                    has_cand = True
+                    
+        enabled = self.is_hook_enabled(self._HOOK_ID_FILL_AMOUNT)
+        hit = enabled and has_cand
+        would_have = (not enabled) and has_cand
+        
+        # Record hook query telemetry
+        self._record_hook_query(
+            self._HOOK_ID_FILL_AMOUNT,
+            hit=hit,
+            would_have_hit=would_have,
+            key=key,
+            override_value=override_val,
+            key_query_ordinal=key_ord,
+            sequence_index=seq_idx
+        )
+        
+        # Record detailed size hook event for SIZE_HOOK_EVENTS.csv
+        final_amt = override_val if hit else amount
+        
+        order_id = ""
+        side = "buy" if (amount is not None and amount > 0) else "sell"
+        if self.engine is not None and getattr(self.engine, "_current_matching_order", None) is not None:
+            order_id = getattr(self.engine._current_matching_order, "order_id", "")
+            side = getattr(self.engine._current_matching_order, "side", side)
+            
+        self.size_hook_events.append({
+            "hook_id": self._HOOK_ID_FILL_AMOUNT,
+            "date": date_key,
+            "time": time_key,
+            "code": security,
+            "side": side,
+            "order_id": order_id,
+            "query_ordinal": query_ord,
+            "key_query_ordinal": key_ord,
+            "sequence_index": seq_idx,
+            "computed_amount_before_override": amount,
+            "override_amount": override_val,
+            "final_order_amount": None,
+            "final_fill_amount": final_amt,
+            "profile": self.profile,
+            "effective_hit": hit,
+            "would_have_hit": would_have,
+        })
+        
+        return raw_override if enabled else None
 
     def should_reject_preopen_cash(self, date_key, time_key, available_cash):
         cash_threshold = self.preopen_reject_cash_below.get((date_key, time_key))
