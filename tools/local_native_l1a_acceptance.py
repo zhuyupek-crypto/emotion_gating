@@ -865,19 +865,17 @@ def compare_runs(jq_dir: Path, l1a_dir: Path, out_dir: Path, baseline_dir: Path 
     clean_report = _jsonable(report)
     clean_report["acceptance_gates"] = gates
 
-    # Deterministic check
-    try:
-        det_h = hashlib.sha256(json.dumps(clean_report, sort_keys=True).encode()).hexdigest()
-        gates["deterministic_reports"] = "PASS" if len(det_h) == 64 else "FAIL"
-    except Exception:
-        gates["deterministic_reports"] = "FAIL"
+    # Deterministic check (requires DETERMINISM_VERIFIED=yes env var)
+    det_verified = os.environ.get("DETERMINISM_VERIFIED", "")
+    det_pass = det_verified.lower() in ("1", "true", "yes")
+    gates["deterministic_reports"] = "PASS" if det_pass else "NOT_VERIFIED"
 
     # Required artifacts (CSVs written above)
     gates["required_artifacts_complete"] = "PASS" if all(
         (out_dir / a).exists() for a in REQUIRED_ARTIFACTS
     ) else "FAIL"
 
-    # Final acceptance (all gates are blocking)
+    # Final acceptance (all gates must be PASS, including deterministic)
     if gates["l0_baseline_regression"] == "NOT_APPLICABLE":
         gates["implementation_acceptance"] = "FAIL"
     else:
@@ -1069,6 +1067,8 @@ def main():
     cp.add_argument("--l1a-dir", required=True)
     cp.add_argument("--baseline-dir", default=None)
     cp.add_argument("--out-dir", required=True)
+    cp.add_argument("--verified-deterministic", default=None,
+                    help="Set to 'yes' to confirm determinism was verified externally")
 
     dp = subs.add_parser("determinism")
     dp.add_argument("--run1-dir", required=True)
