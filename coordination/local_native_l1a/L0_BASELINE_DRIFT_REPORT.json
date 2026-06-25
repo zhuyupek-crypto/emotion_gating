@@ -1,67 +1,75 @@
 {
   "title": "L0 Baseline Drift Analysis",
   "baseline_commit": "6369570 (frozen as rebuild_2020_warm2020_v16)",
-  "current_commit": "fe6be85 (HEAD of codex/local-native-l1a-price-hooks)",
-  "data_root": "D:\\Work Space\\\u4ed6\u5c71\u4e4b\u77f3\\\u60c5\u7eea\u95e8\u63a7\\rebuild_2020_warm2020_v16",
+  "current_commit": "6369570406b77dda9903e832dccd5516fc9c5986",
+  "data_root": "D:/work space/hdata",
   "current_state_sha256": "e2228a9face6599e2f6b67071fb1b8889d0de352a3357293a105f08130b8ba62",
   "baseline_state_sha256": "ee739356d23f1030d1c1fd2bf8445de0f1a0cd7fd892448ff8d86412295ccdd0",
   "row_count_current": 243,
   "row_count_baseline": 243,
-  "row_count_equal": true,
-  "column_set_equal": true,
-  "key_set_equal": true,
+  "row_count_equal": 1,
+  "column_set_equal": 1,
+  "key_set_equal": 1,
   "cell_diff_count": 5,
   "diffs": [
     {
       "row": 0,
       "date": "2020-01-02",
       "column": "cand_yjj",
-      "current_value": 1.0,
-      "baseline_value": 0.0,
+      "current_value": 1,
+      "baseline_value": 0,
       "diff": 1.0
     },
     {
       "row": 65,
       "date": "2020-04-13",
       "column": "cand_rzq",
-      "current_value": 3.0,
-      "baseline_value": 2.0,
+      "current_value": 3,
+      "baseline_value": 2,
       "diff": 1.0
     },
     {
       "row": 140,
       "date": "2020-08-03",
       "column": "cand_yjj",
-      "current_value": 6.0,
-      "baseline_value": 5.0,
+      "current_value": 6,
+      "baseline_value": 5,
       "diff": 1.0
     },
     {
       "row": 154,
       "date": "2020-08-21",
       "column": "cand_yjj",
-      "current_value": 4.0,
-      "baseline_value": 3.0,
+      "current_value": 4,
+      "baseline_value": 3,
       "diff": 1.0
     },
     {
       "row": 201,
       "date": "2020-11-04",
       "column": "cand_bear",
-      "current_value": 20.0,
-      "baseline_value": 19.0,
+      "current_value": 20,
+      "baseline_value": 19,
       "diff": 1.0
     }
   ],
+  "l0_results": {
+    "trades_diff_rows": 0,
+    "state_diff_rows": 5,
+    "equity_diff_rows": 0,
+    "portfolio_stats_diff_rows": 0,
+    "positions_diff_rows": -1,
+    "final_value_diff": 0.0
+  },
   "conclusion": {
-    "inherited_baseline_drift": true,
-    "drift_is_in_l1a_code": false,
+    "inherited_baseline_drift": 1,
+    "drift_is_in_l1a_code": 0,
     "drift_fields": [
-      "cand_yjj",
+      "cand_bear",
       "cand_rzq",
-      "cand_bear"
+      "cand_yjj"
     ],
-    "cause": "Candidate count columns fluctuate by \u00b11 between snapshots. Frozen baseline generated months before L1A branch.",
-    "all_financial_fields_match": true
+    "cause": "Candidate count columns fluctuate by ±1 between snapshots. Frozen baseline generated months before L1A branch.",
+    "all_financial_fields_match": 0
   }
 }

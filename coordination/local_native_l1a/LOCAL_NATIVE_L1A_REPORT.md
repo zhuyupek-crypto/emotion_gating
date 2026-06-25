@@ -1,8 +1,8 @@
 # LOCAL_NATIVE_L1A Acceptance Report
 
-- Source commit: `cde36c34eaee60131cf7318e19a54daadfdf373e`
+- Source commit: `6a39a37b360ce7da0b9ecf49aef88cee662979f6`
 - Base main commit: `6369570406b77dda9903e832dccd5516fc9c5986`
-- Data root: `D:\work space\hdata`
+- Data root: `D:/work space/hdata`
 
 ## Profile Definitions
 - **jq_parity**: disabled = []
@@ -10,10 +10,10 @@
 
 ## L0 Baseline Regression
 - trades_diff_rows: 0
-- state_diff_rows: 5
+- state_diff_rows: 0
 - equity_diff_rows: 0
 - portfolio_stats_diff_rows: 0
-- positions_diff_rows: -1
+- positions_diff_rows: 0
 - final_value_diff: 0.0
 
 ## L1A Trade Comparison
@@ -94,7 +94,7 @@
 - profile_disabled: 1
 
 ## Acceptance Gates
-- l0_baseline_regression: **FAIL**
+- l0_baseline_regression: **PASS**
 - l1a_exact_hook_set: **PASS**
 - jq_price_hooks_have_effective_hits: **PASS**
 - l1a_price_hooks_effective_hits_zero: **PASS**
@@ -106,6 +106,6 @@
 - position_divergence_not_before_hit: **PASS**
 - pre_hit_exact_match: **PASS**
 - account_invariants: **PASS**
-- deterministic_reports: **NOT_VERIFIED**
+- deterministic_reports: **PASS**
 - required_artifacts_complete: **PASS**
-- implementation_acceptance: **FAIL**
+- implementation_acceptance: **PASS**
