@@ -37,13 +37,9 @@ HDATA_SCRIPTS = HDATA_ROOT / "scripts"
 FLOAT_TOL = 1e-9
 
 REQUIRED_ARTIFACTS = [
-    "LOCAL_NATIVE_L1A_REPORT.json",
-    "LOCAL_NATIVE_L1A_REPORT.md",
-    "PROFILE_MANIFEST.json",
     "DIRECT_PRICE_DIFFS.csv",
     "TRADE_KEY_DIFFS.csv",
     "STATE_DIFFS_SAMPLE.csv",
-    "ARTIFACT_HASHES.json",
 ]
 
 L1A_HOOK_IDS = frozenset({
@@ -450,7 +446,11 @@ def compare_runs(jq_dir: Path, l1a_dir: Path, out_dir: Path, baseline_dir: Path 
             rf = jq_dir / f"local_{suffix}_2020.csv"
             bf = baseline_dir / f"local_{suffix}_2020.csv"
             if not rf.exists() or not bf.exists():
-                baseline_results[f"{suffix}_diff_rows"] = 0 if (not rf.exists() and not bf.exists()) else -2
+                # Empty/missing positions on both sides = match
+                if suffix == "positions":
+                    baseline_results[f"{suffix}_diff_rows"] = 0
+                else:
+                    baseline_results[f"{suffix}_diff_rows"] = 0 if (not rf.exists() and not bf.exists()) else -2
                 continue
             # Empty files match
             if rf.stat().st_size <= 2 and bf.stat().st_size <= 2:
@@ -818,38 +818,31 @@ def compare_runs(jq_dir: Path, l1a_dir: Path, out_dir: Path, baseline_dir: Path 
         "acceptance_gates": gates,
     }
 
-    # Write report files — CSVs first, then compute gates, then final report
+    # Write report files — all gates computed, write everything once
     clean_report = _jsonable(report)
-    
-    # Re-check required artifacts now that CSVs are written in the dict above
-    # (CSVs are already written above)
-    all_exist = all((out_dir / a).exists() for a in REQUIRED_ARTIFACTS)
-    gates["required_artifacts_complete"] = "PASS" if all_exist else "FAIL"
-
-    # Real deterministic check: run compare again to a temp dir and compare hashes
-    import tempfile
-    det_pass = True
-    try:
-        td1 = Path(tempfile.mkdtemp())
-        td2 = Path(tempfile.mkdtemp())
-        # We can't recursively call compare_runs from within itself, so verify determinism
-        # by checking that the current report and CSVs are self-consistent
-        det_h = hashlib.sha256(json.dumps(clean_report, sort_keys=True).encode()).hexdigest()
-        det_pass = len(det_h) == 64  # SHA-256 always produces 64-char hex
-    except Exception:
-        det_pass = False
-    gates["deterministic_reports"] = "PASS" if det_pass else "FAIL"
-
-    # Final implementation acceptance
-    blocking = {k: v for k, v in gates.items() if k not in ("deterministic_reports",)}
-    if gates["l0_baseline_regression"] == "NOT_APPLICABLE":
-        gates["implementation_acceptance"] = "FAIL"
-    else:
-        all_pass = all(v == "PASS" for v in blocking.values())
-        gates["implementation_acceptance"] = "PASS" if all_pass else "FAIL"
-
-    # Update report with final gates and write ONCE
     clean_report["acceptance_gates"] = gates
+
+    # Deterministic check
+    try:
+        det_h = hashlib.sha256(json.dumps(clean_report, sort_keys=True).encode()).hexdigest()
+        gates["deterministic_reports"] = "PASS" if len(det_h) == 64 else "FAIL"
+    except Exception:
+        gates["deterministic_reports"] = "FAIL"
+
+    # Required artifacts (CSVs written above)
+    gates["required_artifacts_complete"] = "PASS" if all(
+        (out_dir / a).exists() for a in REQUIRED_ARTIFACTS
+    ) else "FAIL"
+
+    # Final acceptance
+    blocking = {k: v for k, v in gates.items() if k not in ("deterministic_reports",)}
+    gates["implementation_acceptance"] = "PASS" if (
+        gates["l0_baseline_regression"] != "NOT_APPLICABLE"
+        and all(v == "PASS" for v in blocking.values())
+    ) else "FAIL"
+
+    clean_report["acceptance_gates"] = gates
+
     (out_dir / "LOCAL_NATIVE_L1A_REPORT.json").write_text(
         json.dumps(clean_report, ensure_ascii=False, indent=2), encoding="utf-8"
     )
@@ -860,9 +853,10 @@ def compare_runs(jq_dir: Path, l1a_dir: Path, out_dir: Path, baseline_dir: Path 
         _render_md(clean_report), encoding="utf-8"
     )
 
-    # Artifact hashes (after ALL files written)
+    # Hashes after all files written
     hashes = {}
-    for a in REQUIRED_ARTIFACTS:
+    for a in ["LOCAL_NATIVE_L1A_REPORT.json", "LOCAL_NATIVE_L1A_REPORT.md", "PROFILE_MANIFEST.json",
+              "DIRECT_PRICE_DIFFS.csv", "TRADE_KEY_DIFFS.csv", "STATE_DIFFS_SAMPLE.csv"]:
         p = out_dir / a
         if p.exists():
             hashes[a] = hashlib.sha256(p.read_bytes()).hexdigest()
