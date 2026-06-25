@@ -1441,7 +1441,7 @@ def render_inventory_markdown(inventory: list[dict[str, Any]], summary: dict[str
         ("10. L3（状态历史答案类）：应第四批关闭？", "wave_L3"),
         ("11. L4（JQ数据形态类）：需本地数据确认后关闭？", "wave_L4"),
         ("12. 哪些不是消融项，只是遗留清理？", "cleanup_only"),
-        ("13. 哪些没有真实消费者？", "zero_consumer_hooks"),
+        ("13. 哪些没有直接消费者？", "zero_consumer_hooks"),
         ("14. 哪些配置为空？", "empty_config_hooks"),
         ("15. 哪些引用了外部未合并分支证据？", "external_evidence_refs"),
         ("16. 哪些必须等待local_quant？", "must_wait_for_local_quant"),

@@ -113,7 +113,7 @@
 ### 12. 哪些不是消融项，只是遗留清理？
 - `legacy.temporary_fallbacks_shim`
 
-### 13. 哪些没有真实消费者？
+### 13. 哪些没有直接消费者？
 - `legacy.public_data_api_shim`
 - `legacy.temporary_fallbacks_shim`
 - `project_feature.master_prepare_index_accessor`
