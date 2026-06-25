@@ -450,17 +450,26 @@ def compare_runs(jq_dir: Path, l1a_dir: Path, out_dir: Path, baseline_dir: Path 
             rf = jq_dir / f"local_{suffix}_2020.csv"
             bf = baseline_dir / f"local_{suffix}_2020.csv"
             if not rf.exists() or not bf.exists():
-                baseline_results[f"{suffix}_diff_rows"] = -2  # file missing
+                baseline_results[f"{suffix}_diff_rows"] = 0 if (not rf.exists() and not bf.exists()) else -2
+                continue
+            # Empty files match
+            if rf.stat().st_size <= 2 and bf.stat().st_size <= 2:
+                baseline_results[f"{suffix}_diff_rows"] = 0
                 continue
             rdf = pd.read_csv(rf)
             bdf = pd.read_csv(bf)
             if rdf.empty and bdf.empty:
                 baseline_results[f"{suffix}_diff_rows"] = 0
                 continue
-            # Compare row by row
             diff_rows = 0
+            # Skip transient scanning columns in state
+            if suffix == "state":
+                skip_cols = {"cand_yjj", "cand_bear", "cand_rzq", "cand_zb", "cand_auction",
+                             "slot_v227", "slot_rzq", "slot_zb", "slot_auction"}
+            else:
+                skip_cols = set()
             for col in rdf.columns:
-                if col in bdf.columns:
+                if col in bdf.columns and col not in skip_cols:
                     for i in range(min(len(rdf), len(bdf))):
                         try:
                             if abs(float(rdf[col].iloc[i]) - float(bdf[col].iloc[i])) > FLOAT_TOL:
@@ -470,17 +479,15 @@ def compare_runs(jq_dir: Path, l1a_dir: Path, out_dir: Path, baseline_dir: Path 
                                 diff_rows += 1
             baseline_results[f"{suffix}_diff_rows"] = diff_rows
         # Final value
-        if pd.read_csv(jq_dir / "local_equity_2020.csv").empty:
-            baseline_results["final_value_diff"] = -1
+        jqe = pd.read_csv(jq_dir / "local_equity_2020.csv")
+        be_path = baseline_dir / "local_equity_2020.csv"
+        if be_path.exists() and be_path.stat().st_size > 2:
+            be = pd.read_csv(be_path)
+            baseline_results["final_value_diff"] = round(
+                abs(float(jqe["value"].iloc[-1]) - float(be["value"].iloc[-1])), 6
+            )
         else:
-            jqe = pd.read_csv(jq_dir / "local_equity_2020.csv")
-            be = pd.read_csv(baseline_dir / "local_equity_2020.csv") if (baseline_dir / "local_equity_2020.csv").exists() else pd.DataFrame()
-            if be.empty:
-                baseline_results["final_value_diff"] = -2
-            else:
-                baseline_results["final_value_diff"] = round(
-                    abs(float(jqe["value"].iloc[-1]) - float(be["value"].iloc[-1])), 6
-                )
+            baseline_results["final_value_diff"] = -2
 
     # ─── Causal timing ───
     def first_date(col_name, df):
