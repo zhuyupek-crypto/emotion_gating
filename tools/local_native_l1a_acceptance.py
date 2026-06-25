@@ -1014,38 +1014,28 @@ def verify_determinism_and_finalize(out_dir: Path, ref_dir: Path) -> dict:
         "TRADE_KEY_DIFFS.csv",
         "STATE_DIFFS_SAMPLE.csv",
     ]
-    results = {}
+    
+    # 1. Compare the non-report stable files first to determine det_status
+    non_report_files = [
+        "PROFILE_MANIFEST.json",
+        "DIRECT_PRICE_DIFFS.csv",
+        "TRADE_KEY_DIFFS.csv",
+        "STATE_DIFFS_SAMPLE.csv",
+    ]
     all_match = True
-    for name in stable_files:
+    for name in non_report_files:
         f_out = out_dir / name
         f_ref = ref_dir / name
         if not f_out.exists() or not f_ref.exists():
-            h_out = hashlib.sha256(f_out.read_bytes()).hexdigest() if f_out.exists() else "MISSING"
-            h_ref = hashlib.sha256(f_ref.read_bytes()).hexdigest() if f_ref.exists() else "MISSING"
-            results[name] = {"hash1": h_out, "hash2": h_ref, "equal": False}
             all_match = False
-            continue
-        h_out = hashlib.sha256(f_out.read_bytes()).hexdigest()
-        h_ref = hashlib.sha256(f_ref.read_bytes()).hexdigest()
-        eq = h_out == h_ref
-        if not eq:
-            all_match = False
-        results[name] = {"hash1": h_out, "hash2": h_ref, "equal": eq}
-    
+        else:
+            h_out = hashlib.sha256(f_out.read_bytes()).hexdigest()
+            h_ref = hashlib.sha256(f_ref.read_bytes()).hexdigest()
+            if h_out != h_ref:
+                all_match = False
     det_status = "PASS" if all_match else "FAIL"
-    det_report = {
-        "status": det_status,
-        "run1_dir": str(out_dir.relative_to(ROOT) if out_dir.is_relative_to(ROOT) else out_dir),
-        "run2_dir": str(ref_dir.relative_to(ROOT) if ref_dir.is_relative_to(ROOT) else ref_dir),
-        "files": results
-    }
     
-    # Write DETERMINISM_REPORT.json
-    (out_dir / "DETERMINISM_REPORT.json").write_text(
-        json.dumps(_jsonable(det_report), ensure_ascii=False, indent=2), encoding="utf-8"
-    )
-    
-    # Update gate statuses in report in BOTH directories if they exist
+    # 2. Update gate statuses in report files in BOTH directories if they exist
     for target_dir in [out_dir, ref_dir]:
         rpt_path = target_dir / "LOCAL_NATIVE_L1A_REPORT.json"
         if rpt_path.exists():
@@ -1064,25 +1054,57 @@ def verify_determinism_and_finalize(out_dir: Path, ref_dir: Path) -> dict:
             # Rewrite report files
             rpt_path.write_text(json.dumps(rpt, ensure_ascii=False, indent=2), encoding="utf-8")
             (target_dir / "LOCAL_NATIVE_L1A_REPORT.md").write_text(_render_md(rpt), encoding="utf-8")
+
+    # 3. Recalculate raw SHA256 of all 6 stable files and compare them
+    results = {}
+    for name in stable_files:
+        f_out = out_dir / name
+        f_ref = ref_dir / name
+        if not f_out.exists() or not f_ref.exists():
+            h_out = hashlib.sha256(f_out.read_bytes()).hexdigest() if f_out.exists() else "MISSING"
+            h_ref = hashlib.sha256(f_ref.read_bytes()).hexdigest() if f_ref.exists() else "MISSING"
+            results[name] = {"hash1": h_out, "hash2": h_ref, "equal": False}
+            det_status = "FAIL"
+            continue
+        h_out = hashlib.sha256(f_out.read_bytes()).hexdigest()
+        h_ref = hashlib.sha256(f_ref.read_bytes()).hexdigest()
+        eq = h_out == h_ref
+        if not eq:
+            det_status = "FAIL"
+        results[name] = {"hash1": h_out, "hash2": h_ref, "equal": eq}
+
+    det_report = {
+        "status": det_status,
+        "run1_dir": str(out_dir.relative_to(ROOT) if out_dir.is_relative_to(ROOT) else out_dir),
+        "run2_dir": str(ref_dir.relative_to(ROOT) if ref_dir.is_relative_to(ROOT) else ref_dir),
+        "files": results
+    }
+
+    # 4. Overwrite DETERMINISM_REPORT.json in BOTH directories with the final hashes
+    for target_dir in [out_dir, ref_dir]:
+        (target_dir / "DETERMINISM_REPORT.json").write_text(
+            json.dumps(_jsonable(det_report), ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+
+    # 5. Generate ARTIFACT_HASHES.json last in BOTH directories
+    for target_dir in [out_dir, ref_dir]:
+        hashes = {}
+        for a in REQUIRED_ARTIFACTS:
+            if a == "ARTIFACT_HASHES.json":
+                continue
+            p = target_dir / a
+            if p.exists():
+                hashes[a] = hashlib.sha256(p.read_bytes()).hexdigest()
+        
+        hashes_path = target_dir / "ARTIFACT_HASHES.json"
+        hashes_path.write_text(json.dumps(hashes, indent=2, sort_keys=True), encoding="utf-8")
+        
+        # 6. Verify every recorded hash against the final on-disk file
+        for a in hashes:
+            p = target_dir / a
+            curr_hash = hashlib.sha256(p.read_bytes()).hexdigest()
+            assert hashes[a] == curr_hash, f"Hash mismatch for {a} during verification!"
             
-            # Regenerate ARTIFACT_HASHES.json last
-            hashes = {}
-            for a in REQUIRED_ARTIFACTS:
-                if a == "ARTIFACT_HASHES.json":
-                    continue
-                p = target_dir / a
-                if p.exists():
-                    hashes[a] = hashlib.sha256(p.read_bytes()).hexdigest()
-            
-            hashes_path = target_dir / "ARTIFACT_HASHES.json"
-            hashes_path.write_text(json.dumps(hashes, indent=2, sort_keys=True), encoding="utf-8")
-            
-            # Verify hashes
-            for a in hashes:
-                p = target_dir / a
-                curr_hash = hashlib.sha256(p.read_bytes()).hexdigest()
-                assert hashes[a] == curr_hash, f"Hash mismatch for {a} during verification!"
-                    
     return det_report
 
 

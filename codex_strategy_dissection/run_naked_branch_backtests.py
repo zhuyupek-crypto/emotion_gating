@@ -32,9 +32,10 @@ def load_engine():
     sys.modules["jqdata"] = importlib.import_module("jqdata_compat")
 
     from scripts.core import hdata_reader  # type: ignore
-    from engine.core import Engine  # type: ignore
+    from engine.core import Engine
+    from project_compat import EmotionGateJQCompat  # type: ignore
 
-    return hdata_reader, Engine
+    return hdata_reader, Engine, EmotionGateJQCompat
 
 
 def strategy_path_for_mode(mode: str) -> Path:
@@ -137,7 +138,7 @@ def summarize_trades(trades) -> dict[str, object]:
 
 
 def run_mode(mode: str, start_date: str, end_date: str, initial_cash: float) -> dict[str, object]:
-    hdata_reader, Engine = load_engine()
+    hdata_reader, Engine, EmotionGateJQCompat = load_engine()
 
     strategy_path = strategy_path_for_mode(mode)
     strategy_code = strategy_path.read_text(encoding="utf-8")
@@ -149,7 +150,7 @@ def run_mode(mode: str, start_date: str, end_date: str, initial_cash: float) -> 
     hdata_reader._update_pivot_cache(preload_years)
 
     started = time.time()
-    engine = Engine(strategy_code, start_date, end_date, initial_cash)
+    engine = Engine(strategy_code, start_date, end_date, initial_cash, compat=EmotionGateJQCompat(ROOT))
     equity, trades, logs, metrics = engine.run()
     elapsed = time.time() - started
 
@@ -244,3 +245,4 @@ if __name__ == "__main__":
     except Exception:
         traceback.print_exc()
         raise
+

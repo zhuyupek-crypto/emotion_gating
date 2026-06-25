@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 
 ROOT = r"D:\Work Space\他山之石\情绪门控"
-RUNS_DIR = os.path.join(ROOT, "bare_runs_analysis", "runs")
+RUNS_DIR = os.path.join(ROOT, "scorp_optimize", "runs")
 YEARS = [2020, 2021, 2022, 2023, 2024, 2025, 2026]
 INIT_CASH = 1_000_000.0
 
