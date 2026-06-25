@@ -1,0 +1,1049 @@
+﻿--- engine/core.py
++++ engine/core.py
+@@ -15,10 +15,11 @@
+ from .context import Context, g
+ from .data_api import DataAPI
+ from .order import (
+-    OrderCost, FixedSlippage, MarketOrderStyle, LimitOrderStyle,
+-    get_trade_price,
++    OrderCost, FixedSlippage, PriceRelatedSlippage, MarketOrderStyle, LimitOrderStyle,
++    get_trade_price, Order, OrderStatus, Trade,
+ )
+ from .performance import calculate_metrics
++from .temporary_fallbacks import has_zero_fee_fallback
+ 
+ 
+ # --- 兼容层 ---
+@@ -67,6 +68,24 @@
+     def in_(self, coll):
+         return ("in", self.name, coll)
+ 
++    def __gt__(self, val):
++        return (">", self.name, val)
++
++    def __ge__(self, val):
++        return (">=", self.name, val)
++
++    def __lt__(self, val):
++        return ("<", self.name, val)
++
++    def __le__(self, val):
++        return ("<=", self.name, val)
++
++    def __eq__(self, val):
++        return ("==", self.name, val)
++
++    def __ne__(self, val):
++        return ("!=", self.name, val)
++
+ 
+ class JQQuery:
+     def __init__(self, *args):
+@@ -87,29 +106,50 @@
+     """LocalQuant 回测引擎主类"""
+ 
+     def __init__(self, strategy_code, start_date, end_date,
+-                 initial_cash=1000000, data_root=None):
++                 initial_cash=1000000, data_root=None, frequency='daily'):
+         self.strategy_code = strategy_code
+         self.start_date, self.end_date = start_date, end_date
++        self.frequency = frequency
+         self.data_api = DataAPI(data_root=data_root)
+         self.context = Context(start_date, initial_cash)
+         self.handlers = []                      # run_daily 注册的任务
+         self.current_time = "09:30"
+         self.order_cost = OrderCost()
++        self._order_costs = {
++            'stock': OrderCost(open_tax=0, close_tax=0.001, open_commission=0.0003, close_commission=0.0003, min_commission=5),
++            'etf': OrderCost(open_tax=0, close_tax=0, open_commission=0.0001, close_commission=0.0001, min_commission=0),
++            'bond': OrderCost(open_tax=0, close_tax=0, open_commission=0.0001, close_commission=0.0001, min_commission=0),
++        }
+         self.slippage = FixedSlippage(0)
++        self.order_volume_ratio = None
+         self.trades, self.logs = [], []
++        self.daily_portfolio_stats = []
++        self.on_day_end = None
+         self._current_bar_securities = []       # T+1 防重复买入
++        self.orders = {}
++        self._pending_orders = []
++        self._order_id_counter = 0
+ 
+         # 聚宽查询表
+         valuation = type('Valuation', (), {
+             'code': JQField('valuation', 'code'),
+             'market_cap': JQField('valuation', 'market_cap'),
+-            'pe_ratio': JQField('valuation', 'pe'),
+-            'pb_ratio': JQField('valuation', 'pb'),
++            'circulating_market_cap': JQField('valuation', 'circulating_market_cap'),
++            'pe_ratio': JQField('valuation', 'pe_ratio'),
++            'pb_ratio': JQField('valuation', 'pb_ratio'),
++            'pe': JQField('valuation', 'pe'),
++            'pb': JQField('valuation', 'pb'),
++            'ps': JQField('valuation', 'ps'),
++            'ps_ttm': JQField('valuation', 'ps_ttm'),
++            'pcf_ratio': JQField('valuation', 'pcf_ratio'),
++            'turnover_ratio': JQField('valuation', 'turnover_rate'),
+         })
+         indicator = type('Indicator', (), {
+             'code': JQField('indicator', 'code'),
+             'eps': JQField('indicator', 'eps'),
+             'gross_margin': JQField('indicator', 'gross_margin'),
++            'roe': JQField('indicator', 'roe'),
++            'roa': JQField('indicator', 'roa'),
+         })
+ 
+         # 核心 namespace —— 策略代码的执行上下文
+@@ -123,14 +163,18 @@
+                                     self.data_api.get_all_securities(*a, **kw)),
+             'get_fundamentals': self.wrapped_get_fundamentals,
+             'get_extras':       lambda *a, **kw: self.data_api.get_extras(*a, **kw),
++            'get_industry_stocks': self.data_api.get_industry_stocks,
++            'get_index_stocks': self.data_api.get_index_stocks,
++            'get_billboard_list': self.data_api.get_billboard_list,
+             'get_security_info': lambda *a, **kw: self.data_api.get_security_info(*a, **kw),
+             'get_trade_days':   lambda *a, **kw: self.data_api.get_trade_days(*a, **kw),
+             'get_all_trade_days': lambda *a, **kw: self.data_api.get_all_trade_days(*a, **kw),
+             'order':            self.order,
+             'order_target':     self.order_target,
+             'order_target_value': self.order_target_value,
+-            'order_value': self.order_value,
+-            'history': self.wrapped_history,
++            'order_value':      self.order_value,
++            'cancel_order':     self.cancel_order,
++            'history':          self.wrapped_history,
+             'attribute_history': self.wrapped_attribute_history,
+             'get_current_data': self.get_current_data,
+             'run_daily':        self.run_daily,
+@@ -139,13 +183,17 @@
+             'valuation':        valuation,
+             'indicator':        indicator,
+             'set_benchmark':    lambda x: None,
+-            'set_option':       lambda k, v: None,
++            'set_option':       self.set_option,
+             'set_order_cost':   self.set_order_cost,
+             'set_slippage':     self.set_slippage,
+             'OrderCost':        OrderCost,
+             'FixedSlippage':    FixedSlippage,
++            'PriceRelatedSlippage': PriceRelatedSlippage,
+             'MarketOrderStyle': MarketOrderStyle,
+             'LimitOrderStyle':  LimitOrderStyle,
++            'Order':            Order,
++            'OrderStatus':      OrderStatus,
++            'Trade':            Trade,
+         }
+         self._mock_modules()
+ 
+@@ -162,30 +210,485 @@
+         return self._wrap_pandas(result)
+ 
+     # ------------------------------------------------------------------
+-    # order / order_target / order_target_value
+-    # ------------------------------------------------------------------
++    # order / order_target / order_target_value / order_value
++    # ------------------------------------------------------------------
++    def _create_order(self, security, amount, style=None):
++        self._order_id_counter += 1
++        order_id = str(self._order_id_counter)
++
++        inst_type = self._get_instrument_type(security)
++        if inst_type == 'index':
++            order = Order(
++                order_id=order_id,
++                security=security,
++                amount=amount,
++                price=0.0,
++                style=style,
++                side="buy" if amount > 0 else "sell",
++                add_time=self.context.current_dt
++            )
++            order.status = OrderStatus("rejected")
++            self.orders[order_id] = order
++            self.info(f"Rejected order for {security}: Indices cannot be traded.")
++            return order
++
++        # Apply rounding rules for buy orders
++        if amount > 0:
++            if inst_type in ('stock', 'etf'):
++                amount = int(amount // 100) * 100
++            elif inst_type == 'bond':
++                amount = int(amount // 10) * 10
++
++        order = Order(
++            order_id=order_id,
++            security=security,
++            amount=amount,
++            price=0.0,
++            style=style,
++            side="buy" if amount > 0 else "sell",
++            add_time=self.context.current_dt
++        )
++        if isinstance(style, LimitOrderStyle):
++            order.price = style.limit_price
++
++        self.orders[order_id] = order
++
++        if amount == 0:
++            order.status = OrderStatus("rejected")
++            return order
++
++        # T+1 / closeable shares check for selling
++        if amount < 0:
++            pos = self.context.portfolio.positions.get(security)
++            closeable = pos.closeable_amount if pos else 0
++            if abs(amount) > closeable:
++                order.status = OrderStatus("rejected")
++                self.info(f"Rejected sell order for {security}: sell amount {abs(amount)} exceeds closeable amount {closeable}")
++                return order
++            else:
++                # Freeze shares
++                pos.closeable_amount -= abs(amount)
++
++        # Execution path
++        if not isinstance(style, LimitOrderStyle):
++            # Market order executes immediately
++            self._execute_trade(order)
++        else:
++            # Limit order
++            if amount > 0:
++                # Freeze cash for buying
++                est_price = style.limit_price
++                est_value = est_price * amount
++                if has_zero_fee_fallback(security):
++                    est_fee = 0.0
++                else:
++                    cost_model = self._order_costs.get(inst_type, self.order_cost)
++                    comm_rate = cost_model.open_commission
++                    tax_rate = cost_model.open_tax
++                    est_commission = round(max(est_value * comm_rate, cost_model.min_commission), 2)
++                    est_tax = round(est_value * tax_rate, 2)
++                    est_fee = est_commission + est_tax
++                est_total_cost = est_value + est_fee
++
++                if est_total_cost > self.context.portfolio.available_cash:
++                    order.status = OrderStatus("rejected")
++                    self.info(f"Rejected limit buy order for {security}: cash insufficient (needs {est_total_cost}, available {self.context.portfolio.available_cash})")
++                    return order
++
++                # Freeze cash
++                self.context.portfolio.available_cash -= est_total_cost
++                self.context.portfolio.locked_cash += est_total_cost
++                order._frozen_cash = est_total_cost
++
++            self._pending_orders.append(order)
++
++        return order
++
+     def order(self, security, amount, style=None):
+         """聚宽兼容 order — 当前持仓 + 变动量计算目标股数"""
++        return self._create_order(security, amount, style)
++
++    def order_target(self, security, amount, style=None):
++        inst_type = self._get_instrument_type(security)
++        if inst_type in ('stock', 'etf'):
++            amount = int(round(amount / 100) * 100)
++        elif inst_type == 'bond':
++            amount = int(round(amount / 10) * 10)
++        else:
++            amount = int(amount)
++
+         pos = self.context.portfolio.positions.get(security)
+         curr_amount = pos.total_amount if pos else 0
+-        target_amount = curr_amount + amount
+-        return self.order_target(security, target_amount)
++        diff = int(amount - curr_amount)
++
++        if inst_type in ('stock', 'etf'):
++            diff = int(round(diff / 100) * 100)
++        elif inst_type == 'bond':
++            diff = int(round(diff / 10) * 10)
++
++        if diff == 0:
++            return None
++
++        return self._create_order(security, diff, style)
++
++    def order_target_value(self, security, value, style=None):
++        curr_price, _, _, _, _ = self._get_trade_price(security)
++        if curr_price <= 0:
++            return None
++        price = curr_price
++        if isinstance(style, LimitOrderStyle):
++            price = style.limit_price
++        
++        inst_type = self._get_instrument_type(security)
++        if inst_type == 'bond':
++            target_amount = int(value / price / 10) * 10
++        elif inst_type in ('stock', 'etf'):
++            target_amount = int(value / price / 100) * 100
++        else:
++            target_amount = int(value / price)
++            
++        return self.order_target(security, target_amount, style)
++
++    def order_value(self, security, value, style=None):
++        curr_price, _, _, _, _ = self._get_trade_price(security)
++        if curr_price <= 0:
++            return None
++        price = curr_price
++        if isinstance(style, LimitOrderStyle):
++            price = style.limit_price
++            
++        inst_type = self._get_instrument_type(security)
++        if inst_type == 'bond':
++            amount = int(value / price / 10) * 10
++        elif inst_type in ('stock', 'etf'):
++            amount = int(value / price / 100) * 100
++        else:
++            amount = int(value / price)
++            
++        if amount == 0:
++            return None
++        return self.order(security, amount, style=style)
++
++    def cancel_order(self, order_id):
++        if isinstance(order_id, Order):
++            order = order_id
++            order_id = order.order_id
++        else:
++            order_id = str(order_id)
++            order = self.orders.get(order_id)
++
++        if not order:
++            return False
++
++        if order.status not in (OrderStatus.open, "open"):
++            return False
++
++        order.status = OrderStatus("canceled")
++
++        if order in self._pending_orders:
++            self._pending_orders.remove(order)
++
++        if order.amount > 0:
++            frozen_cash = getattr(order, "_frozen_cash", 0)
++            if frozen_cash > 0:
++                self.context.portfolio.locked_cash -= frozen_cash
++                self.context.portfolio.available_cash += frozen_cash
++                order._frozen_cash = 0
++        else:
++            pos = self.context.portfolio.positions.get(order.security)
++            if pos:
++                pos.closeable_amount += abs(order.amount) - abs(order.filled)
++
++        self.info(f"Order {order_id} canceled successfully.")
++        return True
++
++    def _match_pending_orders(self):
++        still_pending = []
++        for order in self._pending_orders:
++            curr_price, high_limit, low_limit, paused, volume = self._get_trade_price(order.security)
++            if curr_price <= 0 or paused:
++                still_pending.append(order)
++                continue
++
++            filled = False
++            if order.amount > 0:
++                if curr_price <= order.style.limit_price:
++                    if curr_price >= high_limit:
++                        still_pending.append(order)
++                        continue
++                    filled = True
++            else:
++                if curr_price >= order.style.limit_price:
++                    if curr_price <= low_limit:
++                        still_pending.append(order)
++                        continue
++                    filled = True
++
++            if filled:
++                self._execute_trade(order, curr_price)
++                if order.status in (OrderStatus.open, "open"):
++                    still_pending.append(order)
++            else:
++                still_pending.append(order)
++
++        self._pending_orders = still_pending
++
++    def _cancel_all_pending_orders(self):
++        pending = list(self._pending_orders)
++        for order in pending:
++            self.cancel_order(order)
++
++    def _execute_trade(self, order, match_price=None):
++        security = order.security
++        amount = order.amount
++        inst_type = self._get_instrument_type(security)
++        cost_model = self._order_costs.get(inst_type, self.order_cost)
++
++        curr_price, high_limit, low_limit, paused, volume = self._get_trade_price(security)
++        if curr_price <= 0 or paused:
++            if not isinstance(order.style, LimitOrderStyle):
++                order.status = OrderStatus("rejected")
++            return
++
++        if not isinstance(order.style, LimitOrderStyle):
++            if amount > 0 and curr_price >= high_limit:
++                order.status = OrderStatus("rejected")
++                self.info(f"Rejected market buy for {security} due to limit up")
++                return
++            if amount < 0 and curr_price <= low_limit:
++                order.status = OrderStatus("rejected")
++                self.info(f"Rejected market sell for {security} due to limit down")
++                return
++
++        if match_price is None:
++            base_price = curr_price
++        else:
++            base_price = order.style.limit_price
++
++        # Calculate slippage
++        if isinstance(self.slippage, PriceRelatedSlippage):
++            slippage_val = base_price * self.slippage.slippage
++        elif isinstance(self.slippage, FixedSlippage):
++            slippage_val = self.slippage.slippage
++        else:
++            slippage_val = getattr(self.slippage, "slippage", 0)
++
++        if order.amount > 0:
++            trade_price = base_price + slippage_val
++        else:
++            trade_price = base_price - slippage_val
++
++        # Apply liquidity volume constraints (order_volume_ratio)
++        if self.order_volume_ratio is not None:
++            max_fill_vol = volume * self.order_volume_ratio
++            if inst_type in ('stock', 'etf'):
++                max_fill_vol = int(max_fill_vol // 100) * 100
++            elif inst_type == 'bond':
++                max_fill_vol = int(max_fill_vol // 10) * 10
++            else:
++                max_fill_vol = int(max_fill_vol)
++
++            if max_fill_vol <= 0:
++                if not isinstance(order.style, LimitOrderStyle):
++                    order.status = OrderStatus("rejected")
++                    self.info(f"Rejected market order for {security}: execution volume limit is 0 (bar volume={volume})")
++                return
++        else:
++            max_fill_vol = 999999999999
++
++        # Calculate target fill amount in this transaction
++        abs_rem = abs(order.amount) - abs(order.filled)
++        fill_amount_abs = min(abs_rem, max_fill_vol)
++
++        # Check cash availability for market buy orders
++        if order.amount > 0 and not isinstance(order.style, LimitOrderStyle):
++            comm_rate = cost_model.open_commission
++            tax_rate = cost_model.open_tax
++            # Calculate cost for current fill_amount_abs
++            fill_value = fill_amount_abs * trade_price
++            if has_zero_fee_fallback(security):
++                commission, tax = 0.0, 0.0
++            else:
++                commission = round(max(fill_value * comm_rate, cost_model.min_commission), 2)
++                tax = round(fill_value * tax_rate, 2)
++            fill_total_cost = fill_value + commission + tax
++
++            if fill_total_cost > self.context.portfolio.available_cash:
++                max_available = self.context.portfolio.available_cash - cost_model.min_commission
++                if max_available < 0:
++                    order.status = OrderStatus("rejected")
++                    self.info(f"Rejected market buy for {security}: available cash is too low for min commission.")
++                    return
++                rates = comm_rate + tax_rate
++                if has_zero_fee_fallback(security):
++                    rates = 0.0
++                max_shares_float = max_available / (trade_price * (1 + rates))
++                if inst_type in ('stock', 'etf'):
++                    max_cash_shares = int(max_shares_float // 100) * 100
++                elif inst_type == 'bond':
++                    max_cash_shares = int(max_shares_float // 10) * 10
++                else:
++                    max_cash_shares = int(max_shares_float)
++
++                fill_amount_abs = min(fill_amount_abs, max_cash_shares)
++                if fill_amount_abs <= 0:
++                    order.status = OrderStatus("rejected")
++                    self.info(f"Rejected market buy for {security}: cash insufficient for even 1 lot.")
++                    return
++
++        # Re-calculate value and fees for the final fill_amount_abs
++        fill_value = fill_amount_abs * trade_price
++        if has_zero_fee_fallback(security):
++            commission, tax = 0.0, 0.0
++        else:
++            if order.amount > 0:
++                comm_rate = cost_model.open_commission
++                tax_rate = cost_model.open_tax
++            else:
++                comm_rate = cost_model.close_commission
++                tax_rate = cost_model.close_tax
++            commission = round(max(fill_value * comm_rate, cost_model.min_commission), 2)
++            tax = round(fill_value * tax_rate, 2)
++
++        fill_total_cost = fill_value + commission + tax
++
++        # Deduct or adjust cash
++        if order.amount > 0:
++            if isinstance(order.style, LimitOrderStyle):
++                frozen_to_deduct = min(fill_total_cost, order._frozen_cash)
++                self.context.portfolio.locked_cash -= frozen_to_deduct
++                order._frozen_cash -= frozen_to_deduct
++                extra_to_deduct = fill_total_cost - frozen_to_deduct
++                if extra_to_deduct > 0:
++                    self.context.portfolio.available_cash -= extra_to_deduct
++            else:
++                self.context.portfolio.available_cash -= fill_total_cost
++        else:
++            net_received = fill_value - commission - tax
++            self.context.portfolio.available_cash += net_received
++
++        # Update position
++        if security not in self.context.portfolio.positions:
++            from .context import Position
++            self.context.portfolio.positions[security] = Position(security, trade_price, 0)
++
++        p_obj = self.context.portfolio.positions[security]
++        fill_amount = fill_amount_abs if order.amount > 0 else -fill_amount_abs
++        if order.amount > 0:
++            if p_obj.total_amount > 0:
++                p_obj.avg_cost = (p_obj.total_amount * p_obj.avg_cost + fill_amount * trade_price) / (p_obj.total_amount + fill_amount)
++            else:
++                p_obj.avg_cost = trade_price
++
++        p_obj.total_amount += fill_amount
++        p_obj.price = trade_price
++
++        if p_obj.total_amount <= 0:
++            del self.context.portfolio.positions[security]
++
++        # Update order stats
++        old_filled = order.filled
++        if order.amount > 0:
++            order.filled += fill_amount_abs
++        else:
++            order.filled -= fill_amount_abs
++
++        if abs(order.filled) > 0:
++            order.avg_cost = (order.avg_cost * abs(old_filled) + fill_amount_abs * trade_price) / abs(order.filled)
++        else:
++            order.avg_cost = trade_price
++        order.price = order.avg_cost
++        order.commission += commission + tax
++
++        # Check filled status
++        if abs(order.filled) == abs(order.amount):
++            order.status = OrderStatus("filled")
++            if order.amount > 0 and isinstance(order.style, LimitOrderStyle):
++                if order._frozen_cash > 0:
++                    self.context.portfolio.locked_cash -= order._frozen_cash
++                    self.context.portfolio.available_cash += order._frozen_cash
++                    order._frozen_cash = 0
++        else:
++            if not isinstance(order.style, LimitOrderStyle):
++                # Market order: partial fill results in filled status, remainder is canceled
++                order.status = OrderStatus("filled")
++                if order.amount < 0:
++                    unfilled_abs = abs(order.amount) - abs(order.filled)
++                    pos = self.context.portfolio.positions.get(security)
++                    if pos and unfilled_abs > 0:
++                        pos.closeable_amount += unfilled_abs
++            else:
++                order.status = OrderStatus("open")
++
++        # Record trade
++        trade_id = f"t_{len(self.trades) + 1}"
++        trade_time = f"{self.context.current_dt.date()} {self.current_time}"
++        self.trades.append({
++            'time': trade_time,
++            'code': security,
++            'amount': fill_amount,
++            'price': trade_price,
++            'commission': commission,
++            'tax': tax,
++            'trade_id': trade_id,
++            'order_id': order.order_id,
++        })
++        self.info(f"Order {order.order_id} matched/executed: filled {fill_amount} of {security} at {trade_price:.2f}")
++
++    def rollover_day(self):
++        for pos in self.context.portfolio.positions.values():
++            pos.closeable_amount = pos.total_amount
+ 
+     def set_order_cost(self, cost, type='stock'):
+         self.order_cost = cost
++        self._order_costs[type] = cost
+ 
+     def set_slippage(self, slippage):
+         self.slippage = slippage
+ 
++    def set_option(self, key, value):
++        if key == "order_volume_ratio":
++            self.order_volume_ratio = value
++
++    def _get_instrument_type(self, security):
++        local_code = security.replace(".XSHE", ".SZ").replace(".XSHG", ".SH").replace(".XBSE", ".BJ")
++        clean_code = local_code.split('.')[0]
++        if clean_code.startswith(('51', '58', '159', '56', '16')):
++            return 'etf'
++        elif clean_code.startswith(('11', '12', '13', '10')):
++            return 'bond'
++        if clean_code.startswith('399') or (clean_code.startswith('000') and local_code.endswith('.SH')):
++            return 'index'
++        return 'stock'
++
+     # ------------------------------------------------------------------
+     # get_fundamentals wrapper
+     # ------------------------------------------------------------------
+     def wrapped_get_fundamentals(self, query_obj, date=None):
+         df = self.data_api.get_fundamentals(query_obj, date=date)
++        if df.empty:
++            return self._wrap_pandas(df)
+         if hasattr(query_obj, 'filters'):
+             for f in query_obj.filters:
+-                if isinstance(f, tuple) and f[0] == 'in' and f[1] == 'code':
+-                    df = df[df['code'].isin(f[2])]
++                if not isinstance(f, tuple):
++                    continue
++                op, col, val = f[0], f[1], f[2]
++                if col not in df.columns:
++                    continue
++                if op == 'in':
++                    df = df[df[col].isin(val)]
++                elif op == '>':
++                    df = df[df[col] > val]
++                elif op == '>=':
++                    df = df[df[col] >= val]
++                elif op == '<':
++                    df = df[df[col] < val]
++                elif op == '<=':
++                    df = df[df[col] <= val]
++                elif op == '==':
++                    df = df[df[col] == val]
++                elif op == '!=':
++                    df = df[df[col] != val]
+         if hasattr(query_obj, 'targets'):
+             cols = [t.name for t in query_obj.targets if hasattr(t, 'name')]
+             if 'code' not in cols:
+@@ -227,121 +730,6 @@
+ 
+     def run_daily(self, func, time="09:30"):
+         self.handlers.append((func, time))
+-
+-    # ------------------------------------------------------------------
+-    # order_target — 核心撮合逻辑
+-    # ------------------------------------------------------------------
+-    def order_target(self, security, amount):
+-        is_etf = security.startswith('511') or security.startswith('159')
+-        if not is_etf:
+-            amount = int(round(amount / 100) * 100)
+-        else:
+-            amount = int(amount)
+-
+-        curr_price, high_limit, low_limit, paused = self._get_trade_price(security)
+-        if curr_price <= 0 or paused:
+-            return
+-
+-        pos = self.context.portfolio.positions.get(security)
+-        curr_amount = pos.total_amount if pos else 0
+-        diff = int(amount - curr_amount)
+-        if diff == 0:
+-            return
+-
+-        if not is_etf:
+-            diff = int(round(diff / 100) * 100)
+-        if diff == 0:
+-            return
+-
+-        # 涨跌停检查
+-        if diff > 0 and curr_price >= high_limit:
+-            return
+-        if diff < 0 and curr_price <= low_limit:
+-            return
+-
+-        trade_price = curr_price
+-        value = abs(diff * trade_price)
+-
+-        # 费用计算
+-        if security == '511880.XSHG':
+-            commission, tax = 0.0, 0.0
+-        else:
+-            if diff > 0:
+-                comm_rate = self.order_cost.open_commission
+-                tax_rate = self.order_cost.open_tax
+-            else:
+-                comm_rate = self.order_cost.close_commission
+-                tax_rate = self.order_cost.close_tax
+-            commission = round(max(value * comm_rate, self.order_cost.min_commission), 2)
+-            tax = round(value * tax_rate, 2)
+-
+-        total_cost = value + commission + tax if diff > 0 else -value + commission + tax
+-
+-        # 资金不足时调整买入量
+-        if diff > 0 and total_cost > self.context.portfolio.available_cash:
+-            max_available = self.context.portfolio.available_cash - self.order_cost.min_commission
+-            if max_available < 0:
+-                return
+-            rates = (self.order_cost.open_commission if diff > 0 else 0) + \
+-                    (self.order_cost.open_tax if diff > 0 else 0)
+-            if security == '511880.XSHG':
+-                rates = 0
+-            max_shares_float = max_available / (trade_price * (1 + rates))
+-            diff = int((max_shares_float // 100) * 100)
+-            if diff <= 0:
+-                return
+-            value = diff * trade_price
+-            if security == '511880.XSHG':
+-                commission, tax = 0.0, 0.0
+-            else:
+-                commission = round(max(value * self.order_cost.open_commission,
+-                                       self.order_cost.min_commission), 2)
+-                tax = round(value * self.order_cost.open_tax, 2)
+-            total_cost = value + commission + tax
+-
+-        # 执行交易
+-        self.context.portfolio.available_cash -= total_cost
+-        if security not in self.context.portfolio.positions:
+-            from .context import Position
+-            self.context.portfolio.positions[security] = Position(security, trade_price, 0)
+-
+-        p_obj = self.context.portfolio.positions[security]
+-        p_obj.total_amount += diff
+-        p_obj.price = trade_price
+-
+-        if p_obj.total_amount <= 0:
+-            del self.context.portfolio.positions[security]
+-
+-        self.trades.append({
+-            'time': f"{self.context.current_dt.date()} {self.current_time}",
+-            'code': security, 'amount': diff, 'price': trade_price,
+-            'commission': commission, 'tax': tax,
+-        })
+-
+-    # ------------------------------------------------------------------
+-    # order_target_value — 按目标市值下单
+-    # ------------------------------------------------------------------
+-    def order_target_value(self, security, value):
+-        curr_price, _, _, _ = self._get_trade_price(security)
+-        if curr_price <= 0:
+-            return
+-        target_amount = int(value / curr_price / 100) * 100
+-        self.order_target(security, target_amount)
+-
+-    # ------------------------------------------------------------------
+-    # order_value — 按金额下单（聚宽兼容）
+-    # order_value(security, value, style=None)
+-    #   value > 0: 买入 floor(value / price / 100) * 100 股
+-    #   value < 0: 卖出 floor(abs(value) / price / 100) * 100 股
+-    # ------------------------------------------------------------------
+-    def order_value(self, security, value, style=None):
+-        curr_price, _, _, _ = self._get_trade_price(security)
+-        if curr_price <= 0:
+-            return None
+-        amount = int(value / curr_price / 100) * 100
+-        if amount == 0:
+-            return None
+-        return self.order(security, amount, style=style)
+ 
+     # ------------------------------------------------------------------
+     # history — 多标的历史数据查询（聚宽兼容）
+@@ -358,48 +746,42 @@
+         )
+         if df:
+             return self._wrap_pandas(result)
+-        # df=False: 返回 dict {code: [value_t-1, value_t-2, ..., value_t-n]}
+         if result.empty:
+             return {s: [] for s in (security_list if isinstance(security_list, (list, tuple)) else [security_list])}
+         if isinstance(result.columns, pd.MultiIndex):
+-            # MultiIndex columns: (field, code) or (date, field)
+             level_values = result.columns.get_level_values(0)
+             if field in level_values:
+-                # (field, code) structure
+                 out = {}
+                 for code in security_list if isinstance(security_list, (list, tuple)) else [security_list]:
+                     try:
+-                        vals = result.xs(code, axis=1, level=1)[field].tolist()
++                        vals = result.xs(code, axis=1, level=1)[field].to_numpy()
+                         out[code] = vals
+                     except Exception:
+                         out[code] = []
+                 return out
+-            # (date, field) structure — extract field
+             try:
+                 sub = result[field]
+                 if isinstance(sub.columns, pd.MultiIndex):
+-                    # still multi-level after xs
+                     out = {}
+                     for code in security_list if isinstance(security_list, (list, tuple)) else [security_list]:
+                         try:
+-                            out[code] = sub[code].tolist() if code in sub.columns else []
++                            out[code] = sub[code].to_numpy() if code in sub.columns else []
+                         except Exception:
+                             out[code] = []
+                     return out
+                 out = {}
+                 for s in (security_list if isinstance(security_list, (list, tuple)) else [security_list]):
+-                    out[s] = sub.tolist()
++                    out[s] = sub.to_numpy()
+                 return out
+             except Exception:
+                 pass
+             return {}
+-        # 单标的（非 MultiIndex）
+         slist = security_list if isinstance(security_list, (list, tuple)) else [security_list]
+         out = {}
+         for s in slist:
+             if s in result.columns:
+                 try:
+-                    out[s] = result[s].tolist()
++                    out[s] = result[s].to_numpy()
+                 except Exception:
+                     out[s] = []
+             else:
+@@ -424,7 +806,7 @@
+     # get_current_price / get_current_data
+     # ------------------------------------------------------------------
+     def get_current_price(self, security):
+-        price, _, _, _ = self._get_trade_price(security)
++        price, _, _, _, _ = self._get_trade_price(security)
+         if price > 0:
+             return price
+         pos = self.context.portfolio.positions.get(security)
+@@ -444,7 +826,7 @@
+                 price = self.engine.get_current_price(code)
+                 df_daily = self.engine.data_api.get_price(
+                     code, end_date=self.engine.context.current_dt, count=1,
+-                    fields=['high_limit', 'low_limit', 'paused'],
++                    fields=['open', 'high_limit', 'low_limit', 'paused'],
+                 )
+                 if df_daily.empty:
+                     high, low, paused = 99999, 0, False
+@@ -456,12 +838,15 @@
+                     'is_st', code,
+                     start_date=self.engine.context.current_dt,
+                 ).data.get(code, False)
++                
++                day_open = df_daily['open'].iloc[0] if not df_daily.empty and 'open' in df_daily.columns else price
+                 res = type('Data', (), {
+                     'paused': paused or price <= 0,
+                     'is_st': is_st,
+                     'last_price': price,
+                     'high_limit': high,
+                     'low_limit': low,
++                    'day_open': day_open,
+                 })()
+                 self._cache[code] = res
+                 return res
+@@ -471,13 +856,20 @@
+     # run — 主回测循环
+     # ------------------------------------------------------------------
+     def run(self):
++        try:
++            sys.stdout.reconfigure(encoding='utf-8')
++            sys.stderr.reconfigure(encoding='utf-8')
++        except Exception:
++            pass
++
+         exec(self.strategy_code, self.namespace)
+         if 'initialize' in self.namespace:
+             self.namespace['initialize'](self.context)
+ 
++        calendar_start = pd.to_datetime(self.start_date) - pd.Timedelta(days=370)
+         all_days = [
+             pd.Timestamp(d)
+-            for d in self.data_api.get_trade_days("2000-01-01", self.end_date)
++            for d in self.data_api.get_trade_days(calendar_start, self.end_date)
+         ]
+         trade_days = [d for d in all_days
+                       if d >= pd.to_datetime(self.start_date)]
+@@ -492,28 +884,143 @@
+         except Exception:
+             self.context.previous_date = pd.to_datetime(self.start_date)
+ 
+-        self.handlers.sort(key=lambda x: x[1])
++        def get_sort_time(h_item):
++            t = h_item[1]
++            if t in ('every_bar', 'every_minute', 'open'):
++                return "09:30"
++            elif t in ('close', 'after_close'):
++                return "15:00"
++            if ':' in t:
++                parts = t.split(':')
++                if len(parts) == 2:
++                    return f"{int(parts[0]):02d}:{int(parts[1]):02d}"
++            return t
++        self.handlers.sort(key=get_sort_time)
+         equity_curve = []
+ 
+         for i, dt in enumerate(trade_days):
+-            if i % 10 == 0:
+-                print(f"Progress: {i}/{len(trade_days)} days processed...")
++            print(f"Progress: {i}/{len(trade_days)} days processed: {dt.strftime('%Y-%m-%d')}", flush=True)
+             if i > 0:
+                 self.context.previous_date = trade_days[i - 1]
+ 
++            # --- CALL before_trading_start IF DEFINED ---
++            if 'before_trading_start' in self.namespace:
++                self.current_time = "09:00"
++                self.context.current_dt = dt.replace(hour=9, minute=0)
++                try:
++                    self.namespace['before_trading_start'](self.context)
++                except Exception as e:
++                    self.info(f"执行 before_trading_start 出错: {e}")
++
+             # 执行盘中 handler
+-            for handler_func, time_str in self.handlers:
+-                self.current_time = time_str
+-                h, m = map(int, time_str.split(':'))
+-                self.context.current_dt = dt.replace(hour=h, minute=m)
+-                try:
+-                    handler_func(self.context)
+-                except Exception as e:
+-                    self.info(f"执行 Handler ({time_str}) 出错: {e}")
++            if self.frequency == 'minute':
++                # Minute frequency trading loop
++                trading_minutes = set()
++                # Morning: 09:31 to 11:30
++                for h in range(9, 12):
++                    for m in range(0, 60):
++                        if h == 9 and m <= 30:
++                            continue
++                        if h == 11 and m > 30:
++                            continue
++                        trading_minutes.add(f"{h:02d}:{m:02d}")
++                # Afternoon: 13:01 to 15:00
++                for h in range(13, 16):
++                    for m in range(0, 60):
++                        if h == 13 and m == 0:
++                            continue
++                        if h == 15 and m > 0:
++                            continue
++                        trading_minutes.add(f"{h:02d}:{m:02d}")
++
++                minutes = list(trading_minutes)
++                # Add custom handler times that are outside standard trading minutes
++                for _, time_str in self.handlers:
++                    if time_str not in ('every_bar', 'every_minute', 'open', 'close', 'after_close'):
++                        if ':' in time_str:
++                            parts = time_str.split(':')
++                            if len(parts) == 2:
++                                normalized_time = f"{int(parts[0]):02d}:{int(parts[1]):02d}"
++                                if normalized_time not in minutes:
++                                    minutes.append(normalized_time)
++                
++                minutes.sort()
++
++                scheduled_handlers = {}
++                for handler_func, time_str in self.handlers:
++                    normalized_time = time_str
++                    if ':' in time_str:
++                        parts = time_str.split(':')
++                        if len(parts) == 2:
++                            normalized_time = f"{int(parts[0]):02d}:{int(parts[1]):02d}"
++                    scheduled_handlers.setdefault(normalized_time, []).append(handler_func)
++
++                for time_str in minutes:
++                    self.current_time = time_str
++                    h, m = map(int, time_str.split(':'))
++                    self.context.current_dt = dt.replace(hour=h, minute=m)
++
++                    # 1. Match pending orders
++                    self._match_pending_orders()
++
++                    # 2. Execute handle_data if defined (only during trading minutes)
++                    if time_str in trading_minutes and 'handle_data' in self.namespace:
++                        try:
++                            self.namespace['handle_data'](self.context)
++                        except Exception as e:
++                            self.info(f"执行 handle_data 出错: {e}")
++
++                    # 3. Execute scheduled daily handlers for this minute
++                    handlers_to_run = []
++                    if time_str in scheduled_handlers:
++                        handlers_to_run.extend(scheduled_handlers[time_str])
++                    
++                    # Match special JQ time keywords
++                    for handler_func, t_opt in self.handlers:
++                        if t_opt in ('every_bar', 'every_minute') and time_str in trading_minutes:
++                            handlers_to_run.append(handler_func)
++                        elif t_opt == 'open' and time_str == '09:31':
++                            handlers_to_run.append(handler_func)
++                        elif t_opt in ('close', 'after_close') and time_str == '15:00':
++                            handlers_to_run.append(handler_func)
++
++                    for handler_func in handlers_to_run:
++                        try:
++                            handler_func(self.context)
++                        except Exception as e:
++                            self.info(f"执行 Handler 出错: {e}")
++
++                    # 4. Match pending orders again
++                    self._match_pending_orders()
++            else:
++                # Daily frequency scheduled handler loop
++                for handler_func, time_str in self.handlers:
++                    self.current_time = time_str
++                    if time_str in ('every_bar', 'every_minute', 'open'):
++                        h, m = 9, 30
++                    elif time_str in ('close', 'after_close'):
++                        h, m = 15, 0
++                    else:
++                        try:
++                            h, m = map(int, time_str.split(':'))
++                        except Exception:
++                            h, m = 9, 30
++                    self.context.current_dt = dt.replace(hour=h, minute=m)
++                    
++                    self._match_pending_orders()
++                    try:
++                        handler_func(self.context)
++                    except Exception as e:
++                        self.info(f"执行 Handler ({time_str}) 出错: {e}")
++                    self._match_pending_orders()
+ 
+             # EOD 估值
+             self.current_time = "15:00"
+             self.context.current_dt = dt.replace(hour=15, minute=0)
++            
++            # Cancel all pending orders at EOD
++            self._cancel_all_pending_orders()
++            
+             total_value = self.context.portfolio.available_cash
+ 
+             if self.context.portfolio.positions:
+@@ -533,8 +1040,35 @@
+                     except Exception:
+                         p = pos.price
+                     total_value += pos.total_amount * p
++                    pos.price = p
++
++            # --- CALL after_trading_end IF DEFINED ---
++            if 'after_trading_end' in self.namespace:
++                self.current_time = "15:30"
++                self.context.current_dt = dt.replace(hour=15, minute=30)
++                try:
++                    self.namespace['after_trading_end'](self.context)
++                except Exception as e:
++                    self.info(f"执行 after_trading_end 出错: {e}")
++
++            # EOD T+1 Rollover
++            self.rollover_day()
+ 
+             equity_curve.append({'date': dt, 'value': total_value})
++            self.daily_portfolio_stats.append({
++                'date': dt,
++                'available_cash': self.context.portfolio.available_cash,
++                'frozen_cash': self.context.portfolio.locked_cash,
++                'positions_value': self.context.portfolio.positions_value,
++                'total_value': total_value
++            })
++
++            # Fire dynamic day-end callback
++            if getattr(self, 'on_day_end', None) is not None:
++                try:
++                    self.on_day_end(dt, total_value, self.daily_portfolio_stats[-1])
++                except Exception:
++                    pass
+ 
+         equity_df = pd.DataFrame(equity_curve)
+         metrics = calculate_metrics(equity_df)

@@ -8,21 +8,17 @@ import gc
 ROOT = r"D:\Work Space\他山之石\情绪门控"
 WORK = os.path.join(ROOT, "rebuild_from_archive")
 
-# Order of sys.path matters due to potential 'scripts' package collision.
-# We first insert the path where hdata_reader resides and import it.
-sys.path.insert(0, r"D:\work space\hdata")
-from scripts.core import hdata_reader
-
 sys.path.insert(0, WORK)
 sys.path.insert(1, ROOT)
+sys.path.insert(2, r"D:\work space\hdata")
 sys.modules["jqdata"] = importlib.import_module("jqdata_compat")
 
+from scripts.core import hdata_reader
 from engine.core import Engine
 
 # Define runs
 STRATEGIES = {
-    "rzq_fast": os.path.join(ROOT, "bare_runs_analysis", "strategies", "rzq", "strategy_rzq_fast.py"),
-    "rzq_original": os.path.join(ROOT, "bare_runs_analysis", "strategies", "rzq", "strategy_rzq_original.py"),
+    "v227_scorp": os.path.join(ROOT, "bare_runs_analysis", "strategies", "strategy_v227_scorp.py"),
 }
 
 YEARS = [2020, 2021, 2022, 2023, 2024, 2025, 2026]
@@ -66,22 +62,13 @@ def main():
             # Preload only the required years for this single task
             preload_years = {year - 2, year - 1, year}
             hdata_reader._update_pivot_cache(preload_years)
-
+            
             start = time.time()
             try:
                 engine = Engine(strategy_code, start_date, end_date, 1000000)
-
-                # Suppress Engine's daily print spam
-                import sys, io
-                old_stdout = sys.stdout
-                sys.stdout = io.StringIO()
-                try:
-                    equity, trades, logs, metrics = engine.run()
-                finally:
-                    sys.stdout = old_stdout
-
+                equity, trades, logs, metrics = engine.run()
                 elapsed = time.time() - start
-
+                
                 # Save outputs
                 equity.to_csv(equity_path, index=False)
                 trades.to_csv(trades_path, index=False)
