@@ -25,12 +25,30 @@ from .compat.market_data import (
     MINUTE_PRICE_ANOMALIES,
     TAIL_SEAL_ANOMALIES,
 )
+from .compat.profiles import (
+    JQ_PARITY,
+    LOCAL_NATIVE_L1A,
+    PROFILE_DISABLED_HOOKS,
+    SUPPORTED_COMPAT_PROFILES,
+)
 from .compat.security_metadata import BILLBOARD_ROW_FILTERS, NON_ST_NAME_WINDOWS, SECURITY_START_DATE_OVERRIDES
 from .compat.strategy_state import FB_STATE_OVERRIDES, V227_SHOCK_OVERRIDES
 
 
 class EmotionGateJQCompat:
-    """Compatibility profile for reproducing the archived emotion-gate runs."""
+    """Compatibility profile for reproducing the archived emotion-gate runs.
+
+    Parameters
+    ----------
+    project_root : str or None
+        Root directory for project cache paths.
+    profile : str
+        Compat profile name. Default 'jq_parity' preserves full JoinQuant parity.
+        'local_native_l1a' disables L1A price hooks.
+    """
+
+    _HOOK_ID_MINUTE_PRICE = "market_data.minute_price_anomalies"
+    _HOOK_ID_EXECUTION_PRICE = "execution.execution_price_anomalies"
 
     immediate_sell_cash_release = True
 
@@ -51,7 +69,15 @@ class EmotionGateJQCompat:
     security_start_date_overrides = SECURITY_START_DATE_OVERRIDES
     non_st_name_windows = NON_ST_NAME_WINDOWS
 
-    def __init__(self, project_root=None):
+    def __init__(self, project_root=None, profile=None):
+        if profile is None:
+            profile = JQ_PARITY
+        if profile not in SUPPORTED_COMPAT_PROFILES:
+            raise ValueError(
+                f"Unknown compat profile: '{profile}'. "
+                f"Supported profiles: {sorted(SUPPORTED_COMPAT_PROFILES)}"
+            )
+        self._profile = profile
         self.project_root = os.path.abspath(
             project_root or os.path.join(os.path.dirname(__file__), "..")
         )
@@ -60,6 +86,62 @@ class EmotionGateJQCompat:
         self._master_prepare_cache = {}
         self._auction_yiqian_cache = {}
         self._auction_left_api = None
+        # Hook telemetry counters
+        self._hook_queries: dict[str, int] = {}
+        self._hook_hits: dict[str, int] = {}
+        self._hook_hit_keys: list[dict] = []
+        self._hook_would_have_hit_keys: list[dict] = []
+
+    @property
+    def profile(self) -> str:
+        return self._profile
+
+    @property
+    def disabled_hook_ids(self) -> frozenset:
+        return PROFILE_DISABLED_HOOKS.get(self._profile, frozenset())
+
+    def is_hook_enabled(self, hook_id: str) -> bool:
+        """Return True if the given hook_id is active in the current profile."""
+        return hook_id not in self.disabled_hook_ids
+
+    def profile_manifest(self) -> dict:
+        """Return a stable, serialisable manifest of the current profile."""
+        return {
+            "profile": self._profile,
+            "disabled_hook_ids": sorted(self.disabled_hook_ids),
+        }
+
+    def _record_hook_query(self, hook_id: str, hit: bool, would_have_hit: bool = False, key=None, override_value=None):
+        """Record hook telemetry for acceptance testing."""
+        self._hook_queries[hook_id] = self._hook_queries.get(hook_id, 0) + 1
+        if hit:
+            self._hook_hits[hook_id] = self._hook_hits.get(hook_id, 0) + 1
+        if hit and key is not None:
+            date_str = str(key[0]) if len(key) > 0 and key[0] else ""
+            time_str = str(key[1]) if len(key) > 1 and key[1] else ""
+            code_str = str(key[2]) if len(key) > 2 and key[2] else ""
+            side_str = str(key[3]) if len(key) > 3 and key[3] else None
+            self._hook_hit_keys.append({
+                "date": date_str,
+                "time": time_str,
+                "code": code_str,
+                "side": side_str,
+                "hook_id": hook_id,
+                "override_value": override_value,
+            })
+        if would_have_hit and key is not None and not hit:
+            date_str = str(key[0]) if len(key) > 0 and key[0] else ""
+            time_str = str(key[1]) if len(key) > 1 and key[1] else ""
+            code_str = str(key[2]) if len(key) > 2 and key[2] else ""
+            side_str = str(key[3]) if len(key) > 3 and key[3] else None
+            self._hook_would_have_hit_keys.append({
+                "date": date_str,
+                "time": time_str,
+                "code": code_str,
+                "side": side_str,
+                "hook_id": hook_id,
+                "override_value": override_value,
+            })
 
     def namespace_entries(self, engine):
         return {
@@ -81,7 +163,20 @@ class EmotionGateJQCompat:
 
     def get_minute_price_override(self, date_key, time_key, security):
         key = (date_key, time_key, security)
-        return MINUTE_PRICE_ANOMALIES.get(key, self.minute_price_anomalies.get(key))
+        # Always check raw table first (for would-have-hit telemetry)
+        raw_override = MINUTE_PRICE_ANOMALIES.get(key, self.minute_price_anomalies.get(key))
+        if not self.is_hook_enabled(self._HOOK_ID_MINUTE_PRICE):
+            self._record_hook_query(
+                self._HOOK_ID_MINUTE_PRICE, hit=False,
+                would_have_hit=raw_override is not None,
+                key=key, override_value=raw_override,
+            )
+            return None
+        self._record_hook_query(
+            self._HOOK_ID_MINUTE_PRICE, hit=raw_override is not None,
+            key=key, override_value=raw_override,
+        )
+        return raw_override
 
     def get_daily_ipo_close_override(self, security, date_int):
         key = (security, date_int)
@@ -93,7 +188,20 @@ class EmotionGateJQCompat:
 
     def get_execution_price_override(self, date_key, time_key, security, side):
         key = (date_key, time_key, security, side)
-        return EXECUTION_PRICE_ANOMALIES.get(key, self.execution_price_anomalies.get(key))
+        # Always check raw table first (for would-have-hit telemetry)
+        raw_override = EXECUTION_PRICE_ANOMALIES.get(key, self.execution_price_anomalies.get(key))
+        if not self.is_hook_enabled(self._HOOK_ID_EXECUTION_PRICE):
+            self._record_hook_query(
+                self._HOOK_ID_EXECUTION_PRICE, hit=False,
+                would_have_hit=raw_override is not None,
+                key=key, override_value=raw_override,
+            )
+            return None
+        self._record_hook_query(
+            self._HOOK_ID_EXECUTION_PRICE, hit=raw_override is not None,
+            key=key, override_value=raw_override,
+        )
+        return raw_override
 
     def get_order_amount_override(self, date_key, time_key, security):
         return ORDER_AMOUNT_ANOMALIES.get((date_key, time_key, security))
