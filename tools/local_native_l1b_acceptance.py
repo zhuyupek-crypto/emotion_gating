@@ -473,14 +473,16 @@ def compare_runs_l1b(l1a_dir: Path, l1b_dir: Path, out_dir: Path) -> dict:
             else:
                 amount_only_diffs += 1
 
-            # Match to genuine pairs strictly requiring order_id
+            # Match to genuine pairs strictly requiring order_id and date
             trade_order_id = normalize_order_id(row_a.get("order_id"))
             candidates = []
             
             if trade_order_id:
                 for key, val in genuine_pairs.items():
                     hook_id_evt, date_evt, code_evt, order_id_evt, key_ord, seq_idx = key
-                    if order_id_evt == trade_order_id and code_evt == code:
+                    if (order_id_evt == trade_order_id and 
+                        code_evt == code and 
+                        date_evt.replace("-", "") == date_str.replace("-", "")):
                         candidates.append((key, val))
 
             # Select the candidate that is actually causal
@@ -497,9 +499,9 @@ def compare_runs_l1b(l1a_dir: Path, l1b_dir: Path, out_dir: Path) -> dict:
                     val_b = row_evt_b.get("final_fill_amount")
                 
                 if val_a is not None and val_b is not None and not pd.isna(val_a) and not pd.isna(val_b):
-                    expected_diff = float(val_a) - float(val_b)
-                    actual_diff = float(amt_a) - float(amt_b) if side == "buy" else float(amt_b) - float(amt_a)
-                    if abs(expected_diff) > FLOAT_TOL and abs(actual_diff - expected_diff) <= FLOAT_TOL:
+                    expected_diff = abs(float(val_a) - float(val_b))
+                    actual_diff = abs(float(amt_a) - float(amt_b))
+                    if expected_diff > FLOAT_TOL and abs(actual_diff - expected_diff) <= FLOAT_TOL:
                         causal_matches.append((key, val))
             
             matched_pair_key = None
@@ -507,8 +509,8 @@ def compare_runs_l1b(l1a_dir: Path, l1b_dir: Path, out_dir: Path) -> dict:
             supporting_hook_ids = []
             
             if causal_matches:
-                # Sort causal matches: fill_amount first
-                causal_matches.sort(key=lambda x: 0 if "fill_amount" in str(x[0][0]) else 1)
+                # Sort causal matches: fill_amount first, then alphabetically by hook_id to ensure determinism
+                causal_matches.sort(key=lambda x: (0 if "fill_amount" in str(x[0][0]) else 1, str(x[0][0])))
                 matched_pair_key, matched_pair_val = causal_matches[0]
                 supporting_hook_ids = [str(x[0][0]) for x in causal_matches[1:]]
 

@@ -683,3 +683,64 @@ class TestL1BAcceptanceAdditionalGates:
         # Check that fill_amount hook was chosen as primary hook
         assert direct_df.iloc[0]["hook_id"] == "execution.fill_amount_anomalies"
 
+    def test_double_hook_both_explain_priority(self, tmp_path):
+        l1a_dir = tmp_path / "l1a"
+        l1b_dir = tmp_path / "l1b"
+        out_dir = tmp_path / "out"
+        self._setup_mock_run(l1a_dir, l1b_dir, out_dir)
+
+        # Both order and fill hook match the same trade code/order_id, and both explain the diff.
+        pd.DataFrame([{
+            "hook_id": "execution.order_amount_anomalies", "date": "20200402", "time": "09:30", "code": "600086.XSHG",
+            "side": "buy", "order_id": "107", "key_query_ordinal": 1, "sequence_index": 0,
+            "computed_amount_before_override": 141400, "override_amount": 146000, "final_order_amount": 146000,
+            "effective_hit": True, "would_have_hit": False
+        }, {
+            "hook_id": "execution.fill_amount_anomalies", "date": "20200402", "time": "09:30", "code": "600086.XSHG",
+            "side": "buy", "order_id": "107", "key_query_ordinal": 1, "sequence_index": 0,
+            "computed_amount_before_override": 141400, "override_amount": 146000, "final_fill_amount": 146000,
+            "effective_hit": True, "would_have_hit": False
+        }]).to_csv(l1a_dir / "size_hook_events.csv", index=False)
+
+        pd.DataFrame([{
+            "hook_id": "execution.order_amount_anomalies", "date": "20200402", "time": "09:30", "code": "600086.XSHG",
+            "side": "buy", "order_id": "107", "key_query_ordinal": 1, "sequence_index": 0,
+            "computed_amount_before_override": 141700, "override_amount": 146000, "final_order_amount": 141700,
+            "effective_hit": False, "would_have_hit": True
+        }, {
+            "hook_id": "execution.fill_amount_anomalies", "date": "20200402", "time": "09:30", "code": "600086.XSHG",
+            "side": "buy", "order_id": "107", "key_query_ordinal": 1, "sequence_index": 0,
+            "computed_amount_before_override": 141700, "override_amount": 146000, "final_fill_amount": 141700,
+            "effective_hit": False, "would_have_hit": True
+        }]).to_csv(l1b_dir / "size_hook_events.csv", index=False)
+
+        # Trade size is 146000 vs 141700. The diff is 4300.
+        # This matches BOTH fill hook diff (146000 - 141700 = 4300) AND order hook diff (146000 - 141700 = 4300)
+        pd.DataFrame([{"time": "2020-04-02 09:30:00", "code": "600086.XSHG", "amount": 146000, "price": 10.0, "order_id": "107"}]).to_csv(l1a_dir / "local_trades_2020.csv", index=False)
+        pd.DataFrame([{"time": "2020-04-02 09:30:00", "code": "600086.XSHG", "amount": 141700, "price": 10.0, "order_id": "107"}]).to_csv(l1b_dir / "local_trades_2020.csv", index=False)
+
+        pd.DataFrame().to_csv(out_dir / "L0_MAIN_VS_HEAD_STATE_DIFFS.csv", index=False)
+        (out_dir / "L0_MAIN_VS_HEAD_REPORT.json").write_text(json.dumps({
+            "baseline_commit": "6369570406b77dda9903e832dccd5516fc9c5986",
+            "current_commit": "test-commit-123",
+            "l0_results": {"trades_diff_rows": 0, "state_diff_rows": 0, "equity_diff_rows": 0, "portfolio_stats_diff_rows": 0, "positions_diff_rows": 0, "final_value_diff": 0.0}
+        }))
+
+        # Mock the hook counts so l1a hits aren't 0
+        (l1a_dir / "hook_counts.json").write_text(json.dumps({
+            "execution.order_amount_anomalies": {"effective_hits": 1, "would_have_hits": 0, "effective_hit_keys": [{"date": "20200402", "time": "09:30", "code": "600086.XSHG", "side": "buy", "key_query_ordinal": 1}]},
+            "execution.fill_amount_anomalies": {"effective_hits": 1, "would_have_hits": 0, "effective_hit_keys": [{"date": "20200402", "time": "09:30", "code": "600086.XSHG", "side": "buy", "key_query_ordinal": 1}]}
+        }))
+        (l1b_dir / "hook_counts.json").write_text(json.dumps({
+            "execution.order_amount_anomalies": {"effective_hits": 0, "would_have_hits": 1, "would_have_hit_keys": [{"date": "20200402", "time": "09:30", "code": "600086.XSHG", "side": "buy", "key_query_ordinal": 1}]},
+            "execution.fill_amount_anomalies": {"effective_hits": 0, "would_have_hits": 1, "would_have_hit_keys": [{"date": "20200402", "time": "09:30", "code": "600086.XSHG", "side": "buy", "key_query_ordinal": 1}]}
+        }))
+
+        r = compare_runs_l1b(l1a_dir, l1b_dir, out_dir)
+        direct_df = pd.read_csv(out_dir / "DIRECT_SIZE_DIFFS.csv")
+        assert len(direct_df) == 1
+        # Check that fill_amount hook was chosen as primary hook
+        assert direct_df.iloc[0]["hook_id"] == "execution.fill_amount_anomalies"
+        # Check that order_amount hook is in supporting_hook_ids
+        assert direct_df.iloc[0]["supporting_hook_ids"] == "execution.order_amount_anomalies"
+
