@@ -1,0 +1,4 @@
+hook_id,profile,date,time,code,side,order_id,request_ordinal,requested_amount,requested_price,available_cash,cash_threshold,duplicate_ordinal,pending_count_before,pending_count_after,raw_decision,final_decision,order_created,order_retained,effective_hit,would_have_hit,affected_order_ids,actual_canceled_count
+execution.preopen_drop_first_duplicate,local_native_l1b,2021-04-26,,002120.XSHE,buy,84,1,21000,,,,,2,1,True,True,True,True,True,False,['83'],1
+execution.preopen_drop_first_duplicate,local_native_l1b,2021-12-01,,600072.XSHG,buy,406,2,70500,,,,,3,2,True,True,True,True,True,False,['404'],1
+execution.preopen_drop_first_duplicate,local_native_l1b,2021-12-08,,002508.XSHE,buy,414,3,24000,,,,,2,1,True,True,True,True,True,False,['413'],1
