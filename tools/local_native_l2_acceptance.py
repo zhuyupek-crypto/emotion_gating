@@ -746,7 +746,7 @@ def compare_runs_l2(l1b_root: Path, l2_root: Path, years: list[int], out_dir: Pa
                     l2_pos_before.reset_index(drop=True)):
                 year_ok = False
 
-        # Compare pre-hit order events
+        # Compare pre-hit order events: if one side has events and the other doesn't, FAIL
         l1b_events_path = l1b_yr_dir / "order_presence_hook_events.csv"
         l2_events_path = l2_yr_dir / "order_presence_hook_events.csv"
         if l1b_events_path.exists() and l2_events_path.exists():
@@ -759,7 +759,13 @@ def compare_runs_l2(l1b_root: Path, l2_root: Path, years: list[int], out_dir: Pa
 
             l1b_ev = _safe_read_events_pre(l1b_events_path)
             l2_ev = _safe_read_events_pre(l2_events_path)
-            if not l1b_ev.empty and not l2_ev.empty and "date" in l1b_ev.columns:
+            l1b_nonempty = not l1b_ev.empty
+            l2_nonempty = not l2_ev.empty
+
+            if l1b_nonempty != l2_nonempty:
+                # One side has events, the other is empty → mismatch
+                year_ok = False
+            elif l1b_nonempty and l2_nonempty and "date" in l1b_ev.columns:
                 l1b_ev["_dt"] = pd.to_datetime(l1b_ev["date"] + " " + l1b_ev["time"].fillna(""))
                 l2_ev["_dt"] = pd.to_datetime(l2_ev["date"] + " " + l2_ev["time"].fillna(""))
                 l1b_ev_before = l1b_ev[l1b_ev["_dt"] < first_hit_dt]
@@ -780,7 +786,6 @@ def compare_runs_l2(l1b_root: Path, l2_root: Path, years: list[int], out_dir: Pa
         year_summary_rows, out_dir,
         pre_hit_exact_match_ok=pre_hit_ok,
     )
-    gates["pre_hit_exact_match_details"] = pre_hit_details
 
     # Extract non-gate metadata from gates dict before building report
     checked_invariants_excluded = gates.pop("checked_account_invariants_excluded", [])
@@ -820,6 +825,7 @@ def compare_runs_l2(l1b_root: Path, l2_root: Path, years: list[int], out_dir: Pa
         "acceptance_gates": gates,
         "coverage_notes": coverage_notes,
         "checked_account_invariants_excluded": checked_invariants_excluded,
+        "pre_hit_exact_match_details": pre_hit_details,
     }
 
     # Write report json and md

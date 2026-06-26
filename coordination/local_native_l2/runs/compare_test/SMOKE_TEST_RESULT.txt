@@ -1,0 +1,43 @@
+LOCAL_NATIVE_L2 Smoke Test Result
+================================
+Date: 2026-06-26
+Commit: (see LOCAL_NATIVE_L2_REPORT.json metadata)
+
+Years tested: 2021, 2025
+
+Key Results
+-----------
+2021 direct_order_diffs = 3
+cash coverage = NOT_COVERED
+pre_hit_exact_match = PASS
+implementation_acceptance = PASS
+
+All Gates
+---------
+l2_exact_hook_set: PASS
+l1b_preopen_hooks_have_effective_hits: NOT_COVERED
+l2_preopen_hooks_effective_hits_zero: PASS
+would_have_hit_events_complete: PASS
+first_direct_diff_maps_to_hook: PASS
+divergence_not_before_first_hit: PASS
+pre_hit_exact_match: PASS
+direct_price_unchanged: PASS
+checked_account_invariants: PASS
+required_artifacts_complete: PASS
+all_direct_diffs_map_to_genuine_hooks: PASS
+direct_order_presence_changed: PASS
+l0_main_vs_head: PENDING
+deterministic_reports: PENDING
+implementation_acceptance: PASS
+
+Determinism Recalculation
+-------------------------
+Status: PASS (all 8 files match)
+
+2021 Direct Order Diffs
+-----------------------
+1. 2021-04-26 002120.XSHE order_id=84, l1b_affected=['83'], l2_would_have_affected=['83']
+2. 2021-12-01 600072.XSHG order_id=406, l1b_affected=['404'], l2_would_have_affected=['404']
+3. 2021-12-08 002508.XSHE order_id=414, l1b_affected=['413'], l2_would_have_affected=['413']
+
+2025: No would-have-hit events (N/A)

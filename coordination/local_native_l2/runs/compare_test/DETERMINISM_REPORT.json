@@ -1,0 +1,47 @@
+{
+  "status": "PASS",
+  "run1_dir": "coordination\\local_native_l2\\runs\\compare_test",
+  "run2_dir": "coordination\\local_native_l2\\runs\\compare_test_run2",
+  "files": {
+    "LOCAL_NATIVE_L2_REPORT.json": {
+      "hash1": "4a7a7281b3a840df91c598d03ba95ef7faab9fb595520821c30f9debdd55f783",
+      "hash2": "4a7a7281b3a840df91c598d03ba95ef7faab9fb595520821c30f9debdd55f783",
+      "equal": 1
+    },
+    "LOCAL_NATIVE_L2_REPORT.md": {
+      "hash1": "454bf0ce2e7094a2f409abee1cc62474b244981685f57a8fa7410abdddeccfda",
+      "hash2": "454bf0ce2e7094a2f409abee1cc62474b244981685f57a8fa7410abdddeccfda",
+      "equal": 1
+    },
+    "PROFILE_MANIFEST.json": {
+      "hash1": "7449ffe000fc913c38e0fa817111c56a5ed7671b5c4872a45e0bdacf279335ff",
+      "hash2": "7449ffe000fc913c38e0fa817111c56a5ed7671b5c4872a45e0bdacf279335ff",
+      "equal": 1
+    },
+    "YEAR_SUMMARY.csv": {
+      "hash1": "92a2c9c0f7252db23348be77c70178c13aad1df61350db31e04252f159da27a6",
+      "hash2": "92a2c9c0f7252db23348be77c70178c13aad1df61350db31e04252f159da27a6",
+      "equal": 1
+    },
+    "ORDER_PRESENCE_HOOK_EVENTS.csv": {
+      "hash1": "aa52d9f1f9dab2a82ee7eaad72acbbf6ed2e172803d220590e41e18e208410bc",
+      "hash2": "aa52d9f1f9dab2a82ee7eaad72acbbf6ed2e172803d220590e41e18e208410bc",
+      "equal": 1
+    },
+    "DIRECT_ORDER_DIFFS.csv": {
+      "hash1": "41033ff3fac40418f55def34b6f5d717ea575584863630a8fb366d7b806d8881",
+      "hash2": "41033ff3fac40418f55def34b6f5d717ea575584863630a8fb366d7b806d8881",
+      "equal": 1
+    },
+    "TRADE_KEY_DIFFS.csv": {
+      "hash1": "70819db6749ded26eed978d1d5ece1e31f6181630c65dab2efca892a871f8699",
+      "hash2": "70819db6749ded26eed978d1d5ece1e31f6181630c65dab2efca892a871f8699",
+      "equal": 1
+    },
+    "STATE_DIFFS_SAMPLE.csv": {
+      "hash1": "817901427221a9aa2df9bd79af2a4a3d931d68fffe08db63a298dd0605ef0414",
+      "hash2": "817901427221a9aa2df9bd79af2a4a3d931d68fffe08db63a298dd0605ef0414",
+      "equal": 1
+    }
+  }
+}
