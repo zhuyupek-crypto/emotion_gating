@@ -4,13 +4,13 @@
   "run2_dir": "temp_envs\\env_run2\\out_compare\\final_report_l1b",
   "files": {
     "LOCAL_NATIVE_L1B_REPORT.json": {
-      "hash1": "4bc21b9076852ab764bcef03a1fbec2643055440f6152a86c24672b52d0350a1",
-      "hash2": "4bc21b9076852ab764bcef03a1fbec2643055440f6152a86c24672b52d0350a1",
+      "hash1": "761eb600c68ca6a473f6b9aec9cbd5f04e3b1314d19ce852349f17a8f7db231c",
+      "hash2": "761eb600c68ca6a473f6b9aec9cbd5f04e3b1314d19ce852349f17a8f7db231c",
       "equal": 1
     },
     "LOCAL_NATIVE_L1B_REPORT.md": {
-      "hash1": "91c979cd5260bd5f3af1035835fb2e6a7d927fbd46719036514879b20539b900",
-      "hash2": "91c979cd5260bd5f3af1035835fb2e6a7d927fbd46719036514879b20539b900",
+      "hash1": "83c5491636f4594555233074e4ca76ad981d27f8f87e9587a2015508d86d9e9b",
+      "hash2": "83c5491636f4594555233074e4ca76ad981d27f8f87e9587a2015508d86d9e9b",
       "equal": 1
     },
     "PROFILE_MANIFEST.json": {
@@ -19,13 +19,13 @@
       "equal": 1
     },
     "DIRECT_SIZE_DIFFS.csv": {
-      "hash1": "8209ea65d3954130daa9caaa9b7b2a6bce080dcf19657046acaa80831a696471",
-      "hash2": "8209ea65d3954130daa9caaa9b7b2a6bce080dcf19657046acaa80831a696471",
+      "hash1": "64c17075b9da462f90a82b0f59a1894e533fee7d3b7b099dc67ffc0275e0c8b2",
+      "hash2": "64c17075b9da462f90a82b0f59a1894e533fee7d3b7b099dc67ffc0275e0c8b2",
       "equal": 1
     },
     "TRADE_KEY_DIFFS.csv": {
-      "hash1": "e1ffc5eba183f1d03d72e2d7337325390392d37087979bbe645d5b8519b4830f",
-      "hash2": "e1ffc5eba183f1d03d72e2d7337325390392d37087979bbe645d5b8519b4830f",
+      "hash1": "a0a89d180658cbfd5962ad43b2a0a4551646ea29a7371775e67a8e15322f400b",
+      "hash2": "a0a89d180658cbfd5962ad43b2a0a4551646ea29a7371775e67a8e15322f400b",
       "equal": 1
     },
     "STATE_DIFFS_SAMPLE.csv": {
