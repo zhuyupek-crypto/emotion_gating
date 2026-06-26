@@ -1,16 +1,16 @@
 {
   "status": "PASS",
-  "run1_dir": "out_compare\\final_report_l1b",
-  "run2_dir": "D:\\Work Space\\他山之石\\情绪门控\\temp_envs\\env_run2\\out_compare\\final_report_l1b",
+  "run1_dir": "temp_envs\\env_run1\\out_compare\\final_report_l1b",
+  "run2_dir": "temp_envs\\env_run2\\out_compare\\final_report_l1b",
   "files": {
     "LOCAL_NATIVE_L1B_REPORT.json": {
-      "hash1": "90c888759c59e30c903756b0c2de38fbdf8dfd329fed3033b982fa86e28bea03",
-      "hash2": "90c888759c59e30c903756b0c2de38fbdf8dfd329fed3033b982fa86e28bea03",
+      "hash1": "4bc21b9076852ab764bcef03a1fbec2643055440f6152a86c24672b52d0350a1",
+      "hash2": "4bc21b9076852ab764bcef03a1fbec2643055440f6152a86c24672b52d0350a1",
       "equal": 1
     },
     "LOCAL_NATIVE_L1B_REPORT.md": {
-      "hash1": "d90d8d6d06f687f7c79b40d2fc31c79b7575ce79f21345541177ccd6e08d86a5",
-      "hash2": "d90d8d6d06f687f7c79b40d2fc31c79b7575ce79f21345541177ccd6e08d86a5",
+      "hash1": "91c979cd5260bd5f3af1035835fb2e6a7d927fbd46719036514879b20539b900",
+      "hash2": "91c979cd5260bd5f3af1035835fb2e6a7d927fbd46719036514879b20539b900",
       "equal": 1
     },
     "PROFILE_MANIFEST.json": {
@@ -19,13 +19,13 @@
       "equal": 1
     },
     "DIRECT_SIZE_DIFFS.csv": {
-      "hash1": "d6b14aed9708d9f919f6474fbae91b834fa26e400517bb8651067c22badf99ef",
-      "hash2": "d6b14aed9708d9f919f6474fbae91b834fa26e400517bb8651067c22badf99ef",
+      "hash1": "8209ea65d3954130daa9caaa9b7b2a6bce080dcf19657046acaa80831a696471",
+      "hash2": "8209ea65d3954130daa9caaa9b7b2a6bce080dcf19657046acaa80831a696471",
       "equal": 1
     },
     "TRADE_KEY_DIFFS.csv": {
-      "hash1": "a7032c0de428cae6a60839d0613a619afc1dfa9133719b9adbb64f15c3e11271",
-      "hash2": "a7032c0de428cae6a60839d0613a619afc1dfa9133719b9adbb64f15c3e11271",
+      "hash1": "e1ffc5eba183f1d03d72e2d7337325390392d37087979bbe645d5b8519b4830f",
+      "hash2": "e1ffc5eba183f1d03d72e2d7337325390392d37087979bbe645d5b8519b4830f",
       "equal": 1
     },
     "STATE_DIFFS_SAMPLE.csv": {

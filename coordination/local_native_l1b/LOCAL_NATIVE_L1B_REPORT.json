@@ -1,5 +1,12 @@
 {
   "title": "LOCAL_NATIVE_L1B Acceptance Report",
+  "metadata": {
+    "backtest_source_commit": "c70bb83390094facd261e4af9a90ae7523858e10",
+    "acceptance_tool_commit": "47509f733097df3af75622a277890a27ba24b154",
+    "base_main_commit": "6369570406b77dda9903e832dccd5516fc9c5986",
+    "strategy_sha256": "621a9c968473d73dfa1699be0a16714790e4f93ab950957c0a3f88f4f34bcc8e",
+    "data_root": "<HDATA_ROOT>"
+  },
   "profiles": {
     "l1a": {
       "profile": "local_native_l1a",
@@ -3450,6 +3457,8 @@
     "direct_price_unchanged": "PASS",
     "account_invariants": "PASS",
     "required_artifacts_complete": "PASS",
+    "all_direct_diffs_map_to_genuine_hooks": "PASS",
+    "l0_main_vs_head": "PASS",
     "deterministic_reports": "PASS",
     "implementation_acceptance": "PASS"
   }

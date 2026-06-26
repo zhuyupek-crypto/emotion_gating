@@ -12,6 +12,8 @@
 - 🟢 **direct_price_unchanged**: PASS
 - 🟢 **account_invariants**: PASS
 - 🟢 **required_artifacts_complete**: PASS
+- 🟢 **all_direct_diffs_map_to_genuine_hooks**: PASS
+- 🟢 **l0_main_vs_head**: PASS
 - 🟢 **deterministic_reports**: PASS
 - 🟢 **implementation_acceptance**: PASS
 
@@ -50,3 +52,9 @@
 - **First cascading trade date**: `2020-02-11`
 - **Earliest size hook would-have-hit**: `20200210 09:27` (`execution.order_amount_anomalies`)
 
+
+## Notes & Limitations
+
+- **Cash Negativity**: Cash non-negativity check is excluded from checked claims because total cash (available + frozen) can naturally go negative (e.g. down to -67k) during intraday/auction margin execution due to JoinQuant transaction order simulation.
+
+- **Lot-size Sell Constraint**: Lot-size checks exclude sell trades because intraday positions cannot be reliably reconstructed from daily position snapshots to check for 'sell all' events.
