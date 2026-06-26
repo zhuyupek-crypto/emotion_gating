@@ -1,0 +1,37 @@
+{
+  "status": "PASS",
+  "run1_dir": "temp_envs\\env_run1\\out_compare\\final_report_l1b",
+  "run2_dir": "temp_envs\\env_run2\\out_compare\\final_report_l1b",
+  "files": {
+    "LOCAL_NATIVE_L1B_REPORT.json": {
+      "hash1": "5d74fbc847b1981f1e9927b46fd472aa174f0f6c4f746a83bbfa98bbe985c1dc",
+      "hash2": "5d74fbc847b1981f1e9927b46fd472aa174f0f6c4f746a83bbfa98bbe985c1dc",
+      "equal": 1
+    },
+    "LOCAL_NATIVE_L1B_REPORT.md": {
+      "hash1": "83c5491636f4594555233074e4ca76ad981d27f8f87e9587a2015508d86d9e9b",
+      "hash2": "83c5491636f4594555233074e4ca76ad981d27f8f87e9587a2015508d86d9e9b",
+      "equal": 1
+    },
+    "PROFILE_MANIFEST.json": {
+      "hash1": "ec1596b24b47ce1ecac454ba2302b666bb9d0ef72b62b49b1e1a17e51785a358",
+      "hash2": "ec1596b24b47ce1ecac454ba2302b666bb9d0ef72b62b49b1e1a17e51785a358",
+      "equal": 1
+    },
+    "DIRECT_SIZE_DIFFS.csv": {
+      "hash1": "64c17075b9da462f90a82b0f59a1894e533fee7d3b7b099dc67ffc0275e0c8b2",
+      "hash2": "64c17075b9da462f90a82b0f59a1894e533fee7d3b7b099dc67ffc0275e0c8b2",
+      "equal": 1
+    },
+    "TRADE_KEY_DIFFS.csv": {
+      "hash1": "a0a89d180658cbfd5962ad43b2a0a4551646ea29a7371775e67a8e15322f400b",
+      "hash2": "a0a89d180658cbfd5962ad43b2a0a4551646ea29a7371775e67a8e15322f400b",
+      "equal": 1
+    },
+    "STATE_DIFFS_SAMPLE.csv": {
+      "hash1": "8e7b2e05c77eec9ab2018ac4595548a03b157a264bcd62c281d8eb3aba36621c",
+      "hash2": "8e7b2e05c77eec9ab2018ac4595548a03b157a264bcd62c281d8eb3aba36621c",
+      "equal": 1
+    }
+  }
+}

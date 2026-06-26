@@ -111,6 +111,9 @@ class Engine:
         self.start_date, self.end_date = start_date, end_date
         self.frequency = frequency
         self.compat = compat
+        if self.compat is not None:
+            self.compat.engine = self
+        self._current_matching_order = None
         self.data_api = DataAPI(data_root=data_root, compat=compat)
         self.context = Context(start_date, initial_cash)
         self.handlers = []                      # run_daily 注册的任务
@@ -717,6 +720,7 @@ class Engine:
             self.cancel_order(order)
 
     def _execute_trade(self, order, match_price=None):
+        self._current_matching_order = order
         security = order.security
         amount = order.amount
         inst_type = self._get_instrument_type(security)
@@ -1144,7 +1148,7 @@ class Engine:
             norm_time = f"{int(parts[0]):02d}:{int(parts[1]):02d}" if len(parts) >= 2 else "09:30"
             anomaly_key = (day_key, norm_time, security)
             if self.compat is not None and hasattr(self.compat, "get_order_amount_override"):
-                override = self.compat.get_order_amount_override(day_key, norm_time, security)
+                override = self.compat.get_order_amount_override(day_key, norm_time, security, amount=amount)
             else:
                 override = None
             if isinstance(override, list):
@@ -1171,7 +1175,7 @@ class Engine:
             parts = str(self.current_time).split(':')
             norm_time = f"{int(parts[0]):02d}:{int(parts[1]):02d}" if len(parts) >= 2 else "09:30"
             if self.compat is not None and hasattr(self.compat, "get_fill_amount_override"):
-                override = self.compat.get_fill_amount_override(day_key, norm_time, security)
+                override = self.compat.get_fill_amount_override(day_key, norm_time, security, amount=fill_amount_abs)
                 if override is not None:
                     return override
             return fill_amount_abs
@@ -1852,7 +1856,15 @@ class Engine:
                 'available_cash': self.context.portfolio.available_cash,
                 'frozen_cash': self.context.portfolio.locked_cash,
                 'positions_value': self.context.portfolio.positions_value,
-                'total_value': total_value
+                'total_value': total_value,
+                'positions': {
+                    sec: {
+                        'total_amount': pos.total_amount,
+                        'avg_cost': pos.avg_cost,
+                        'price': pos.price
+                    }
+                    for sec, pos in self.context.portfolio.positions.items()
+                }
             })
 
             # Fire dynamic day-end callback
