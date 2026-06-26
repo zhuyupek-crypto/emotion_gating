@@ -28,6 +28,8 @@ from .compat.market_data import (
 from .compat.profiles import (
     JQ_PARITY,
     LOCAL_NATIVE_L1A,
+    LOCAL_NATIVE_L1B,
+    LOCAL_NATIVE_L2,
     PROFILE_DISABLED_HOOKS,
     SUPPORTED_COMPAT_PROFILES,
 )
@@ -51,6 +53,9 @@ class EmotionGateJQCompat:
     _HOOK_ID_EXECUTION_PRICE = "execution.execution_price_anomalies"
     _HOOK_ID_ORDER_AMOUNT = "execution.order_amount_anomalies"
     _HOOK_ID_FILL_AMOUNT = "execution.fill_amount_anomalies"
+    _HOOK_ID_PREOPEN_REJECT_CASH = "execution.preopen_reject_cash_below"
+    _HOOK_ID_PREOPEN_REJECT_ORDER = "execution.preopen_reject_orders"
+    _HOOK_ID_PREOPEN_DROP_DUPLICATE = "execution.preopen_drop_first_duplicate"
 
     immediate_sell_cash_release = True
 
@@ -99,6 +104,10 @@ class EmotionGateJQCompat:
         self._order_global_query_count = 0
         self._fill_global_query_count = 0
         self.size_hook_events = []
+        # L2 order presence telemetry
+        self._order_presence_query_ordinal = 0
+        self._order_presence_dup_ordinal = {}
+        self.order_presence_hook_events = []
         self.engine = None
 
     @property
@@ -156,6 +165,40 @@ class EmotionGateJQCompat:
                 self._hook_hit_keys.append(event)
             if would_have_hit and not hit:
                 self._hook_would_have_hit_keys.append(event)
+
+    def _record_order_presence_event(self, hook_id, date_key, time_key, code, side,
+                                      order_id, request_ordinal, key_query_ordinal,
+                                      requested_amount, requested_price,
+                                      available_cash, cash_threshold,
+                                      duplicate_ordinal, pending_count_before, pending_count_after,
+                                      raw_decision, final_decision, order_created, order_retained,
+                                      effective_hit, would_have_hit):
+        """Record order-presence-level telemetry for L2 hooks."""
+        self._order_presence_query_ordinal += 1
+        self.order_presence_hook_events.append({
+            "hook_id": hook_id,
+            "profile": self._profile,
+            "date": str(date_key) if date_key else "",
+            "time": str(time_key) if time_key else "",
+            "code": str(code) if code else "",
+            "side": str(side) if side else "",
+            "order_id": str(order_id) if order_id else "",
+            "request_ordinal": request_ordinal,
+            "key_query_ordinal": key_query_ordinal,
+            "requested_amount": requested_amount,
+            "requested_price": requested_price,
+            "available_cash": available_cash,
+            "cash_threshold": cash_threshold,
+            "duplicate_ordinal": duplicate_ordinal,
+            "pending_count_before": pending_count_before,
+            "pending_count_after": pending_count_after,
+            "raw_decision": str(raw_decision) if raw_decision is not None else "",
+            "final_decision": str(final_decision) if final_decision is not None else "",
+            "order_created": order_created,
+            "order_retained": order_retained,
+            "effective_hit": effective_hit,
+            "would_have_hit": would_have_hit,
+        })
 
     def namespace_entries(self, engine):
         return {
@@ -359,14 +402,164 @@ class EmotionGateJQCompat:
         return raw_override if enabled else None
 
     def should_reject_preopen_cash(self, date_key, time_key, available_cash):
+        """Check if pre-open order should be rejected due to cash below threshold.
+
+        With gating and telemetry for L2 ablation.
+        """
         cash_threshold = self.preopen_reject_cash_below.get((date_key, time_key))
-        return cash_threshold is not None and available_cash < cash_threshold, cash_threshold
+        raw_reject = cash_threshold is not None and available_cash < cash_threshold
+
+        enabled = self.is_hook_enabled(self._HOOK_ID_PREOPEN_REJECT_CASH)
+        final_reject = raw_reject if enabled else False
+
+        self._hook_queries[self._HOOK_ID_PREOPEN_REJECT_CASH] = \
+            self._hook_queries.get(self._HOOK_ID_PREOPEN_REJECT_CASH, 0) + 1
+
+        if raw_reject:
+            if enabled:
+                self._hook_hits[self._HOOK_ID_PREOPEN_REJECT_CASH] = \
+                    self._hook_hits.get(self._HOOK_ID_PREOPEN_REJECT_CASH, 0) + 1
+                self._hook_hit_keys.append({
+                    "date": str(date_key), "time": str(time_key),
+                    "code": "", "side": "buy",
+                    "hook_id": self._HOOK_ID_PREOPEN_REJECT_CASH,
+                    "available_cash": available_cash, "cash_threshold": cash_threshold,
+                    "effective_hit": True, "would_have_hit": False,
+                    "key_query_ordinal": self._hook_queries[self._HOOK_ID_PREOPEN_REJECT_CASH],
+                })
+            else:
+                if not hasattr(self, "_hook_would_have_hits"):
+                    self._hook_would_have_hits = {}
+                self._hook_would_have_hits[self._HOOK_ID_PREOPEN_REJECT_CASH] = \
+                    self._hook_would_have_hits.get(self._HOOK_ID_PREOPEN_REJECT_CASH, 0) + 1
+                self._hook_would_have_hit_keys.append({
+                    "date": str(date_key), "time": str(time_key),
+                    "code": "", "side": "buy",
+                    "hook_id": self._HOOK_ID_PREOPEN_REJECT_CASH,
+                    "available_cash": available_cash, "cash_threshold": cash_threshold,
+                    "effective_hit": False, "would_have_hit": True,
+                    "key_query_ordinal": self._hook_queries[self._HOOK_ID_PREOPEN_REJECT_CASH],
+                })
+
+        self._record_order_presence_event(
+            hook_id=self._HOOK_ID_PREOPEN_REJECT_CASH,
+            date_key=date_key, time_key=time_key, code="", side="buy",
+            order_id="", request_ordinal=self._order_presence_query_ordinal + 1,
+            key_query_ordinal=self._hook_queries.get(self._HOOK_ID_PREOPEN_REJECT_CASH, 0),
+            requested_amount=None, requested_price=None,
+            available_cash=available_cash, cash_threshold=cash_threshold,
+            duplicate_ordinal=None, pending_count_before=None, pending_count_after=None,
+            raw_decision=raw_reject, final_decision=final_reject,
+            order_created=False, order_retained=False,
+            effective_hit=enabled and raw_reject,
+            would_have_hit=(not enabled) and raw_reject,
+        )
+
+        return final_reject, cash_threshold
 
     def should_reject_preopen_order(self, date_key, security):
-        return (date_key, security) in self.preopen_reject_orders
+        """Check if a pre-open order should be explicitly rejected.
+
+        With gating and telemetry for L2 ablation.
+        """
+        raw_reject = (date_key, security) in self.preopen_reject_orders
+        enabled = self.is_hook_enabled(self._HOOK_ID_PREOPEN_REJECT_ORDER)
+        final_reject = raw_reject if enabled else False
+
+        self._hook_queries[self._HOOK_ID_PREOPEN_REJECT_ORDER] = \
+            self._hook_queries.get(self._HOOK_ID_PREOPEN_REJECT_ORDER, 0) + 1
+
+        if raw_reject:
+            if enabled:
+                self._hook_hits[self._HOOK_ID_PREOPEN_REJECT_ORDER] = \
+                    self._hook_hits.get(self._HOOK_ID_PREOPEN_REJECT_ORDER, 0) + 1
+                self._hook_hit_keys.append({
+                    "date": str(date_key), "time": "", "code": str(security),
+                    "side": "buy", "hook_id": self._HOOK_ID_PREOPEN_REJECT_ORDER,
+                    "effective_hit": True, "would_have_hit": False,
+                })
+            else:
+                if not hasattr(self, "_hook_would_have_hits"):
+                    self._hook_would_have_hits = {}
+                self._hook_would_have_hits[self._HOOK_ID_PREOPEN_REJECT_ORDER] = \
+                    self._hook_would_have_hits.get(self._HOOK_ID_PREOPEN_REJECT_ORDER, 0) + 1
+                self._hook_would_have_hit_keys.append({
+                    "date": str(date_key), "time": "", "code": str(security),
+                    "side": "buy", "hook_id": self._HOOK_ID_PREOPEN_REJECT_ORDER,
+                    "effective_hit": False, "would_have_hit": True,
+                })
+
+        self._record_order_presence_event(
+            hook_id=self._HOOK_ID_PREOPEN_REJECT_ORDER,
+            date_key=date_key, time_key="", code=security, side="buy",
+            order_id="", request_ordinal=self._order_presence_query_ordinal + 1,
+            key_query_ordinal=self._hook_queries.get(self._HOOK_ID_PREOPEN_REJECT_ORDER, 0),
+            requested_amount=None, requested_price=None,
+            available_cash=None, cash_threshold=None,
+            duplicate_ordinal=None, pending_count_before=None, pending_count_after=None,
+            raw_decision=raw_reject, final_decision=final_reject,
+            order_created=False, order_retained=False,
+            effective_hit=enabled and raw_reject,
+            would_have_hit=(not enabled) and raw_reject,
+        )
+
+        return final_reject
 
     def should_drop_first_preopen_duplicate(self, date_key, security):
-        return (date_key, security) in self.preopen_drop_first_duplicate
+        """Check if the first pre-open duplicate order should be dropped.
+
+        With gating and telemetry for L2 ablation.
+        The "first duplicate" state is maintained by the engine"s _pending_orders list,
+        not by this compat layer. This method only answers the yes/no question.
+        """
+        raw_drop = (date_key, security) in self.preopen_drop_first_duplicate
+        enabled = self.is_hook_enabled(self._HOOK_ID_PREOPEN_DROP_DUPLICATE)
+        final_drop = raw_drop if enabled else False
+
+        self._hook_queries[self._HOOK_ID_PREOPEN_DROP_DUPLICATE] = \
+            self._hook_queries.get(self._HOOK_ID_PREOPEN_DROP_DUPLICATE, 0) + 1
+
+        if raw_drop:
+            dup_key = (date_key, security)
+            dup_ord = self._order_presence_dup_ordinal.get(dup_key, 0) + 1
+            self._order_presence_dup_ordinal[dup_key] = dup_ord
+
+            if enabled:
+                self._hook_hits[self._HOOK_ID_PREOPEN_DROP_DUPLICATE] = \
+                    self._hook_hits.get(self._HOOK_ID_PREOPEN_DROP_DUPLICATE, 0) + 1
+                self._hook_hit_keys.append({
+                    "date": str(date_key), "time": "", "code": str(security),
+                    "side": "buy", "hook_id": self._HOOK_ID_PREOPEN_DROP_DUPLICATE,
+                    "effective_hit": True, "would_have_hit": False,
+                    "duplicate_ordinal": dup_ord,
+                })
+            else:
+                if not hasattr(self, "_hook_would_have_hits"):
+                    self._hook_would_have_hits = {}
+                self._hook_would_have_hits[self._HOOK_ID_PREOPEN_DROP_DUPLICATE] = \
+                    self._hook_would_have_hits.get(self._HOOK_ID_PREOPEN_DROP_DUPLICATE, 0) + 1
+                self._hook_would_have_hit_keys.append({
+                    "date": str(date_key), "time": "", "code": str(security),
+                    "side": "buy", "hook_id": self._HOOK_ID_PREOPEN_DROP_DUPLICATE,
+                    "effective_hit": False, "would_have_hit": True,
+                    "duplicate_ordinal": dup_ord,
+                })
+
+            self._record_order_presence_event(
+                hook_id=self._HOOK_ID_PREOPEN_DROP_DUPLICATE,
+                date_key=date_key, time_key="", code=security, side="buy",
+                order_id="", request_ordinal=self._order_presence_query_ordinal + 1,
+                key_query_ordinal=self._hook_queries.get(self._HOOK_ID_PREOPEN_DROP_DUPLICATE, 0),
+                requested_amount=None, requested_price=None,
+                available_cash=None, cash_threshold=None,
+                duplicate_ordinal=dup_ord, pending_count_before=None, pending_count_after=None,
+                raw_decision=raw_drop, final_decision=final_drop,
+                order_created=False, order_retained=not final_drop,
+                effective_hit=enabled and raw_drop,
+                would_have_hit=(not enabled) and raw_drop,
+            )
+
+        return final_drop
 
     def get_tail_seal_override(self, date_key, security):
         key = (date_key, security)
