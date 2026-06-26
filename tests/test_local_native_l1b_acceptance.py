@@ -211,12 +211,14 @@ class TestL1BClassification:
             "code": "000987.XSHE",
             "amount": 38600,
             "price": 10.0,
+            "order_id": "1",
         }, {
             # Downstream cascading diff
             "time": "2020-05-19 10:00:00",
             "code": "000001.XSHE",
             "amount": 5000,
             "price": 12.0,
+            "order_id": "2",
         }]).to_csv(l1a_dir / "local_trades_2020.csv", index=False)
 
         # L1B has trade with computed amount 10000
@@ -225,12 +227,14 @@ class TestL1BClassification:
             "code": "000987.XSHE",
             "amount": 10000,
             "price": 10.0,
+            "order_id": "1",
         }, {
             # Downstream cascading diff (changed amount)
             "time": "2020-05-19 10:00:00",
             "code": "000001.XSHE",
             "amount": 2000,
             "price": 12.0,
+            "order_id": "2",
         }]).to_csv(l1b_dir / "local_trades_2020.csv", index=False)
 
         # Write dummy equity, state, portfolio, positions
@@ -310,8 +314,8 @@ class TestL1BAcceptanceAdditionalGates:
         }]).to_csv(l1b_dir / "size_hook_events.csv", index=False)
 
         # Write trade differences
-        pd.DataFrame([{"time": "2020-05-18 09:26:00", "code": "000987.XSHE", "amount": 38600, "price": 10.0}]).to_csv(l1a_dir / "local_trades_2020.csv", index=False)
-        pd.DataFrame([{"time": "2020-05-18 09:26:00", "code": "000987.XSHE", "amount": 10000, "price": 10.0}]).to_csv(l1b_dir / "local_trades_2020.csv", index=False)
+        pd.DataFrame([{"time": "2020-05-18 09:26:00", "code": "000987.XSHE", "amount": 38600, "price": 10.0, "order_id": "1"}]).to_csv(l1a_dir / "local_trades_2020.csv", index=False)
+        pd.DataFrame([{"time": "2020-05-18 09:26:00", "code": "000987.XSHE", "amount": 10000, "price": 10.0, "order_id": "1"}]).to_csv(l1b_dir / "local_trades_2020.csv", index=False)
 
         pd.DataFrame().to_csv(out_dir / "L0_MAIN_VS_HEAD_STATE_DIFFS.csv", index=False)
         (out_dir / "L0_MAIN_VS_HEAD_REPORT.json").write_text(json.dumps({
@@ -351,8 +355,8 @@ class TestL1BAcceptanceAdditionalGates:
         }]).to_csv(l1b_dir / "size_hook_events.csv", index=False)
 
         # Write trade differences
-        pd.DataFrame([{"time": "2020-05-18 09:26:00", "code": "000987.XSHE", "amount": 38600, "price": 10.0}]).to_csv(l1a_dir / "local_trades_2020.csv", index=False)
-        pd.DataFrame([{"time": "2020-05-18 09:26:00", "code": "000987.XSHE", "amount": 10000, "price": 10.0}]).to_csv(l1b_dir / "local_trades_2020.csv", index=False)
+        pd.DataFrame([{"time": "2020-05-18 09:26:00", "code": "000987.XSHE", "amount": 38600, "price": 10.0, "order_id": "1"}]).to_csv(l1a_dir / "local_trades_2020.csv", index=False)
+        pd.DataFrame([{"time": "2020-05-18 09:26:00", "code": "000987.XSHE", "amount": 10000, "price": 10.0, "order_id": "1"}]).to_csv(l1b_dir / "local_trades_2020.csv", index=False)
 
         pd.DataFrame().to_csv(out_dir / "L0_MAIN_VS_HEAD_STATE_DIFFS.csv", index=False)
         (out_dir / "L0_MAIN_VS_HEAD_REPORT.json").write_text(json.dumps({
@@ -478,7 +482,7 @@ class TestL1BAcceptanceAdditionalGates:
         r = compare_runs_l1b(l1a_dir, l1b_dir, out_dir)
         # Should fail account invariants because 150 is not a multiple of 100, and it is a buy trade (so not sell-all)
         # and it's not exempt since the event is not an effective hit
-        assert r["acceptance_gates"]["account_invariants"] == "FAIL"
+        assert r["acceptance_gates"]["checked_account_invariants"] == "FAIL"
 
     def test_account_effective_hit_exemption(self, tmp_path):
         l1a_dir = tmp_path / "l1a"
@@ -508,7 +512,7 @@ class TestL1BAcceptanceAdditionalGates:
 
         r = compare_runs_l1b(l1a_dir, l1b_dir, out_dir)
         # Should pass account invariants because JQ override is 150 and effective_hit is True in JQ parity/L1A
-        assert r["acceptance_gates"]["account_invariants"] == "PASS"
+        assert r["acceptance_gates"]["checked_account_invariants"] == "PASS"
 
     def test_determinism_report_roundtrip_fail(self, tmp_path):
         from tools.local_native_l1b_acceptance import verify_determinism_and_finalize_l1b
@@ -538,7 +542,7 @@ class TestL1BAcceptanceAdditionalGates:
                 "divergence_not_before_first_hit": "PASS",
                 "pre_hit_exact_match": "PASS",
                 "direct_price_unchanged": "PASS",
-                "account_invariants": "PASS",
+                "checked_account_invariants": "PASS",
                 "required_artifacts_complete": "PASS",
                 "all_direct_diffs_map_to_genuine_hooks": "PASS",
                 "l0_main_vs_head": "PASS",
@@ -576,4 +580,106 @@ class TestL1BAcceptanceAdditionalGates:
         updated_rpt = json.loads((run1_dir / "LOCAL_NATIVE_L1B_REPORT.json").read_text(encoding="utf-8"))
         assert updated_rpt["acceptance_gates"]["deterministic_reports"] == "FAIL"
         assert updated_rpt["acceptance_gates"]["implementation_acceptance"] == "FAIL"
+
+    def test_identical_final_size_regression(self, tmp_path):
+        l1a_dir = tmp_path / "l1a"
+        l1b_dir = tmp_path / "l1b"
+        out_dir = tmp_path / "out"
+        self._setup_mock_run(l1a_dir, l1b_dir, out_dir)
+
+        # Mock events with same final order size 126500
+        pd.DataFrame([{
+            "hook_id": "execution.order_amount_anomalies", "date": "20200330", "time": "09:30", "code": "002612.XSHE",
+            "side": "buy", "order_id": "102", "key_query_ordinal": 1, "sequence_index": 0,
+            "computed_amount_before_override": 126400, "override_amount": 126500, "final_order_amount": 126500,
+            "effective_hit": True, "would_have_hit": False
+        }]).to_csv(l1a_dir / "size_hook_events.csv", index=False)
+
+        pd.DataFrame([{
+            "hook_id": "execution.order_amount_anomalies", "date": "20200330", "time": "09:30", "code": "002612.XSHE",
+            "side": "buy", "order_id": "102", "key_query_ordinal": 1, "sequence_index": 0,
+            "computed_amount_before_override": 126500, "override_amount": 126500, "final_order_amount": 126500,
+            "effective_hit": False, "would_have_hit": True
+        }]).to_csv(l1b_dir / "size_hook_events.csv", index=False)
+
+        # Trade size is different: 126200 vs 126300
+        pd.DataFrame([{"time": "2020-03-30 09:30:00", "code": "002612.XSHE", "amount": 126200, "price": 10.0, "order_id": "102"}]).to_csv(l1a_dir / "local_trades_2020.csv", index=False)
+        pd.DataFrame([{"time": "2020-03-30 09:30:00", "code": "002612.XSHE", "amount": 126300, "price": 10.0, "order_id": "102"}]).to_csv(l1b_dir / "local_trades_2020.csv", index=False)
+
+        pd.DataFrame().to_csv(out_dir / "L0_MAIN_VS_HEAD_STATE_DIFFS.csv", index=False)
+        (out_dir / "L0_MAIN_VS_HEAD_REPORT.json").write_text(json.dumps({
+            "baseline_commit": "6369570406b77dda9903e832dccd5516fc9c5986",
+            "current_commit": "test-commit-123",
+            "l0_results": {"trades_diff_rows": 0, "state_diff_rows": 0, "equity_diff_rows": 0, "portfolio_stats_diff_rows": 0, "positions_diff_rows": 0, "final_value_diff": 0.0}
+        }))
+
+        r = compare_runs_l1b(l1a_dir, l1b_dir, out_dir)
+        direct_df = pd.read_csv(out_dir / "DIRECT_SIZE_DIFFS.csv")
+        trade_key_df = pd.read_csv(out_dir / "TRADE_KEY_DIFFS.csv")
+
+        # Because final size was the same, this is not causal, so it must not be direct
+        assert len(direct_df) == 0
+        # It must be classified as downstream diff instead
+        assert len(trade_key_df) == 1
+
+    def test_double_hook_priority(self, tmp_path):
+        l1a_dir = tmp_path / "l1a"
+        l1b_dir = tmp_path / "l1b"
+        out_dir = tmp_path / "out"
+        self._setup_mock_run(l1a_dir, l1b_dir, out_dir)
+
+        # Both order and fill hook match the same trade code/order_id
+        # L1A has order and fill hook
+        pd.DataFrame([{
+            "hook_id": "execution.order_amount_anomalies", "date": "20200402", "time": "09:30", "code": "600086.XSHG",
+            "side": "buy", "order_id": "107", "key_query_ordinal": 1, "sequence_index": 0,
+            "computed_amount_before_override": 141400, "override_amount": 146000, "final_order_amount": 146000,
+            "effective_hit": True, "would_have_hit": False
+        }, {
+            "hook_id": "execution.fill_amount_anomalies", "date": "20200402", "time": "09:30", "code": "600086.XSHG",
+            "side": "buy", "order_id": "107", "key_query_ordinal": 1, "sequence_index": 0,
+            "computed_amount_before_override": 141400, "override_amount": 146000, "final_fill_amount": 146000,
+            "effective_hit": True, "would_have_hit": False
+        }]).to_csv(l1a_dir / "size_hook_events.csv", index=False)
+
+        # L1B has order and fill hook
+        pd.DataFrame([{
+            "hook_id": "execution.order_amount_anomalies", "date": "20200402", "time": "09:30", "code": "600086.XSHG",
+            "side": "buy", "order_id": "107", "key_query_ordinal": 1, "sequence_index": 0,
+            "computed_amount_before_override": 141800, "override_amount": 146000, "final_order_amount": 141800,
+            "effective_hit": False, "would_have_hit": True
+        }, {
+            "hook_id": "execution.fill_amount_anomalies", "date": "20200402", "time": "09:30", "code": "600086.XSHG",
+            "side": "buy", "order_id": "107", "key_query_ordinal": 1, "sequence_index": 0,
+            "computed_amount_before_override": 141700, "override_amount": 146000, "final_fill_amount": 141700,
+            "effective_hit": False, "would_have_hit": True
+        }]).to_csv(l1b_dir / "size_hook_events.csv", index=False)
+
+        # Trade size is 146000 vs 141700. The diff is 4300.
+        # This matches fill hook diff (146000 - 141700 = 4300) but not order hook diff (146000 - 141800 = 4200)
+        pd.DataFrame([{"time": "2020-04-02 09:30:00", "code": "600086.XSHG", "amount": 146000, "price": 10.0, "order_id": "107"}]).to_csv(l1a_dir / "local_trades_2020.csv", index=False)
+        pd.DataFrame([{"time": "2020-04-02 09:30:00", "code": "600086.XSHG", "amount": 141700, "price": 10.0, "order_id": "107"}]).to_csv(l1b_dir / "local_trades_2020.csv", index=False)
+
+        pd.DataFrame().to_csv(out_dir / "L0_MAIN_VS_HEAD_STATE_DIFFS.csv", index=False)
+        (out_dir / "L0_MAIN_VS_HEAD_REPORT.json").write_text(json.dumps({
+            "baseline_commit": "6369570406b77dda9903e832dccd5516fc9c5986",
+            "current_commit": "test-commit-123",
+            "l0_results": {"trades_diff_rows": 0, "state_diff_rows": 0, "equity_diff_rows": 0, "portfolio_stats_diff_rows": 0, "positions_diff_rows": 0, "final_value_diff": 0.0}
+        }))
+
+        # Mock the hook counts so l1a hits aren't 0
+        (l1a_dir / "hook_counts.json").write_text(json.dumps({
+            "execution.order_amount_anomalies": {"effective_hits": 1, "would_have_hits": 0, "effective_hit_keys": [{"date": "20200402", "time": "09:30", "code": "600086.XSHG", "side": "buy", "key_query_ordinal": 1}]},
+            "execution.fill_amount_anomalies": {"effective_hits": 1, "would_have_hits": 0, "effective_hit_keys": [{"date": "20200402", "time": "09:30", "code": "600086.XSHG", "side": "buy", "key_query_ordinal": 1}]}
+        }))
+        (l1b_dir / "hook_counts.json").write_text(json.dumps({
+            "execution.order_amount_anomalies": {"effective_hits": 0, "would_have_hits": 1, "would_have_hit_keys": [{"date": "20200402", "time": "09:30", "code": "600086.XSHG", "side": "buy", "key_query_ordinal": 1}]},
+            "execution.fill_amount_anomalies": {"effective_hits": 0, "would_have_hits": 1, "would_have_hit_keys": [{"date": "20200402", "time": "09:30", "code": "600086.XSHG", "side": "buy", "key_query_ordinal": 1}]}
+        }))
+
+        r = compare_runs_l1b(l1a_dir, l1b_dir, out_dir)
+        direct_df = pd.read_csv(out_dir / "DIRECT_SIZE_DIFFS.csv")
+        assert len(direct_df) == 1
+        # Check that fill_amount hook was chosen as primary hook
+        assert direct_df.iloc[0]["hook_id"] == "execution.fill_amount_anomalies"
 

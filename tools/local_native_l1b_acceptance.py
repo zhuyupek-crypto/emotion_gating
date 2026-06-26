@@ -311,7 +311,7 @@ def compare_runs_l1b(l1a_dir: Path, l1b_dir: Path, out_dir: Path) -> dict:
         "divergence_not_before_first_hit": "FAIL",
         "pre_hit_exact_match": "FAIL",
         "direct_price_unchanged": "FAIL",
-        "account_invariants": "FAIL",
+        "checked_account_invariants": "FAIL",
         "required_artifacts_complete": "FAIL",
         "all_direct_diffs_map_to_genuine_hooks": "FAIL",
         "l0_main_vs_head": "FAIL",
@@ -378,6 +378,7 @@ def compare_runs_l1b(l1a_dir: Path, l1b_dir: Path, out_dir: Path) -> dict:
         for _, row in l1a_filtered.iterrows():
             key = (
                 str(row["hook_id"]),
+                str(int(float(row["date"]))),
                 str(row["code"]),
                 normalize_order_id(row.get("order_id")),
                 int(row.get("key_query_ordinal", 1)),
@@ -393,6 +394,7 @@ def compare_runs_l1b(l1a_dir: Path, l1b_dir: Path, out_dir: Path) -> dict:
         for _, row in l1b_filtered.iterrows():
             key = (
                 str(row["hook_id"]),
+                str(int(float(row["date"]))),
                 str(row["code"]),
                 normalize_order_id(row.get("order_id")),
                 int(row.get("key_query_ordinal", 1)),
@@ -471,32 +473,44 @@ def compare_runs_l1b(l1a_dir: Path, l1b_dir: Path, out_dir: Path) -> dict:
             else:
                 amount_only_diffs += 1
 
-            # Match to a genuine pair
+            # Match to genuine pairs strictly requiring order_id
             trade_order_id = normalize_order_id(row_a.get("order_id"))
-            matched_pair_key = None
-            matched_pair_val = None
-            mapping_method = ""
+            candidates = []
             
             if trade_order_id:
                 for key, val in genuine_pairs.items():
-                    if key[1] == code and key[2] == trade_order_id:
-                        matched_pair_key = key
-                        matched_pair_val = val
-                        mapping_method = "order_id"
-                        break
+                    hook_id_evt, date_evt, code_evt, order_id_evt, key_ord, seq_idx = key
+                    if order_id_evt == trade_order_id and code_evt == code:
+                        candidates.append((key, val))
+
+            # Select the candidate that is actually causal
+            causal_matches = []
+            for key, val in candidates:
+                row_evt_a, row_evt_b = val
+                hook_id_str = key[0]
+                val_a, val_b = None, None
+                if "order_amount" in hook_id_str:
+                    val_a = row_evt_a.get("final_order_amount")
+                    val_b = row_evt_b.get("final_order_amount")
+                elif "fill_amount" in hook_id_str:
+                    val_a = row_evt_a.get("final_fill_amount")
+                    val_b = row_evt_b.get("final_fill_amount")
+                
+                if val_a is not None and val_b is not None and not pd.isna(val_a) and not pd.isna(val_b):
+                    expected_diff = float(val_a) - float(val_b)
+                    actual_diff = float(amt_a) - float(amt_b) if side == "buy" else float(amt_b) - float(amt_a)
+                    if abs(expected_diff) > FLOAT_TOL and abs(actual_diff - expected_diff) <= FLOAT_TOL:
+                        causal_matches.append((key, val))
             
-            if matched_pair_val is None:
-                # Fallback to date, code, side, key_query_ordinal
-                for key, val in genuine_pairs.items():
-                    row_evt_a, row_evt_b = val
-                    if (key[1] == code and 
-                        str(row_evt_b["date"]) == date_str.replace("-", "") and 
-                        str(row_evt_b["side"]) == side and 
-                        int(row_evt_b.get("key_query_ordinal", 1)) == occurrence_idx):
-                        matched_pair_key = key
-                        matched_pair_val = val
-                        mapping_method = "time_fallback"
-                        break
+            matched_pair_key = None
+            matched_pair_val = None
+            supporting_hook_ids = []
+            
+            if causal_matches:
+                # Sort causal matches: fill_amount first
+                causal_matches.sort(key=lambda x: 0 if "fill_amount" in str(x[0][0]) else 1)
+                matched_pair_key, matched_pair_val = causal_matches[0]
+                supporting_hook_ids = [str(x[0][0]) for x in causal_matches[1:]]
 
             if matched_pair_val is not None:
                 row_evt_a, row_evt_b = matched_pair_val
@@ -517,18 +531,19 @@ def compare_runs_l1b(l1a_dir: Path, l1b_dir: Path, out_dir: Path) -> dict:
                     "l1a_price": pr_a,
                     "l1b_price": pr_b,
                     "hook_id": matched_pair_key[0],
-                    "key_query_ordinal": matched_pair_key[3],
-                    "sequence_index": matched_pair_key[4],
+                    "key_query_ordinal": matched_pair_key[4],
+                    "sequence_index": matched_pair_key[5],
                     "override_value": override_val,
                     "order_id": trade_order_id,
-                    "event_order_id": matched_pair_key[2],
+                    "event_order_id": matched_pair_key[3],
                     "hook_query_time": str(row_evt_b.get("time")),
                     "trade_time": time_str,
-                    "mapping_method": mapping_method,
+                    "mapping_method": "order_id",
                     "l1a_effective_hit": bool(row_evt_a.get("effective_hit")),
                     "l1b_would_have_hit": bool(row_evt_b.get("would_have_hit")),
                     "l1a_override_amount": row_evt_a.get("override_amount"),
                     "l1b_override_amount": row_evt_b.get("override_amount"),
+                    "supporting_hook_ids": ",".join(supporting_hook_ids),
                 })
             else:
                 trade_key_diff_rows.append({
@@ -576,7 +591,8 @@ def compare_runs_l1b(l1a_dir: Path, l1b_dir: Path, out_dir: Path) -> dict:
             "l1a_amount", "l1b_amount", "diff_amount", "l1a_price", "l1b_price",
             "hook_id", "key_query_ordinal", "sequence_index", "override_value",
             "order_id", "hook_query_time", "trade_time", "mapping_method",
-            "l1a_effective_hit", "l1b_would_have_hit", "l1a_override_amount", "l1b_override_amount"
+            "l1a_effective_hit", "l1b_would_have_hit", "l1a_override_amount", "l1b_override_amount",
+            "supporting_hook_ids"
         ])
     direct_df.to_csv(out_dir / "DIRECT_SIZE_DIFFS.csv", index=False)
 
@@ -639,7 +655,7 @@ def compare_runs_l1b(l1a_dir: Path, l1b_dir: Path, out_dir: Path) -> dict:
     if pre_hit_ok:
         gates["pre_hit_exact_match"] = "PASS"
 
-    # 9. account_invariants (tightened lot-size exemption + total cash identity + sell constraint comments)
+    # 9. checked_account_invariants (tightened lot-size exemption + total cash identity + sell constraint comments)
     invariants_ok = True
     for target_dir in [l1a_dir, l1b_dir]:
         port_df = pd.read_csv(target_dir / "local_portfolio_stats_2020.csv")
@@ -703,7 +719,7 @@ def compare_runs_l1b(l1a_dir: Path, l1b_dir: Path, out_dir: Path) -> dict:
                     else:
                         invariants_ok = False
     if invariants_ok:
-        gates["account_invariants"] = "PASS"
+        gates["checked_account_invariants"] = "PASS"
 
     # Compare state cell-by-cell for state diff sample
     cell_diff_count, diffs = compare_state_files(l1a_dir / "local_state_2020.csv", l1b_dir / "local_state_2020.csv")
@@ -723,7 +739,14 @@ def compare_runs_l1b(l1a_dir: Path, l1b_dir: Path, out_dir: Path) -> dict:
     # 11. all_direct_diffs_map_to_genuine_hooks
     all_mapped = True
     for d in direct_size_diffs:
-        key = (d["hook_id"], d["code"], d["event_order_id"], int(d["key_query_ordinal"]), int(d["sequence_index"]))
+        key = (
+            str(d["hook_id"]),
+            str(int(float(d["date"].replace("-", "")))),
+            str(d["code"]),
+            normalize_order_id(d["event_order_id"]),
+            int(d["key_query_ordinal"]),
+            int(d["sequence_index"]),
+        )
         if key not in genuine_pairs:
             all_mapped = False
             break
