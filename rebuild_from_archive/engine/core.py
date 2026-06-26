@@ -1856,7 +1856,15 @@ class Engine:
                 'available_cash': self.context.portfolio.available_cash,
                 'frozen_cash': self.context.portfolio.locked_cash,
                 'positions_value': self.context.portfolio.positions_value,
-                'total_value': total_value
+                'total_value': total_value,
+                'positions': {
+                    sec: {
+                        'total_amount': pos.total_amount,
+                        'avg_cost': pos.avg_cost,
+                        'price': pos.price
+                    }
+                    for sec, pos in self.context.portfolio.positions.items()
+                }
             })
 
             # Fire dynamic day-end callback
