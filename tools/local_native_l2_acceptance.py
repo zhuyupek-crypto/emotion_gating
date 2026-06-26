@@ -37,6 +37,9 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+# Gates that are allowed to use NOT_COVERED status (others must be PASS)
+ALLOWED_NOT_COVERED = frozenset({"l1b_preopen_hooks_have_effective_hits"})
+
 from tools.acceptance_common import (
     setup_runtime,
     _jsonable,
@@ -92,16 +95,50 @@ REQUIRED_ARTIFACTS = FINAL_DELIVERY_ARTIFACTS
 # ---------------------------------------------------------------------------
 def _collect_hook_telemetry_l2(compat) -> dict:
     result = {}
+    disabled_set = getattr(compat, "disabled_hook_ids", set())
+    raw_events = getattr(compat, "order_presence_hook_events", [])
+
     for hid in sorted(L2_HOOK_IDS):
         queries = getattr(compat, "_hook_queries", {}).get(hid, 0)
-        hits = getattr(compat, "_hook_hits", {}).get(hid, 0)
-        would_hits = getattr(compat, "_hook_would_have_hits", {}).get(hid, 0)
-
-        disabled_set = getattr(compat, "disabled_hook_ids", set())
         disabled = hid in disabled_set
 
-        hit_keys = [k for k in getattr(compat, "_hook_hit_keys", []) if k["hook_id"] == hid]
-        would_have = [k for k in getattr(compat, "_hook_would_have_hit_keys", []) if k["hook_id"] == hid]
+        # Derive effective/would-have counts from REAL order presence events
+        hid_events = [e for e in raw_events if e.get("hook_id") == hid]
+        effective_hits = sum(1 for e in hid_events if e.get("effective_hit") == True)
+        would_have_hits = sum(1 for e in hid_events if e.get("would_have_hit") == True)
+
+        # Build hit_keys and would_have_hit_keys from real events
+        hit_keys = [
+            {
+                "date": e.get("date", ""), "time": e.get("time", ""),
+                "code": e.get("code", ""), "side": e.get("side", "buy"),
+                "hook_id": hid,
+                "key_query_ordinal": e.get("request_ordinal", 1),
+                "effective_hit": True, "would_have_hit": False,
+                "order_id": e.get("order_id", ""),
+                "affected_order_ids": e.get("affected_order_ids", []),
+                "actual_canceled_count": e.get("actual_canceled_count", 0),
+                "would_have_affected_order_ids": e.get("would_have_affected_order_ids", []),
+                "would_have_canceled_count": e.get("would_have_canceled_count", 0),
+            }
+            for e in hid_events if e.get("effective_hit") == True
+        ]
+
+        would_have = [
+            {
+                "date": e.get("date", ""), "time": e.get("time", ""),
+                "code": e.get("code", ""), "side": e.get("side", "buy"),
+                "hook_id": hid,
+                "key_query_ordinal": e.get("request_ordinal", 1),
+                "effective_hit": False, "would_have_hit": True,
+                "order_id": e.get("order_id", ""),
+                "affected_order_ids": e.get("affected_order_ids", []),
+                "actual_canceled_count": e.get("actual_canceled_count", 0),
+                "would_have_affected_order_ids": e.get("would_have_affected_order_ids", []),
+                "would_have_canceled_count": e.get("would_have_canceled_count", 0),
+            }
+            for e in hid_events if e.get("would_have_hit") == True
+        ]
 
         sorted_hit_keys = sorted(hit_keys, key=lambda x: (x["date"], x["time"], x["code"], x.get("key_query_ordinal", 1)))
         sorted_would = sorted(would_have, key=lambda x: (x["date"], x["time"], x["code"], x.get("key_query_ordinal", 1)))
@@ -111,8 +148,10 @@ def _collect_hook_telemetry_l2(compat) -> dict:
 
         entry = {
             "queries": queries,
-            "effective_hits": 0 if disabled else hits,
-            "would_have_hits": would_hits if disabled else 0,
+            "raw_query_hits": getattr(compat, "_hook_hits", {}).get(hid, 0),
+            "raw_would_have": getattr(compat, "_hook_would_have_hits", {}).get(hid, 0),
+            "effective_hits": effective_hits,
+            "would_have_hits": would_have_hits,
             "effective_hit_keys": sorted_hit_keys,
             "first_effective_hit": f"{first_hit['date']} {first_hit['time']}" if first_hit else None,
             "would_have_hit": len(would_have) > 0,
@@ -164,8 +203,19 @@ def run_backtest(profile: str, year: int, out_dir: Path, hdata_reader, Engine, E
     positions_df = pd.DataFrame(positions_rows, columns=["date", "code", "amount", "avg_cost", "price"])
     positions_df.to_csv(out_dir / f"local_positions_{year}.csv", index=False)
 
-    # Save order presence hook events
+    # Save order presence hook events: always write header even if zero events
     events_df = pd.DataFrame(getattr(compat, "order_presence_hook_events", []))
+    if events_df.empty:
+        events_df = pd.DataFrame(columns=[
+            "hook_id", "profile", "date", "time", "code", "side",
+            "order_id", "request_ordinal", "requested_amount", "requested_price",
+            "available_cash", "cash_threshold", "duplicate_ordinal",
+            "pending_count_before", "pending_count_after",
+            "raw_decision", "final_decision", "order_created", "order_retained",
+            "effective_hit", "would_have_hit",
+            "affected_order_ids", "actual_canceled_count",
+            "would_have_affected_order_ids", "would_have_canceled_count",
+        ])
     events_df.to_csv(out_dir / "order_presence_hook_events.csv", index=False)
 
     telemetry = _collect_hook_telemetry_l2(compat)
@@ -260,9 +310,20 @@ def compare_runs_l2(l1b_root: Path, l2_root: Path, years: list[int], out_dir: Pa
         l1b_pos = pd.read_csv(l1b_year_dir / f"local_positions_{year}.csv")
         l2_pos = pd.read_csv(l2_year_dir / f"local_positions_{year}.csv")
 
-        # Load order presence hook events
-        l1b_events = pd.read_csv(l1b_year_dir / "order_presence_hook_events.csv") if (l1b_year_dir / "order_presence_hook_events.csv").exists() else pd.DataFrame()
-        l2_events = pd.read_csv(l2_year_dir / "order_presence_hook_events.csv") if (l2_year_dir / "order_presence_hook_events.csv").exists() else pd.DataFrame()
+        # Load order presence hook events (handle EmptyDataError for header-only files)
+        def _safe_read_events(fp):
+            if not fp.exists():
+                return pd.DataFrame()
+            try:
+                df = pd.read_csv(fp)
+                if df.empty:
+                    return pd.DataFrame()
+                return df
+            except pd.errors.EmptyDataError:
+                return pd.DataFrame()
+
+        l1b_events = _safe_read_events(l1b_year_dir / "order_presence_hook_events.csv")
+        l2_events = _safe_read_events(l2_year_dir / "order_presence_hook_events.csv")
 
         if not l1b_events.empty and "profile" not in l1b_events.columns:
             l1b_events["profile"] = "local_native_l1b"
@@ -400,7 +461,7 @@ def compare_runs_l2(l1b_root: Path, l2_root: Path, years: list[int], out_dir: Pa
                 divergence_trade_time = str(row_a.get("time", ""))
                 break
 
-        # Classify matched trade diffs as direct vs downstream
+        # Generate DIRECT_ORDER_DIFFS directly from event pairs (not from trade diffs)
         direct_order_diffs_year = []
         trade_key_diff_rows_year = []
 
@@ -408,6 +469,31 @@ def compare_runs_l2(l1b_root: Path, l2_root: Path, years: list[int], out_dir: Pa
         price_diffs = 0
         direct_price_ok = True
 
+        for key, (row_evt_a, row_evt_b) in genuine_pairs.items():
+            hook_id_str, date_evt, time_evt, code_evt, order_id_evt, req_ord = key
+
+            # Build a direct order diff from the event pair
+            direct_order_diffs_year.append({
+                "year": year,
+                "date": date_evt,
+                "time": time_evt,
+                "code": code_evt,
+                "hook_id": hook_id_str,
+                "order_id": order_id_evt,
+                "l1b_effective_hit": bool(row_evt_a.get("effective_hit")),
+                "l2_would_have_hit": bool(row_evt_b.get("would_have_hit")),
+                "l1b_affected_order_ids": str(row_evt_a.get("affected_order_ids", [])),
+                "l2_would_have_affected_order_ids": str(row_evt_b.get("would_have_affected_order_ids", [])),
+                "l1b_actual_canceled_count": int(row_evt_a.get("actual_canceled_count", 0)),
+                "l2_would_have_canceled_count": int(row_evt_b.get("would_have_canceled_count", 0)),
+                "l1b_pending_count_before": int(row_evt_a.get("pending_count_before", 0)),
+                "l1b_pending_count_after": int(row_evt_a.get("pending_count_after", 0)),
+                "l2_pending_count_before": int(row_evt_b.get("pending_count_before", 0)),
+                "l2_pending_count_after": int(row_evt_b.get("pending_count_after", 0)),
+                "diff_type": "direct",
+            })
+
+        # Matched trade diffs (amount/price) are downstream
         for k in sorted(matched_keys):
             row_a = l1b_by_key[k]
             row_b = l2_by_key[k]
@@ -418,8 +504,6 @@ def compare_runs_l2(l1b_root: Path, l2_root: Path, years: list[int], out_dir: Pa
 
             time_str = str(row_a.get("time", ""))
             date_str = time_str.split()[0] if " " in time_str else ""
-            code = str(row_a.get("code", ""))
-            side = "buy" if amt_a > 0 else "sell"
 
             amt_diff = abs(amt_a - amt_b) > FLOAT_TOL
             pr_diff = abs(pr_a - pr_b) > FLOAT_TOL
@@ -430,74 +514,17 @@ def compare_runs_l2(l1b_root: Path, l2_root: Path, years: list[int], out_dir: Pa
                 else:
                     amount_only_diffs += 1
 
-                # Try to match to genuine pairs
-                trade_order_id = normalize_order_id(row_a.get("order_id"))
-                trade_date = date_str.replace("-", "")
-
-                # Find matching hook events
-                candidates = []
-                if trade_order_id:
-                    for key, val in genuine_pairs.items():
-                        hook_id_str, date_evt, time_evt, code_evt, order_id_evt, req_ord = key
-                        if (order_id_evt == trade_order_id and
-                                code_evt == code and
-                                date_evt == trade_date):
-                            candidates.append((key, val))
-
-                # Check if this is a direct diff (L1B effective_hit=True, L2 would_have_hit=True, same date/code)
-                is_direct = False
-                matched_hook_id = None
-                matched_pair_key = None
-                matched_pair_val = None
-
-                for key, (row_evt_a, row_evt_b) in candidates:
-                    l1b_eff = bool(row_evt_a.get("effective_hit"))
-                    l2_would = bool(row_evt_b.get("would_have_hit"))
-                    if l1b_eff and l2_would:
-                        is_direct = True
-                        matched_hook_id = key[0]
-                        matched_pair_key = key
-                        matched_pair_val = (row_evt_a, row_evt_b)
-                        break
-
-                if is_direct and matched_pair_val is not None:
-                    row_evt_a, row_evt_b = matched_pair_val
-                    if pr_diff:
-                        direct_price_ok = False
-
-                    direct_order_diffs_year.append({
-                        "year": year,
-                        "trade_key": k,
-                        "date": date_str,
-                        "time": time_str.split()[1] if " " in time_str else time_str,
-                        "code": code,
-                        "side": side,
-                        "l1b_amount": amt_a,
-                        "l2_amount": amt_b,
-                        "diff_amount": amt_a - amt_b,
-                        "l1b_price": pr_a,
-                        "l2_price": pr_b,
-                        "hook_id": matched_hook_id,
-                        "order_id": trade_order_id,
-                        "hook_query_time": str(row_evt_b.get("time")),
-                        "trade_time": time_str,
-                        "l1b_effective_hit": bool(row_evt_a.get("effective_hit")),
-                        "l2_would_have_hit": bool(row_evt_b.get("would_have_hit")),
-                        "diff_type": "direct",
-                    })
-                else:
-                    # NOT direct: same-day trade diffs without corresponding hook event
-                    trade_key_diff_rows_year.append({
-                        "year": year,
-                        "trade_key": k,
-                        "diff_type": "price_diff" if pr_diff else "amount_diff",
-                        "date": date_str,
-                        "code": code,
-                        "l1b_amount": amt_a,
-                        "l2_amount": amt_b,
-                        "l1b_price": pr_a,
-                        "l2_price": pr_b,
-                    })
+                trade_key_diff_rows_year.append({
+                    "year": year,
+                    "trade_key": k,
+                    "diff_type": "price_diff" if pr_diff else "amount_diff",
+                    "date": date_str,
+                    "code": str(row_a.get("code", "")),
+                    "l1b_amount": amt_a,
+                    "l2_amount": amt_b,
+                    "l1b_price": pr_a,
+                    "l2_price": pr_b,
+                })
 
         # Added / removed keys are downstream diffs
         for k in sorted(removed_keys):
@@ -584,10 +611,13 @@ def compare_runs_l2(l1b_root: Path, l2_root: Path, years: list[int], out_dir: Pa
     direct_df = pd.DataFrame(all_direct_order_diffs)
     if direct_df.empty:
         direct_df = pd.DataFrame(columns=[
-            "year", "trade_key", "date", "time", "code", "side",
-            "l1b_amount", "l2_amount", "diff_amount", "l1b_price", "l2_price",
-            "hook_id", "order_id", "hook_query_time", "trade_time",
-            "l1b_effective_hit", "l2_would_have_hit", "diff_type",
+            "year", "date", "time", "code", "hook_id", "order_id",
+            "l1b_effective_hit", "l2_would_have_hit",
+            "l1b_affected_order_ids", "l2_would_have_affected_order_ids",
+            "l1b_actual_canceled_count", "l2_would_have_canceled_count",
+            "l1b_pending_count_before", "l1b_pending_count_after",
+            "l2_pending_count_before", "l2_pending_count_after",
+            "diff_type",
         ])
     direct_df.to_csv(out_dir / "DIRECT_ORDER_DIFFS.csv", index=False)
 
@@ -610,50 +640,131 @@ def compare_runs_l2(l1b_root: Path, l2_root: Path, years: list[int], out_dir: Pa
     year_summary_df = pd.DataFrame(year_summary_rows)
     year_summary_df.to_csv(out_dir / "YEAR_SUMMARY.csv", index=False)
 
-    # Compute pre_hit_exact_match: verify L1B and L2 trades/state are identical
-    # before the first would-have-hit event
+    # Compute pre_hit_exact_match: per-year, ordered, multi-file comparison
+    # before each year's first would-have-hit event
     pre_hit_ok = True
-    if year_summary_rows:
-        all_hit_times = [(r["first_l2_hook_would_have_hit"], r["year"]) for r in year_summary_rows if r.get("first_l2_hook_would_have_hit")]
-        if all_hit_times:
-            all_hit_times.sort(key=lambda x: x[0])
-            earliest_hit_time, earliest_hit_year = all_hit_times[0]
-            first_hit_dt = pd.to_datetime(earliest_hit_time)
+    pre_hit_details = {}
 
-            # Load the trade data for the earliest-hit year
-            earliest_yr = str(earliest_hit_year)
-            l1b_yr_dir = l1b_root / earliest_yr
-            l2_yr_dir = l2_root / earliest_yr
+    for year in years:
+        yr = str(year)
+        yr_summary = next((r for r in year_summary_rows if str(r.get("year")) == yr), None)
+        if yr_summary is None:
+            continue
 
-            l1b_trades_pre = pd.read_csv(l1b_yr_dir / f"local_trades_{earliest_yr}.csv")
-            l2_trades_pre = pd.read_csv(l2_yr_dir / f"local_trades_{earliest_yr}.csv")
+        first_hit_time = yr_summary.get("first_l2_hook_would_have_hit")
+        if first_hit_time is None:
+            pre_hit_details[yr] = "N/A (no would-have-hit in this year)"
+            continue
 
-            # Filter trades before the first hit time
-            if "time" in l1b_trades_pre.columns:
-                l1b_trades_pre["_dt"] = pd.to_datetime(l1b_trades_pre["time"])
-                l2_trades_pre["_dt"] = pd.to_datetime(l2_trades_pre["time"])
-                l1b_before = l1b_trades_pre[l1b_trades_pre["_dt"] < first_hit_dt]
-                l2_before = l2_trades_pre[l2_trades_pre["_dt"] < first_hit_dt]
+        first_hit_dt = pd.to_datetime(first_hit_time)
+        l1b_yr_dir = l1b_root / yr
+        l2_yr_dir = l2_root / yr
 
-                # Build trade keys: (date, time, code, amount, price)
-                def _trade_sig(row):
-                    dt = pd.to_datetime(row["time"])
-                    return (
-                        dt.strftime("%Y-%m-%d"), dt.strftime("%H:%M:%S"),
-                        str(row.get("code", "")),
-                        round(float(row.get("amount", 0)), 2),
-                        round(float(row.get("price", 0)), 2),
-                    )
+        year_ok = True
 
-                l1b_sigs = set(_trade_sig(row) for _, row in l1b_before.iterrows())
-                l2_sigs = set(_trade_sig(row) for _, row in l2_before.iterrows())
+        # Compare trades: ordered list, not set
+        l1b_trades_pre = pd.read_csv(l1b_yr_dir / f"local_trades_{year}.csv")
+        l2_trades_pre = pd.read_csv(l2_yr_dir / f"local_trades_{year}.csv")
 
-                if l1b_sigs != l2_sigs:
-                    pre_hit_ok = False
-            else:
-                pre_hit_ok = False
+        if "time" in l1b_trades_pre.columns and "time" in l2_trades_pre.columns:
+            l1b_trades_pre["_dt"] = pd.to_datetime(l1b_trades_pre["time"])
+            l2_trades_pre["_dt"] = pd.to_datetime(l2_trades_pre["time"])
+            l1b_before = l1b_trades_pre[l1b_trades_pre["_dt"] < first_hit_dt]
+            l2_before = l2_trades_pre[l2_trades_pre["_dt"] < first_hit_dt]
+
+            def _trade_key(row):
+                dt = pd.to_datetime(row["time"])
+                return (
+                    dt.strftime("%Y-%m-%d"), dt.strftime("%H:%M:%S"),
+                    str(row.get("code", "")),
+                    round(float(row.get("amount", 0)), 2),
+                    round(float(row.get("price", 0)), 2),
+                )
+
+            l1b_trade_list = [_trade_key(row) for _, row in l1b_before.iterrows()]
+            l2_trade_list = [_trade_key(row) for _, row in l2_before.iterrows()]
+
+            if l1b_trade_list != l2_trade_list:
+                year_ok = False
         else:
+            year_ok = False
+
+        # Compare state: row-by-row ordered
+        l1b_state = pd.read_csv(l1b_yr_dir / f"local_state_{year}.csv")
+        l2_state = pd.read_csv(l2_yr_dir / f"local_state_{year}.csv")
+        if "date" in l1b_state.columns and "date" in l2_state.columns:
+            l1b_state["_dt"] = pd.to_datetime(l1b_state["date"])
+            l2_state["_dt"] = pd.to_datetime(l2_state["date"])
+            l1b_state_before = l1b_state[l1b_state["_dt"] < first_hit_dt]
+            l2_state_before = l2_state[l2_state["_dt"] < first_hit_dt]
+            if not l1b_state_before.equals(l2_state_before):
+                year_ok = False
+        else:
+            year_ok = False
+
+        # Compare equity: row-by-row ordered
+        l1b_equity = pd.read_csv(l1b_yr_dir / f"local_equity_{year}.csv")
+        l2_equity = pd.read_csv(l2_yr_dir / f"local_equity_{year}.csv")
+        if "date" in l1b_equity.columns and "date" in l2_equity.columns:
+            l1b_equity["_dt"] = pd.to_datetime(l1b_equity["date"])
+            l2_equity["_dt"] = pd.to_datetime(l2_equity["date"])
+            l1b_equity_before = l1b_equity[l1b_equity["_dt"] < first_hit_dt]
+            l2_equity_before = l2_equity[l2_equity["_dt"] < first_hit_dt]
+            if not l1b_equity_before.reset_index(drop=True).equals(
+                    l2_equity_before.reset_index(drop=True)):
+                year_ok = False
+        else:
+            year_ok = False
+
+        # Compare portfolio stats
+        l1b_pf = pd.read_csv(l1b_yr_dir / f"local_portfolio_stats_{year}.csv")
+        l2_pf = pd.read_csv(l2_yr_dir / f"local_portfolio_stats_{year}.csv")
+        if "date" in l1b_pf.columns and "date" in l2_pf.columns:
+            l1b_pf["_dt"] = pd.to_datetime(l1b_pf["date"])
+            l2_pf["_dt"] = pd.to_datetime(l2_pf["date"])
+            l1b_pf_before = l1b_pf[l1b_pf["_dt"] < first_hit_dt]
+            l2_pf_before = l2_pf[l2_pf["_dt"] < first_hit_dt]
+            if not l1b_pf_before.reset_index(drop=True).equals(
+                    l2_pf_before.reset_index(drop=True)):
+                year_ok = False
+
+        # Compare positions
+        l1b_pos = pd.read_csv(l1b_yr_dir / f"local_positions_{year}.csv")
+        l2_pos = pd.read_csv(l2_yr_dir / f"local_positions_{year}.csv")
+        if "date" in l1b_pos.columns and "date" in l2_pos.columns:
+            l1b_pos["_dt"] = pd.to_datetime(l1b_pos["date"])
+            l2_pos["_dt"] = pd.to_datetime(l2_pos["date"])
+            l1b_pos_before = l1b_pos[l1b_pos["_dt"] < first_hit_dt]
+            l2_pos_before = l2_pos[l2_pos["_dt"] < first_hit_dt]
+            if not l1b_pos_before.reset_index(drop=True).equals(
+                    l2_pos_before.reset_index(drop=True)):
+                year_ok = False
+
+        # Compare pre-hit order events
+        l1b_events_path = l1b_yr_dir / "order_presence_hook_events.csv"
+        l2_events_path = l2_yr_dir / "order_presence_hook_events.csv"
+        if l1b_events_path.exists() and l2_events_path.exists():
+            def _safe_read_events_pre(fp):
+                try:
+                    df = pd.read_csv(fp)
+                    return df if not df.empty else pd.DataFrame()
+                except pd.errors.EmptyDataError:
+                    return pd.DataFrame()
+
+            l1b_ev = _safe_read_events_pre(l1b_events_path)
+            l2_ev = _safe_read_events_pre(l2_events_path)
+            if not l1b_ev.empty and not l2_ev.empty and "date" in l1b_ev.columns:
+                l1b_ev["_dt"] = pd.to_datetime(l1b_ev["date"] + " " + l1b_ev["time"].fillna(""))
+                l2_ev["_dt"] = pd.to_datetime(l2_ev["date"] + " " + l2_ev["time"].fillna(""))
+                l1b_ev_before = l1b_ev[l1b_ev["_dt"] < first_hit_dt]
+                l2_ev_before = l2_ev[l2_ev["_dt"] < first_hit_dt]
+                if not l1b_ev_before.reset_index(drop=True).equals(
+                        l2_ev_before.reset_index(drop=True)):
+                    year_ok = False
+
+        if not year_ok:
             pre_hit_ok = False
+        pre_hit_details[yr] = "PASS" if year_ok else "FAIL" 
 
     # Compute gates
     gates = _compute_l2_gates(
@@ -663,11 +774,22 @@ def compare_runs_l2(l1b_root: Path, l2_root: Path, years: list[int], out_dir: Pa
         year_summary_rows, out_dir,
         pre_hit_exact_match_ok=pre_hit_ok,
     )
+    gates["pre_hit_exact_match_details"] = pre_hit_details
 
     # Build report dict
     # Use first year's summary for source commit info
     first_year = str(years[0])
     first_l1b_summary = all_l1b_summaries[first_year]
+
+    # Build coverage_notes separately (not in gates dict)
+    coverage_notes = {}
+    if gates.get("l1b_preopen_hooks_have_effective_hits") == "NOT_COVERED":
+        coverage_notes["cash_hook_runtime_covered"] = (
+            "cash_reject_cash_below has 0 effective hits across all years. "
+            "This is natural: strategy available cash was above threshold at all "
+            "cash-reject timestamps. Duplicate hook has effective hits, confirming "
+            "the mechanism works. Cash hook is NOT_COVERED by available data."
+        )
 
     report = {
         "title": "LOCAL_NATIVE_L2 Acceptance Report",
@@ -687,6 +809,7 @@ def compare_runs_l2(l1b_root: Path, l2_root: Path, years: list[int], out_dir: Pa
         "hook_telemetry_l1b": all_l1b_telemetries,
         "hook_telemetry_l2": all_l2_telemetries,
         "acceptance_gates": gates,
+        "coverage_notes": coverage_notes,
     }
 
     # Write report json and md
@@ -763,12 +886,6 @@ def _compute_l2_gates(
     elif cash_hits == 0 and l1b_total_effective.get("execution.preopen_drop_first_duplicate", 0) > 0:
         # Duplicate has hits, but cash is naturally zero -> NOT_COVERED
         gates["l1b_preopen_hooks_have_effective_hits"] = "NOT_COVERED"
-        gates["l1b_preopen_hooks_have_effective_hits_note"] = (
-            "cash_reject_cash_below has 0 effective hits across all years. "
-            "This is natural: strategy available cash was above threshold at all "
-            "cash-reject timestamps. Duplicate hook has effective hits, confirming "
-            "the mechanism works. Cash hook is NOT_COVERED by available data."
-        )
 
     # 3. l2_preopen_hooks_effective_hits_zero:
     # - all 3 have 0 effective hits (disabled in L2)
@@ -965,9 +1082,18 @@ def verify_determinism_and_finalize_l2(out_dir: Path, ref_dir: Path) -> dict:
                         break
                 gates["required_artifacts_complete"] = "PASS" if final_artifacts_ok else "FAIL"
 
-                gates["implementation_acceptance"] = "PASS" if all(
-                    v in ("PASS", "NOT_COVERED") for k, v in gates.items() if k != "implementation_acceptance"
-                ) else "FAIL"
+                # Only whitelisted gates may use NOT_COVERED; others must be PASS
+                impl_ok = True
+                for k, v in gates.items():
+                    if k == "implementation_acceptance":
+                        continue
+                    if v == "PASS":
+                        continue
+                    if v == "NOT_COVERED" and k in ALLOWED_NOT_COVERED:
+                        continue
+                    impl_ok = False
+                    break
+                gates["implementation_acceptance"] = "PASS" if impl_ok else "FAIL"
 
                 rpt["acceptance_gates"] = gates
                 if "metadata" in rpt:

@@ -572,6 +572,7 @@ class Engine:
 
         actual_canceled = False
         affected_order_ids = []
+        would_have_affected_order_ids = []
         if final_drop and earlier:
             for pending in earlier:
                 pending.status = OrderStatus("canceled")
@@ -580,6 +581,10 @@ class Engine:
                 affected_order_ids.append(str(pending.order_id))
                 self._release_pre_open_buy_resources(pending)
             actual_canceled = True
+
+        # Collect would-have affected order IDs even when final_drop=False (L2 disabled path)
+        if not final_drop and earlier:
+            would_have_affected_order_ids = [str(p.order_id) for p in earlier]
 
         pending_count_after = len(self._pending_orders)
 
@@ -607,6 +612,8 @@ class Engine:
                     would_have_hit=not actual_canceled,
                     affected_order_ids=affected_order_ids,
                     actual_canceled_count=len(affected_order_ids),
+                    would_have_affected_order_ids=would_have_affected_order_ids,
+                    would_have_canceled_count=len(would_have_affected_order_ids),
                 )
 
     def _reserve_pre_open_buy_position(self, order, ref_price):

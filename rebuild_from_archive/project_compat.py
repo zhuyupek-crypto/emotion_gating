@@ -172,7 +172,8 @@ class EmotionGateJQCompat:
                                      duplicate_ordinal, pending_count_before, pending_count_after,
                                      raw_decision, final_decision, order_created, order_retained,
                                      effective_hit, would_have_hit,
-                                     affected_order_ids=None, actual_canceled_count=None):
+                                     affected_order_ids=None, actual_canceled_count=None,
+                                     would_have_affected_order_ids=None, would_have_canceled_count=None):
         """Record order-presence-level telemetry for L2 hooks. Called by Engine."""
         self._order_presence_query_ordinal += 1
         request_ordinal = self._order_presence_query_ordinal
@@ -200,6 +201,8 @@ class EmotionGateJQCompat:
             "would_have_hit": would_have_hit,
             "affected_order_ids": affected_order_ids if affected_order_ids else [],
             "actual_canceled_count": actual_canceled_count if actual_canceled_count is not None else 0,
+            "would_have_affected_order_ids": would_have_affected_order_ids if would_have_affected_order_ids else [],
+            "would_have_canceled_count": would_have_canceled_count if would_have_canceled_count is not None else 0,
         })
 
     def namespace_entries(self, engine):
