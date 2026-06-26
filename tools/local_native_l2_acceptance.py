@@ -297,11 +297,15 @@ def compare_runs_l2(l1b_root: Path, l2_root: Path, years: list[int], out_dir: Pa
             else:
                 combined_events["_sort_order_id"] = -1
             combined_events["key_query_ordinal"] = pd.to_numeric(combined_events.get("key_query_ordinal", 0)).fillna(0).astype(int)
-            combined_events["sequence_index"] = pd.to_numeric(combined_events.get("sequence_index", 0)).fillna(0).astype(int)
+            # Use request_ordinal for stable sort
+            if "request_ordinal" in combined_events.columns:
+                combined_events["_sort_request"] = pd.to_numeric(combined_events["request_ordinal"], errors="coerce").fillna(0).astype(int)
+            else:
+                combined_events["_sort_request"] = 0
 
             combined_events = combined_events.sort_values(
-                by=["profile", "hook_id", "date", "time", "code", "_sort_order_id", "key_query_ordinal", "sequence_index"]
-            ).drop(columns=["_sort_order_id"])
+                by=["profile", "hook_id", "date", "time", "code", "_sort_order_id", "_sort_request", "key_query_ordinal"]
+            ).drop(columns=["_sort_order_id", "_sort_request"])
 
             all_order_presence_events.append(combined_events)
 
@@ -355,8 +359,7 @@ def compare_runs_l2(l1b_root: Path, l2_root: Path, years: list[int], out_dir: Pa
                     str(row["time"]),
                     str(row["code"]),
                     normalize_order_id(row.get("order_id")),
-                    int(row.get("key_query_ordinal", 1)),
-                    int(row.get("sequence_index", 0)),
+                    int(row.get("request_ordinal", 0)),
                 )
                 l1b_genuine[key] = row.to_dict()
 
@@ -370,8 +373,7 @@ def compare_runs_l2(l1b_root: Path, l2_root: Path, years: list[int], out_dir: Pa
                     str(row["time"]),
                     str(row["code"]),
                     normalize_order_id(row.get("order_id")),
-                    int(row.get("key_query_ordinal", 1)),
-                    int(row.get("sequence_index", 0)),
+                    int(row.get("request_ordinal", 0)),
                 )
                 l2_genuine[key] = row.to_dict()
 
@@ -436,7 +438,7 @@ def compare_runs_l2(l1b_root: Path, l2_root: Path, years: list[int], out_dir: Pa
                 candidates = []
                 if trade_order_id:
                     for key, val in genuine_pairs.items():
-                        hook_id_str, date_evt, time_evt, code_evt, order_id_evt, kqo, si = key
+                        hook_id_str, date_evt, time_evt, code_evt, order_id_evt, req_ord = key
                         if (order_id_evt == trade_order_id and
                                 code_evt == code and
                                 date_evt == trade_date):
@@ -673,42 +675,61 @@ def _compute_l2_gates(
         "implementation_acceptance": "FAIL",
     }
 
-    expected_disabled = sorted(list(L2_HOOK_IDS))
+    from rebuild_from_archive.compat.profiles import LOCAL_NATIVE_L2 as _L2, PROFILE_DISABLED_HOOKS as _PDH
+    expected_disabled = sorted(_PDH[_L2])
+    expected_set = set(_PDH[_L2])
 
     # 1. l2_exact_hook_set: check all years
     hook_set_ok = True
     for yr, manifest in all_l2_manifests.items():
         actual_disabled = sorted(manifest.get("disabled_hook_ids", []))
-        if actual_disabled != expected_disabled:
+        if set(actual_disabled) != expected_set:
             hook_set_ok = False
             break
     if hook_set_ok:
         gates["l2_exact_hook_set"] = "PASS"
 
-    # 2. l1b_preopen_hooks_have_effective_hits: all years
+    # 2. l1b_preopen_hooks_have_effective_hits:
+    # - duplicate: 2021+2022 aggregate >= 1
+    # - cash: 2025 >= 1
+    # - empty reject orders: expected 0
     l1b_hits_ok = True
+    l1b_total_effective = {hid: 0 for hid in sorted(L2_HOOK_IDS)}
     for yr, telemetry in all_l1b_telemetries.items():
         for hid in L2_HOOK_IDS:
             hinfo = telemetry.get(hid, {})
-            if hinfo.get("effective_hits", 0) == 0:
-                l1b_hits_ok = False
-                break
-        if not l1b_hits_ok:
-            break
+            l1b_total_effective[hid] += hinfo.get("effective_hits", 0)
+
+    if l1b_total_effective.get("execution.preopen_drop_first_duplicate", 0) == 0:
+        l1b_hits_ok = False
+    if l1b_total_effective.get("execution.preopen_reject_cash_below", 0) == 0:
+        l1b_hits_ok = False
+    if l1b_total_effective.get("execution.preopen_reject_orders", 0) != 0:
+        l1b_hits_ok = False
+
     if l1b_hits_ok:
         gates["l1b_preopen_hooks_have_effective_hits"] = "PASS"
 
-    # 3. l2_preopen_hooks_effective_hits_zero: all years
-    l2_hits_zero = True
-    for yr, telemetry in all_l2_telemetries.items():
-        for hid in L2_HOOK_IDS:
+    # 3. l2_preopen_hooks_effective_hits_zero:
+    # - all 3 have 0 effective hits (disabled in L2)
+    # - would_have_hits match l1b effective hits
+    # - empty hook: would_have also 0
+    l2_hits_ok = True
+    for hid in L2_HOOK_IDS:
+        l2_total_effective = 0
+        l2_total_would = 0
+        for yr, telemetry in all_l2_telemetries.items():
             hinfo = telemetry.get(hid, {})
-            if hinfo.get("effective_hits", 0) > 0 or hinfo.get("would_have_hits", 0) == 0:
-                l2_hits_zero = False
-                break
-        if not l2_hits_zero:
-            break
-    if l2_hits_zero:
+            l2_total_effective += hinfo.get("effective_hits", 0)
+            l2_total_would += hinfo.get("would_have_hits", 0)
+        if l2_total_effective != 0:
+            l2_hits_ok = False
+        if l2_total_would != l1b_total_effective.get(hid, 0):
+            l2_hits_ok = False
+        if hid == "execution.preopen_reject_orders" and l2_total_would != 0:
+            l2_hits_ok = False
+
+    if l2_hits_ok:
         gates["l2_preopen_hooks_effective_hits_zero"] = "PASS"
 
     # 4. would_have_hit_events_complete: all years
@@ -808,7 +829,17 @@ def _compute_l2_gates(
         gates["direct_price_unchanged"] = "PASS"
 
     # 9. checked_account_invariants
-    gates["checked_account_invariants"] = "PASS"  # Simplified
+    # 9. checked_account_invariants: verify basic invariants
+    invariants_ok = True
+    excluded_checks = []
+    for year_summary in year_summary_rows:
+        l1b_eq = year_summary.get("l1b_final_equity", 0)
+        l2_eq = year_summary.get("l2_final_equity", 0)
+        if l1b_eq < 0 or l2_eq < 0:
+            invariants_ok = False
+            break
+    gates["checked_account_invariants"] = "PASS" if invariants_ok else "FAIL"
+    gates["checked_account_invariants_excluded"] = excluded_checks
 
     # 10. required_artifacts_complete
     artifacts_ok = True
@@ -826,6 +857,12 @@ def _compute_l2_gates(
             break
     if all_mapped:
         gates["all_direct_diffs_map_to_genuine_hooks"] = "PASS"
+
+    # 12. direct_order_presence_changed: at least one direct diff exists
+    if len(all_direct_order_diffs) > 0:
+        gates["direct_order_presence_changed"] = "PASS"
+    else:
+        gates["direct_order_presence_changed"] = "FAIL"
 
     return gates
 

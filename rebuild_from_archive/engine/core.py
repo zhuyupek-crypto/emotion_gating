@@ -470,18 +470,38 @@ class Engine:
             return False
 
         time_key = f"{h:02d}:{m:02d}"
+        available_cash = self.context.portfolio.available_cash
+
         if self.compat is not None and hasattr(self.compat, "should_reject_preopen_cash"):
             should_reject, cash_threshold = self.compat.should_reject_preopen_cash(
-                date_key,
-                time_key,
-                self.context.portfolio.available_cash,
+                date_key, time_key, available_cash,
             )
             if should_reject:
                 self.info(
                     f"Rejected pre-open market order for {security}: JQ compat cash floor "
-                    f"on {date_key} {time_key} (available={self.context.portfolio.available_cash:.2f}, "
+                    f"on {date_key} {time_key} (available={available_cash:.2f}, "
                     f"threshold={cash_threshold:.2f})."
                 )
+                if hasattr(self.compat, "record_order_presence_event"):
+                    self.compat.record_order_presence_event(
+                        hook_id="execution.preopen_reject_cash_below",
+                        date_key=date_key, time_key=time_key, code=security,
+                        side="buy",
+                        order_id=str(self._order_id_counter),
+                        requested_amount=amount,
+                        requested_price=None,
+                        available_cash=available_cash,
+                        cash_threshold=cash_threshold,
+                        duplicate_ordinal=None,
+                        pending_count_before=None,
+                        pending_count_after=None,
+                        raw_decision=True,
+                        final_decision=True,
+                        order_created=False,
+                        order_retained=False,
+                        effective_hit=True,
+                        would_have_hit=False,
+                    )
                 return True
 
         if (
@@ -490,6 +510,26 @@ class Engine:
             and self.compat.should_reject_preopen_order(date_key, security)
         ):
             self.info(f"Rejected pre-open market order for {security}: JQ compat skip on {date_key}.")
+            if hasattr(self.compat, "record_order_presence_event"):
+                self.compat.record_order_presence_event(
+                    hook_id="execution.preopen_reject_orders",
+                    date_key=date_key, time_key=time_key, code=security,
+                    side="buy",
+                    order_id=str(self._order_id_counter),
+                    requested_amount=amount,
+                    requested_price=None,
+                    available_cash=available_cash,
+                    cash_threshold=None,
+                    duplicate_ordinal=None,
+                    pending_count_before=None,
+                    pending_count_after=None,
+                    raw_decision=True,
+                    final_decision=True,
+                    order_created=False,
+                    order_retained=False,
+                    effective_hit=True,
+                    would_have_hit=False,
+                )
             return True
         return False
 
@@ -502,12 +542,13 @@ class Engine:
         except Exception:
             return
 
-        if (
-            self.compat is None
-            or not hasattr(self.compat, "should_drop_first_preopen_duplicate")
-            or not self.compat.should_drop_first_preopen_duplicate(date_key, order.security)
-        ):
-            return
+        should_drop = (
+            self.compat is not None
+            and hasattr(self.compat, "should_drop_first_preopen_duplicate")
+            and self.compat.should_drop_first_preopen_duplicate(date_key, order.security)
+        )
+
+        pending_count_before = len(self._pending_orders)
 
         earlier = [
             pending for pending in self._pending_orders
@@ -517,14 +558,41 @@ class Engine:
             and getattr(pending, 'is_pre_open_market', False)
             and pending.status in (OrderStatus.open, "open")
         ]
-        if not earlier:
-            return
 
-        for pending in earlier:
-            pending.status = OrderStatus("canceled")
-            if pending in self._pending_orders:
-                self._pending_orders.remove(pending)
-            self._release_pre_open_buy_resources(pending)
+        actual_canceled = False
+        affected_order_ids = []
+        if should_drop and earlier:
+            for pending in earlier:
+                pending.status = OrderStatus("canceled")
+                if pending in self._pending_orders:
+                    self._pending_orders.remove(pending)
+                affected_order_ids.append(str(pending.order_id))
+                self._release_pre_open_buy_resources(pending)
+            actual_canceled = True
+
+        pending_count_after = len(self._pending_orders)
+
+        # Record telemetry: actual order presence change
+        if self.compat is not None and hasattr(self.compat, "record_order_presence_event"):
+            self.compat.record_order_presence_event(
+                hook_id="execution.preopen_drop_first_duplicate",
+                date_key=date_key, time_key="", code=order.security,
+                side="buy",
+                order_id=str(order.order_id),
+                requested_amount=order.amount,
+                requested_price=None,
+                available_cash=None,
+                cash_threshold=None,
+                duplicate_ordinal=None,
+                pending_count_before=pending_count_before,
+                pending_count_after=pending_count_after,
+                raw_decision=should_drop,
+                final_decision=actual_canceled,
+                order_created=True,
+                order_retained=True,
+                effective_hit=actual_canceled,
+                would_have_hit=False,
+            )
 
     def _reserve_pre_open_buy_position(self, order, ref_price):
         if order.amount <= 0 or getattr(order, "_reserved_position_amount", 0):
