@@ -1,0 +1,91 @@
+{
+  "execution.preopen_drop_first_duplicate": {
+    "queries": 212,
+    "effective_hits": 0,
+    "would_have_hits": 6,
+    "effective_hit_keys": [],
+    "first_effective_hit": null,
+    "would_have_hit": true,
+    "would_have_hit_keys": [
+      {
+        "date": "2021-04-26",
+        "time": "",
+        "code": "002120.XSHE",
+        "side": "buy",
+        "hook_id": "execution.preopen_drop_first_duplicate",
+        "effective_hit": false,
+        "would_have_hit": true
+      },
+      {
+        "date": "2021-04-26",
+        "time": "",
+        "code": "002120.XSHE",
+        "side": "buy",
+        "hook_id": "execution.preopen_drop_first_duplicate",
+        "effective_hit": false,
+        "would_have_hit": true
+      },
+      {
+        "date": "2021-12-01",
+        "time": "",
+        "code": "600072.XSHG",
+        "side": "buy",
+        "hook_id": "execution.preopen_drop_first_duplicate",
+        "effective_hit": false,
+        "would_have_hit": true
+      },
+      {
+        "date": "2021-12-01",
+        "time": "",
+        "code": "600072.XSHG",
+        "side": "buy",
+        "hook_id": "execution.preopen_drop_first_duplicate",
+        "effective_hit": false,
+        "would_have_hit": true
+      },
+      {
+        "date": "2021-12-08",
+        "time": "",
+        "code": "002508.XSHE",
+        "side": "buy",
+        "hook_id": "execution.preopen_drop_first_duplicate",
+        "effective_hit": false,
+        "would_have_hit": true
+      },
+      {
+        "date": "2021-12-08",
+        "time": "",
+        "code": "002508.XSHE",
+        "side": "buy",
+        "hook_id": "execution.preopen_drop_first_duplicate",
+        "effective_hit": false,
+        "would_have_hit": true
+      }
+    ],
+    "first_would_have_hit": "2021-04-26 ",
+    "profile_disabled": true
+  },
+  "execution.preopen_reject_cash_below": {
+    "queries": 212,
+    "effective_hits": 0,
+    "would_have_hits": 0,
+    "effective_hit_keys": [],
+    "first_effective_hit": null,
+    "would_have_hit": false,
+    "would_have_hit_keys": [],
+    "first_would_have_hit": null,
+    "profile_disabled": true
+  },
+  "execution.preopen_reject_orders": {
+    "queries": 212,
+    "effective_hits": 0,
+    "would_have_hits": 0,
+    "effective_hit_keys": [],
+    "first_effective_hit": null,
+    "would_have_hit": false,
+    "would_have_hit_keys": [],
+    "first_would_have_hit": null,
+    "profile_disabled": true
+  },
+  "profile": "local_native_l2"
+}

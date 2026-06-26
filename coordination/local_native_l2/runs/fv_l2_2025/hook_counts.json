@@ -1,0 +1,36 @@
+{
+  "execution.preopen_drop_first_duplicate": {
+    "queries": 262,
+    "effective_hits": 0,
+    "would_have_hits": 0,
+    "effective_hit_keys": [],
+    "first_effective_hit": null,
+    "would_have_hit": false,
+    "would_have_hit_keys": [],
+    "first_would_have_hit": null,
+    "profile_disabled": true
+  },
+  "execution.preopen_reject_cash_below": {
+    "queries": 262,
+    "effective_hits": 0,
+    "would_have_hits": 0,
+    "effective_hit_keys": [],
+    "first_effective_hit": null,
+    "would_have_hit": false,
+    "would_have_hit_keys": [],
+    "first_would_have_hit": null,
+    "profile_disabled": true
+  },
+  "execution.preopen_reject_orders": {
+    "queries": 262,
+    "effective_hits": 0,
+    "would_have_hits": 0,
+    "effective_hit_keys": [],
+    "first_effective_hit": null,
+    "would_have_hit": false,
+    "would_have_hit_keys": [],
+    "first_would_have_hit": null,
+    "profile_disabled": true
+  },
+  "profile": "local_native_l2"
+}

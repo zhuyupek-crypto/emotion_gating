@@ -1,0 +1,63 @@
+{
+  "profile": "local_native_l2",
+  "year": 2025,
+  "source_commit": "764dd29fad8c1d51b418878d89812e4eb27653f1",
+  "base_main_commit": "ecb542afdc266435e18679c2dc04ebca55e85f5b",
+  "data_root": "D:/work space/hdata",
+  "strategy_file": "母版-20260506-Clone.py",
+  "strategy_sha256": "621a9c968473d73dfa1699be0a16714790e4f93ab950957c0a3f88f4f34bcc8e",
+  "start_date": "2025-01-01",
+  "end_date": "2025-12-31",
+  "initial_cash": 1000000,
+  "final_value": 2528957.470000001,
+  "total_return_pct": 152.895747,
+  "trade_count": 531,
+  "profile_manifest": {
+    "profile": "local_native_l2",
+    "disabled_hook_ids": [
+      "execution.execution_price_anomalies",
+      "execution.fill_amount_anomalies",
+      "execution.order_amount_anomalies",
+      "execution.preopen_drop_first_duplicate",
+      "execution.preopen_reject_cash_below",
+      "execution.preopen_reject_orders",
+      "market_data.minute_price_anomalies"
+    ]
+  },
+  "hook_telemetry": {
+    "execution.preopen_drop_first_duplicate": {
+      "queries": 262,
+      "effective_hits": 0,
+      "would_have_hits": 0,
+      "effective_hit_keys": [],
+      "first_effective_hit": null,
+      "would_have_hit": false,
+      "would_have_hit_keys": [],
+      "first_would_have_hit": null,
+      "profile_disabled": true
+    },
+    "execution.preopen_reject_cash_below": {
+      "queries": 262,
+      "effective_hits": 0,
+      "would_have_hits": 0,
+      "effective_hit_keys": [],
+      "first_effective_hit": null,
+      "would_have_hit": false,
+      "would_have_hit_keys": [],
+      "first_would_have_hit": null,
+      "profile_disabled": true
+    },
+    "execution.preopen_reject_orders": {
+      "queries": 262,
+      "effective_hits": 0,
+      "would_have_hits": 0,
+      "effective_hit_keys": [],
+      "first_effective_hit": null,
+      "would_have_hit": false,
+      "would_have_hit_keys": [],
+      "first_would_have_hit": null,
+      "profile_disabled": true
+    },
+    "profile": "local_native_l2"
+  }
+}
