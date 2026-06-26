@@ -45,8 +45,9 @@ class TestCashRejectSemantics:
 
     def test_cash_reject_enabled_below_threshold(self):
         c = EmotionGateJQCompat(profile=JQ_PARITY)
-        rejected, threshold = c.should_reject_preopen_cash("2025-03-19", "09:28", 15000.0)
-        assert rejected is True
+        raw, final, threshold = c.should_reject_preopen_cash("2025-03-19", "09:28", 15000.0)
+        assert raw is True
+        assert final is True
         assert threshold == 20000.0
         # Verify hook hit recorded
         assert c._hook_hits.get("execution.preopen_reject_cash_below", 0) == 1
@@ -54,8 +55,8 @@ class TestCashRejectSemantics:
 
     def test_cash_reject_enabled_above_threshold(self):
         c = EmotionGateJQCompat(profile=JQ_PARITY)
-        rejected, threshold = c.should_reject_preopen_cash("2025-03-19", "09:28", 30000.0)
-        assert rejected is False
+        raw, final, threshold = c.should_reject_preopen_cash("2025-03-19", "09:28", 30000.0)
+        assert raw is False and final is False
         assert threshold == 20000.0
         # No effective hit since cash is above threshold
         assert c._hook_hits.get("execution.preopen_reject_cash_below", 0) == 0
@@ -63,8 +64,9 @@ class TestCashRejectSemantics:
 
     def test_cash_reject_records_order_presence_event(self):
         c = EmotionGateJQCompat(profile=LOCAL_NATIVE_L2)
-        rejected, threshold = c.should_reject_preopen_cash("2025-03-19", "09:28", 15000.0)
-        assert rejected is False
+        raw, final, threshold = c.should_reject_preopen_cash("2025-03-19", "09:28", 15000.0)
+        assert raw is True
+        assert final is False
         assert threshold == 20000.0
         # No effective hit, but should have would_have_hit
         assert c._hook_hits.get("execution.preopen_reject_cash_below", 0) == 0
@@ -77,48 +79,14 @@ class TestCashRejectSemantics:
 
     def test_cash_reject_disabled_above_threshold(self):
         c = EmotionGateJQCompat(profile=LOCAL_NATIVE_L2)
-        rejected, threshold = c.should_reject_preopen_cash("2025-03-19", "09:28", 30000.0)
-        assert rejected is False
+        raw, final, threshold = c.should_reject_preopen_cash("2025-03-19", "09:28", 30000.0)
+        assert raw is False and final is False
         assert threshold == 20000.0
         # No effective hit and no would_have_hit since cash is above threshold
         assert c._hook_hits.get("execution.preopen_reject_cash_below", 0) == 0
         assert c._hook_queries.get("execution.preopen_reject_cash_below", 0) == 1
         assert len(c._hook_would_have_hit_keys) == 0
 
-    def test_cash_reject_records_order_presence_event(self):
-        # Order events are now recorded by Engine via record_order_presence_event
-        for profile in (JQ_PARITY, LOCAL_NATIVE_L2):
-            c = EmotionGateJQCompat(profile=profile)
-            c.record_order_presence_event(
-                hook_id="execution.preopen_reject_cash_below",
-                date_key="2025-03-19", time_key="09:28", code="000001.XSHE",
-                side="buy", order_id="42", requested_amount=1000,
-                requested_price=None, available_cash=15000.0, cash_threshold=20000.0,
-                duplicate_ordinal=None, pending_count_before=None, pending_count_after=None,
-                raw_decision=True, final_decision=(profile == JQ_PARITY),
-                order_created=False, order_retained=False,
-                effective_hit=(profile == JQ_PARITY),
-                would_have_hit=(profile != JQ_PARITY),
-            )
-            assert len(c.order_presence_hook_events) == 1
-            ev = c.order_presence_hook_events[0]
-            assert ev["hook_id"] == "execution.preopen_reject_cash_below"
-            assert ev["profile"] == profile
-            assert ev["date"] == "2025-03-19"
-            assert ev["time"] == "09:28"
-            assert ev["code"] == "000001.XSHE"
-            assert ev["order_id"] == "42"
-            assert ev["requested_amount"] == 1000
-            assert ev["available_cash"] == 15000.0
-            assert ev["cash_threshold"] == 20000.0
-            if profile == JQ_PARITY:
-                assert ev["effective_hit"] is True
-                assert ev["would_have_hit"] is False
-                assert ev["final_decision"] == "True"
-            else:
-                assert ev["effective_hit"] is False
-                assert ev["would_have_hit"] is True
-                assert ev["final_decision"] == "False"
 
 
 class TestEmptyRejectOrders:
@@ -131,20 +99,20 @@ class TestEmptyRejectOrders:
     def test_empty_reject_orders_never_hits(self):
         c = EmotionGateJQCompat(profile=JQ_PARITY)
         # Test with various date/code combinations — none should trigger
-        rejected = c.should_reject_preopen_order("2021-04-26", "002120.XSHE")
-        assert rejected is False
-        rejected = c.should_reject_preopen_order("2025-03-19", "000001.XSHE")
-        assert rejected is False
-        rejected = c.should_reject_preopen_order("2020-01-01", "600000.XSHG")
-        assert rejected is False
+        raw, final = c.should_reject_preopen_order("2021-04-26", "002120.XSHE")
+        assert raw is False and final is False
+        raw, final = c.should_reject_preopen_order("2025-03-19", "000001.XSHE")
+        assert raw is False and final is False
+        raw, final = c.should_reject_preopen_order("2020-01-01", "600000.XSHG")
+        assert raw is False and final is False
         # No hits recorded
         assert c._hook_hits.get("execution.preopen_reject_orders", 0) == 0
         assert len(c._hook_hit_keys) == 0
 
     def test_empty_reject_orders_disabled(self):
         c = EmotionGateJQCompat(profile=LOCAL_NATIVE_L2)
-        rejected = c.should_reject_preopen_order("2021-04-26", "002120.XSHE")
-        assert rejected is False
+        raw, final = c.should_reject_preopen_order("2021-04-26", "002120.XSHE")
+        assert raw is False and final is False
         # No effective hit and no would_have_hit (since PREOPEN_REJECT_ORDERS is empty)
         assert c._hook_hits.get("execution.preopen_reject_orders", 0) == 0
         assert len(c._hook_hit_keys) == 0
@@ -158,15 +126,15 @@ class TestDuplicateDropSemantics:
 
     def test_duplicate_enabled_drop(self):
         c = EmotionGateJQCompat(profile=JQ_PARITY)
-        drop = c.should_drop_first_preopen_duplicate("2021-04-26", "002120.XSHE")
-        assert drop is True
+        raw, final = c.should_drop_first_preopen_duplicate("2021-04-26", "002120.XSHE")
+        assert raw is True and final is True
         assert c._hook_hits.get("execution.preopen_drop_first_duplicate", 0) == 1
         assert c._hook_queries.get("execution.preopen_drop_first_duplicate", 0) == 1
 
     def test_duplicate_disabled_retain(self):
         c = EmotionGateJQCompat(profile=LOCAL_NATIVE_L2)
-        drop = c.should_drop_first_preopen_duplicate("2021-04-26", "002120.XSHE")
-        assert drop is False
+        raw, final = c.should_drop_first_preopen_duplicate("2021-04-26", "002120.XSHE")
+        assert raw is True and final is False
         assert c._hook_hits.get("execution.preopen_drop_first_duplicate", 0) == 0
         assert c._hook_would_have_hits.get("execution.preopen_drop_first_duplicate", 0) == 1
         assert c._hook_queries.get("execution.preopen_drop_first_duplicate", 0) == 1
@@ -175,9 +143,12 @@ class TestDuplicateDropSemantics:
         # The compat method returns True/False. Actual "first duplicate" semantics
         # are in the Engine layer (which checks for earlier pending orders).
         c = EmotionGateJQCompat(profile=JQ_PARITY)
-        assert c.should_drop_first_preopen_duplicate("2021-04-26", "002120.XSHE") is True
-        assert c.should_drop_first_preopen_duplicate("2021-04-26", "002120.XSHE") is True
-        assert c.should_drop_first_preopen_duplicate("2021-04-26", "002120.XSHE") is True
+        raw, final = c.should_drop_first_preopen_duplicate("2021-04-26", "002120.XSHE")
+        assert raw is True and final is True
+        raw, final = c.should_drop_first_preopen_duplicate("2021-04-26", "002120.XSHE")
+        assert raw is True and final is True
+        raw, final = c.should_drop_first_preopen_duplicate("2021-04-26", "002120.XSHE")
+        assert raw is True and final is True
         assert c._hook_hits.get("execution.preopen_drop_first_duplicate", 0) == 3
 
     def test_duplicate_occurrences_not_deduplicated(self):
@@ -188,6 +159,7 @@ class TestDuplicateDropSemantics:
         c.should_drop_first_preopen_duplicate("2021-04-26", "002120.XSHE")
 
         assert c._hook_would_have_hits.get("execution.preopen_drop_first_duplicate", 0) == 3
+        assert len(c._hook_would_have_hit_keys) == 3
 
         # Order events via record_order_presence_event (Engine layer)
         for i in range(3):
@@ -267,8 +239,8 @@ class TestDirectMapping:
         # Cash above threshold: no raw reject, no event from Engine
         c = EmotionGateJQCompat(profile=LOCAL_NATIVE_L2)
         # The compat method returns False (above threshold)
-        rejected, _ = c.should_reject_preopen_cash("2025-03-19", "09:28", 30000.0)
-        assert rejected is False
+        raw, final, _ = c.should_reject_preopen_cash("2025-03-19", "09:28", 30000.0)
+        assert raw is False and final is False
         # No raw reject, so Engine would not call record_order_presence_event
         assert len(c.order_presence_hook_events) == 0
 
@@ -390,6 +362,105 @@ class TestEngineIntegration:
         # Simulate empty direct diffs
         test_gates["direct_order_presence_changed"] = "PASS" if len([]) > 0 else "FAIL"
         assert test_gates["direct_order_presence_changed"] == "FAIL"
+
+
+class TestL2TreatmentPaths:
+    """Verify that L2 treatment correctly produces would-have events via Engine paths."""
+
+    def test_l2_cash_below_threshold_produces_would_have_event(self):
+        """L2: raw_reject=True, final_reject=False, would_have_hit=True.
+        Compat returns raw=True, final=False. Engine should record event with would_have_hit=True."""
+        c = EmotionGateJQCompat(profile=LOCAL_NATIVE_L2)
+        raw, final, threshold = c.should_reject_preopen_cash("2025-03-19", "09:28", 15000.0)
+        assert raw is True
+        assert final is False
+        assert threshold == 20000.0
+
+        # Simulate Engine recording the event
+        c.record_order_presence_event(
+            hook_id="execution.preopen_reject_cash_below",
+            date_key="2025-03-19", time_key="09:28", code="600000.XSHG",
+            side="buy", order_id="99", requested_amount=5000,
+            requested_price=None, available_cash=15000.0, cash_threshold=20000.0,
+            duplicate_ordinal=None, pending_count_before=None, pending_count_after=None,
+            raw_decision=True, final_decision=False,
+            order_created=False, order_retained=True,
+            effective_hit=False, would_have_hit=True,
+        )
+        ev = c.order_presence_hook_events[0]
+        assert ev["effective_hit"] is False
+        assert ev["would_have_hit"] is True
+        assert ev["raw_decision"] == "True"
+        assert ev["final_decision"] == "False"
+        assert ev["order_retained"] is True  # L2: order continues
+
+    def test_l2_duplicate_with_earlier_produces_would_have_event(self):
+        """L2: raw_drop=True, final_drop=False, would_have_hit=True.
+        Old orders retained in L2."""
+        c = EmotionGateJQCompat(profile=LOCAL_NATIVE_L2)
+        raw, final = c.should_drop_first_preopen_duplicate("2021-04-26", "002120.XSHE")
+        assert raw is True
+        assert final is False
+
+        # Simulate Engine recording: raw_drop=True, earlier exists, but final_drop=False
+        c.record_order_presence_event(
+            hook_id="execution.preopen_drop_first_duplicate",
+            date_key="2021-04-26", time_key="", code="002120.XSHE",
+            side="buy", order_id="5", requested_amount=1000,
+            requested_price=None, available_cash=None, cash_threshold=None,
+            duplicate_ordinal=1, pending_count_before=2, pending_count_after=2,
+            raw_decision=True, final_decision=False,
+            order_created=True, order_retained=True,
+            effective_hit=False, would_have_hit=True,
+            affected_order_ids=["3"], actual_canceled_count=0,
+        )
+        ev = c.order_presence_hook_events[0]
+        assert ev["effective_hit"] is False
+        assert ev["would_have_hit"] is True
+        assert ev["pending_count_before"] == 2
+        assert ev["pending_count_after"] == 2  # unchanged in L2
+        assert ev["actual_canceled_count"] == 0
+        assert ev["affected_order_ids"] == ["3"]
+
+    def test_l1b_duplicate_with_earlier_actual_cancel(self):
+        """L1B (JQ_PARITY): raw_drop=True, final_drop=True, effective_hit=True.
+        Old orders actually canceled."""
+        c = EmotionGateJQCompat(profile=JQ_PARITY)
+        raw, final = c.should_drop_first_preopen_duplicate("2021-04-26", "002120.XSHE")
+        assert raw is True
+        assert final is True
+
+        c.record_order_presence_event(
+            hook_id="execution.preopen_drop_first_duplicate",
+            date_key="2021-04-26", time_key="", code="002120.XSHE",
+            side="buy", order_id="5", requested_amount=1000,
+            requested_price=None, available_cash=None, cash_threshold=None,
+            duplicate_ordinal=1, pending_count_before=2, pending_count_after=1,
+            raw_decision=True, final_decision=True,
+            order_created=True, order_retained=True,
+            effective_hit=True, would_have_hit=False,
+            affected_order_ids=["3"], actual_canceled_count=1,
+        )
+        ev = c.order_presence_hook_events[0]
+        assert ev["effective_hit"] is True
+        assert ev["would_have_hit"] is False
+        assert ev["pending_count_before"] == 2
+        assert ev["pending_count_after"] == 1  # decreased
+        assert ev["actual_canceled_count"] == 1
+        assert ev["affected_order_ids"] == ["3"]
+
+    def test_l2_cash_would_have_and_telemetry_sync(self):
+        """Verify _hook_would_have_hit_keys is populated alongside _hook_would_have_hits."""
+        c = EmotionGateJQCompat(profile=LOCAL_NATIVE_L2)
+        raw, final, threshold = c.should_reject_preopen_cash("2025-03-19", "09:28", 15000.0)
+        assert raw is True and final is False
+
+        assert c._hook_would_have_hits.get("execution.preopen_reject_cash_below", 0) == 1
+        assert len(c._hook_would_have_hit_keys) == 1
+        ev = c._hook_would_have_hit_keys[0]
+        assert ev["effective_hit"] is False
+        assert ev["would_have_hit"] is True
+        assert ev["hook_id"] == "execution.preopen_reject_cash_below"
 
 
 class TestL0Guard:

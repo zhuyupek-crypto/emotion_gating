@@ -171,7 +171,8 @@ class EmotionGateJQCompat:
                                      available_cash, cash_threshold,
                                      duplicate_ordinal, pending_count_before, pending_count_after,
                                      raw_decision, final_decision, order_created, order_retained,
-                                     effective_hit, would_have_hit):
+                                     effective_hit, would_have_hit,
+                                     affected_order_ids=None, actual_canceled_count=None):
         """Record order-presence-level telemetry for L2 hooks. Called by Engine."""
         self._order_presence_query_ordinal += 1
         request_ordinal = self._order_presence_query_ordinal
@@ -197,6 +198,8 @@ class EmotionGateJQCompat:
             "order_retained": order_retained,
             "effective_hit": effective_hit,
             "would_have_hit": would_have_hit,
+            "affected_order_ids": affected_order_ids if affected_order_ids else [],
+            "actual_canceled_count": actual_canceled_count if actual_canceled_count is not None else 0,
         })
 
     def namespace_entries(self, engine):
@@ -403,7 +406,8 @@ class EmotionGateJQCompat:
     def should_reject_preopen_cash(self, date_key, time_key, available_cash):
         """Check if pre-open order should be rejected due to cash below threshold.
 
-        With gating for L2 ablation. Engine records telemetry after actual decision.
+        Returns (raw_reject, final_reject, cash_threshold).
+        Engine records telemetry for both enabled and disabled paths.
         """
         cash_threshold = self.preopen_reject_cash_below.get((date_key, time_key))
         raw_reject = cash_threshold is not None and available_cash < cash_threshold
@@ -419,18 +423,33 @@ class EmotionGateJQCompat:
             if enabled:
                 self._hook_hits[self._HOOK_ID_PREOPEN_REJECT_CASH] = \
                     self._hook_hits.get(self._HOOK_ID_PREOPEN_REJECT_CASH, 0) + 1
+                self._hook_hit_keys.append({
+                    "date": str(date_key), "time": str(time_key),
+                    "code": "", "side": "buy",
+                    "hook_id": self._HOOK_ID_PREOPEN_REJECT_CASH,
+                    "available_cash": available_cash, "cash_threshold": cash_threshold,
+                    "effective_hit": True, "would_have_hit": False,
+                })
             else:
                 if not hasattr(self, "_hook_would_have_hits"):
                     self._hook_would_have_hits = {}
                 self._hook_would_have_hits[self._HOOK_ID_PREOPEN_REJECT_CASH] = \
                     self._hook_would_have_hits.get(self._HOOK_ID_PREOPEN_REJECT_CASH, 0) + 1
+                self._hook_would_have_hit_keys.append({
+                    "date": str(date_key), "time": str(time_key),
+                    "code": "", "side": "buy",
+                    "hook_id": self._HOOK_ID_PREOPEN_REJECT_CASH,
+                    "available_cash": available_cash, "cash_threshold": cash_threshold,
+                    "effective_hit": False, "would_have_hit": True,
+                })
 
-        return final_reject, cash_threshold
+        return raw_reject, final_reject, cash_threshold
 
     def should_reject_preopen_order(self, date_key, security):
         """Check if a pre-open order should be explicitly rejected.
 
-        With gating for L2 ablation. Engine records telemetry after actual decision.
+        Returns (raw_reject, final_reject).
+        Engine records telemetry for both enabled and disabled paths.
         """
         raw_reject = (date_key, security) in self.preopen_reject_orders
         enabled = self.is_hook_enabled(self._HOOK_ID_PREOPEN_REJECT_ORDER)
@@ -443,18 +462,29 @@ class EmotionGateJQCompat:
             if enabled:
                 self._hook_hits[self._HOOK_ID_PREOPEN_REJECT_ORDER] = \
                     self._hook_hits.get(self._HOOK_ID_PREOPEN_REJECT_ORDER, 0) + 1
+                self._hook_hit_keys.append({
+                    "date": str(date_key), "time": "", "code": str(security),
+                    "side": "buy", "hook_id": self._HOOK_ID_PREOPEN_REJECT_ORDER,
+                    "effective_hit": True, "would_have_hit": False,
+                })
             else:
                 if not hasattr(self, "_hook_would_have_hits"):
                     self._hook_would_have_hits = {}
                 self._hook_would_have_hits[self._HOOK_ID_PREOPEN_REJECT_ORDER] = \
                     self._hook_would_have_hits.get(self._HOOK_ID_PREOPEN_REJECT_ORDER, 0) + 1
+                self._hook_would_have_hit_keys.append({
+                    "date": str(date_key), "time": "", "code": str(security),
+                    "side": "buy", "hook_id": self._HOOK_ID_PREOPEN_REJECT_ORDER,
+                    "effective_hit": False, "would_have_hit": True,
+                })
 
-        return final_reject
+        return raw_reject, final_reject
 
     def should_drop_first_preopen_duplicate(self, date_key, security):
         """Check if the first pre-open duplicate order should be dropped.
 
-        With gating for L2 ablation. Engine records telemetry after actual decision.
+        Returns (raw_drop, final_drop).
+        Engine records telemetry for both enabled and disabled paths.
         The "first duplicate" state is maintained by the engine"s _pending_orders list,
         not by this compat layer. This method only answers the yes/no question.
         """
@@ -469,13 +499,23 @@ class EmotionGateJQCompat:
             if enabled:
                 self._hook_hits[self._HOOK_ID_PREOPEN_DROP_DUPLICATE] = \
                     self._hook_hits.get(self._HOOK_ID_PREOPEN_DROP_DUPLICATE, 0) + 1
+                self._hook_hit_keys.append({
+                    "date": str(date_key), "time": "", "code": str(security),
+                    "side": "buy", "hook_id": self._HOOK_ID_PREOPEN_DROP_DUPLICATE,
+                    "effective_hit": True, "would_have_hit": False,
+                })
             else:
                 if not hasattr(self, "_hook_would_have_hits"):
                     self._hook_would_have_hits = {}
                 self._hook_would_have_hits[self._HOOK_ID_PREOPEN_DROP_DUPLICATE] = \
                     self._hook_would_have_hits.get(self._HOOK_ID_PREOPEN_DROP_DUPLICATE, 0) + 1
+                self._hook_would_have_hit_keys.append({
+                    "date": str(date_key), "time": "", "code": str(security),
+                    "side": "buy", "hook_id": self._HOOK_ID_PREOPEN_DROP_DUPLICATE,
+                    "effective_hit": False, "would_have_hit": True,
+                })
 
-        return final_drop
+        return raw_drop, final_drop
 
     def get_tail_seal_override(self, date_key, security):
         key = (date_key, security)
