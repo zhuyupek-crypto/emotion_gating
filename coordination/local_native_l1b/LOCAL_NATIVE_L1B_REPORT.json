@@ -2,7 +2,7 @@
   "title": "LOCAL_NATIVE_L1B Acceptance Report",
   "metadata": {
     "backtest_source_commit": "c70bb83390094facd261e4af9a90ae7523858e10",
-    "acceptance_tool_commit": "13b584ffe1947d0f3976e606c2e1b90bbf641a5c",
+    "acceptance_tool_commit": "187521b0a517700be882f11778e60330ce0658f6",
     "base_main_commit": "6369570406b77dda9903e832dccd5516fc9c5986",
     "strategy_sha256": "621a9c968473d73dfa1699be0a16714790e4f93ab950957c0a3f88f4f34bcc8e",
     "data_root": "<HDATA_ROOT>"
