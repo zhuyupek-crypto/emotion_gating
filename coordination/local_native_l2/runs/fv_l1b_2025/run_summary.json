@@ -1,7 +1,7 @@
 {
   "profile": "local_native_l1b",
   "year": 2025,
-  "source_commit": "764dd29fad8c1d51b418878d89812e4eb27653f1",
+  "source_commit": "7ef868bcc5379bb8fe082a71a71a8270894f7b9d",
   "base_main_commit": "ecb542afdc266435e18679c2dc04ebca55e85f5b",
   "data_root": "D:/work space/hdata",
   "strategy_file": "母版-20260506-Clone.py",
@@ -24,6 +24,8 @@
   "hook_telemetry": {
     "execution.preopen_drop_first_duplicate": {
       "queries": 262,
+      "raw_query_hits": 0,
+      "raw_would_have": 0,
       "effective_hits": 0,
       "would_have_hits": 0,
       "effective_hit_keys": [],
@@ -35,6 +37,8 @@
     },
     "execution.preopen_reject_cash_below": {
       "queries": 262,
+      "raw_query_hits": 0,
+      "raw_would_have": 0,
       "effective_hits": 0,
       "would_have_hits": 0,
       "effective_hit_keys": [],
@@ -46,6 +50,8 @@
     },
     "execution.preopen_reject_orders": {
       "queries": 262,
+      "raw_query_hits": 0,
+      "raw_would_have": 0,
       "effective_hits": 0,
       "would_have_hits": 0,
       "effective_hit_keys": [],

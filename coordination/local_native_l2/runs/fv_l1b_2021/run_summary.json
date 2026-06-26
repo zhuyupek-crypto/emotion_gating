@@ -1,7 +1,7 @@
 {
   "profile": "local_native_l1b",
   "year": 2021,
-  "source_commit": "764dd29fad8c1d51b418878d89812e4eb27653f1",
+  "source_commit": "7ef868bcc5379bb8fe082a71a71a8270894f7b9d",
   "base_main_commit": "ecb542afdc266435e18679c2dc04ebca55e85f5b",
   "data_root": "D:/work space/hdata",
   "strategy_file": "母版-20260506-Clone.py",
@@ -24,7 +24,9 @@
   "hook_telemetry": {
     "execution.preopen_drop_first_duplicate": {
       "queries": 212,
-      "effective_hits": 6,
+      "raw_query_hits": 6,
+      "raw_would_have": 0,
+      "effective_hits": 3,
       "would_have_hits": 0,
       "effective_hit_keys": [
         {
@@ -33,26 +35,16 @@
           "code": "002120.XSHE",
           "side": "buy",
           "hook_id": "execution.preopen_drop_first_duplicate",
+          "key_query_ordinal": 1,
           "effective_hit": true,
-          "would_have_hit": false
-        },
-        {
-          "date": "2021-04-26",
-          "time": "",
-          "code": "002120.XSHE",
-          "side": "buy",
-          "hook_id": "execution.preopen_drop_first_duplicate",
-          "effective_hit": true,
-          "would_have_hit": false
-        },
-        {
-          "date": "2021-12-01",
-          "time": "",
-          "code": "600072.XSHG",
-          "side": "buy",
-          "hook_id": "execution.preopen_drop_first_duplicate",
-          "effective_hit": true,
-          "would_have_hit": false
+          "would_have_hit": false,
+          "order_id": "84",
+          "affected_order_ids": [
+            "83"
+          ],
+          "actual_canceled_count": 1,
+          "would_have_affected_order_ids": [],
+          "would_have_canceled_count": 0
         },
         {
           "date": "2021-12-01",
@@ -60,8 +52,16 @@
           "code": "600072.XSHG",
           "side": "buy",
           "hook_id": "execution.preopen_drop_first_duplicate",
+          "key_query_ordinal": 2,
           "effective_hit": true,
-          "would_have_hit": false
+          "would_have_hit": false,
+          "order_id": "406",
+          "affected_order_ids": [
+            "404"
+          ],
+          "actual_canceled_count": 1,
+          "would_have_affected_order_ids": [],
+          "would_have_canceled_count": 0
         },
         {
           "date": "2021-12-08",
@@ -69,17 +69,16 @@
           "code": "002508.XSHE",
           "side": "buy",
           "hook_id": "execution.preopen_drop_first_duplicate",
+          "key_query_ordinal": 3,
           "effective_hit": true,
-          "would_have_hit": false
-        },
-        {
-          "date": "2021-12-08",
-          "time": "",
-          "code": "002508.XSHE",
-          "side": "buy",
-          "hook_id": "execution.preopen_drop_first_duplicate",
-          "effective_hit": true,
-          "would_have_hit": false
+          "would_have_hit": false,
+          "order_id": "414",
+          "affected_order_ids": [
+            "413"
+          ],
+          "actual_canceled_count": 1,
+          "would_have_affected_order_ids": [],
+          "would_have_canceled_count": 0
         }
       ],
       "first_effective_hit": "2021-04-26 ",
@@ -90,6 +89,8 @@
     },
     "execution.preopen_reject_cash_below": {
       "queries": 212,
+      "raw_query_hits": 0,
+      "raw_would_have": 0,
       "effective_hits": 0,
       "would_have_hits": 0,
       "effective_hit_keys": [],
@@ -101,6 +102,8 @@
     },
     "execution.preopen_reject_orders": {
       "queries": 212,
+      "raw_query_hits": 0,
+      "raw_would_have": 0,
       "effective_hits": 0,
       "would_have_hits": 0,
       "effective_hit_keys": [],
