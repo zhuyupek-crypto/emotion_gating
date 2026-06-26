@@ -77,7 +77,7 @@ ALL_HOOK_IDS = L1A_HOOK_IDS | L1B_HOOK_IDS
 
 def _collect_hook_telemetry_l1b(compat) -> dict:
     result = {}
-    for hid in ALL_HOOK_IDS:
+    for hid in sorted(ALL_HOOK_IDS):
         queries = getattr(compat, "_hook_queries", {}).get(hid, 0)
         hits = getattr(compat, "_hook_hits", {}).get(hid, 0)
         would_hits = getattr(compat, "_hook_would_have_hits", {}).get(hid, 0)
@@ -138,7 +138,7 @@ def run_backtest(profile: str, year: int, out_dir: Path, hdata_reader, Engine, E
         for sec, pos in (entry.get("positions", {}) or {}).items():
             if isinstance(pos, dict):
                 positions_rows.append({
-                    "date": str(dt), "code": str(sec),
+                    "date": str(dt)[:10], "code": str(sec),
                     "amount": float(pos.get("total_amount", 0)),
                     "avg_cost": float(pos.get("avg_cost", 0)),
                     "price": float(pos.get("price", 0)),
@@ -220,6 +220,10 @@ def compare_runs_l1b(l1a_dir: Path, l1b_dir: Path, out_dir: Path) -> dict:
     
     l1a_events = pd.read_csv(l1a_dir / "size_hook_events.csv") if (l1a_dir / "size_hook_events.csv").exists() else pd.DataFrame()
     l1b_events = pd.read_csv(l1b_dir / "size_hook_events.csv") if (l1b_dir / "size_hook_events.csv").exists() else pd.DataFrame()
+
+    # Save PROFILE_MANIFEST.json in out_dir (required artifact for required_artifacts_complete gate)
+    combined_manifest = {"l1a": l1a_manifest, "l1b": l1b_manifest}
+    (out_dir / "PROFILE_MANIFEST.json").write_text(json.dumps(combined_manifest, ensure_ascii=False, indent=2), encoding="utf-8")
 
     # Save size_hook_events.csv in out_dir for determinism/reference
     if not l1b_events.empty:
@@ -643,6 +647,10 @@ def compare_runs_l1b(l1a_dir: Path, l1b_dir: Path, out_dir: Path) -> dict:
         "first_direct_diff_key": divergence_trade_key,
     }
 
+    # Sort telemetry dicts by key for deterministic JSON output across runs
+    l1a_telemetry_sorted = dict(sorted(l1a_telemetry.items()))
+    l1b_telemetry_sorted = dict(sorted(l1b_telemetry.items()))
+
     report = {
         "title": "LOCAL_NATIVE_L1B Acceptance Report",
         "profiles": {
@@ -650,8 +658,8 @@ def compare_runs_l1b(l1a_dir: Path, l1b_dir: Path, out_dir: Path) -> dict:
             "l1b": l1b_manifest,
         },
         "performance": performance,
-        "hook_telemetry_l1a": l1a_telemetry,
-        "hook_telemetry_l1b": l1b_telemetry,
+        "hook_telemetry_l1a": l1a_telemetry_sorted,
+        "hook_telemetry_l1b": l1b_telemetry_sorted,
         "first_size_hook_would_have_hit": {
             "time": first_hit_time,
             "hook_id": first_hit_hook_id,
