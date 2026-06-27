@@ -1,0 +1,4 @@
+year,l1b_final_equity,l2_final_equity,l1b_total_return_pct,l2_total_return_pct,l1b_trade_count,l2_trade_count,direct_order_diffs,downstream_trade_diffs,amount_only_diffs,price_diffs,added_trades_count,removed_trades_count,first_direct_diff_time,first_cascade_date,first_l2_hook_would_have_hit,first_l2_hook_id
+2021,3386349.450000001,3465363.130000002,238.634945,246.536313,445,448,3,360,357,0,3,0,2021-04-26 9:30,2021-04-26,2021-04-26 ,execution.preopen_drop_first_duplicate
+2022,1337534.4100000015,1333359.8400000012,33.753441,33.335984,421,422,1,142,141,0,1,0,2022-08-02 9:30,2022-08-02,2022-08-02 ,execution.preopen_drop_first_duplicate
+2025,2513109.4700000016,2513109.4700000016,151.310947,151.310947,531,531,0,0,0,0,0,0,,,,

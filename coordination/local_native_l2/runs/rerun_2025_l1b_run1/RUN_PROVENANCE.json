@@ -1,0 +1,59 @@
+{
+  "run_dir": "d:\\workspace\\他山之石\\l2_exec\\coordination\\local_native_l2\\runs\\rerun_2025_l1b_run1",
+  "git_head": "c02cd22c3329aca16cba8cfb5ee4a341e21fc008",
+  "git_branch": "temp-rerun-report",
+  "git_status_clean": false,
+  "python": {
+    "executable": "C:\\Python314\\python.exe",
+    "version": "3.14.3 (tags/v3.14.3:323c59a, Feb  3 2026, 16:04:56) [MSC v.1944 64 bit (AMD64)]",
+    "platform": "Windows-10-10.0.19045-SP0"
+  },
+  "PYTHONHASHSEED": "<not set>",
+  "cwd": "d:\\workspace\\他山之石\\l2_exec\\coordination\\local_native_l2\\runs\\rerun_2025_l1b_run1",
+  "modules": {
+    "engine_core": {
+      "path": "d:\\workspace\\他山之石\\l2_exec\\rebuild_from_archive\\engine\\core.py",
+      "sha256": "0dd86bb0a000e6647e2dbd07abc480531c60fd47f1d21a2d1b0cc5eacca64100"
+    },
+    "project_compat": {
+      "path": "d:\\workspace\\他山之石\\l2_exec\\rebuild_from_archive\\project_compat.py",
+      "sha256": "bc0e2ae278ef5960cbf6a982ff616801c69c483bf7232a04190993401c0795e8"
+    },
+    "data_api": {
+      "path": "d:\\workspace\\他山之石\\l2_exec\\rebuild_from_archive\\engine\\data_api.py",
+      "sha256": "74b8a2b4507c8ada65cc0870fabae00250f1b8e568c8d64dd6b2e6fcc86a7a0e"
+    },
+    "profiles": {
+      "path": "d:\\workspace\\他山之石\\l2_exec\\rebuild_from_archive\\compat\\profiles.py",
+      "sha256": "d828bf24b49a5b10df4e84fc143feaf36812f8af4715c7528b62db8c02c736af"
+    },
+    "acceptance_common": {
+      "path": "d:\\workspace\\他山之石\\l2_exec\\tools\\acceptance_common.py",
+      "sha256": "830f4b1f70ee966264f6214e7d6bd6b22cf6a063ef9019f54dca2872e160310f"
+    },
+    "l2_acceptance": {
+      "path": "d:\\workspace\\他山之石\\l2_exec\\tools\\local_native_l2_acceptance.py",
+      "sha256": "cf001c5980ab847e11aff68b4548dbdf42746be11aa40b8ae81b1fd272bd116a"
+    },
+    "strategy": {
+      "path": "d:\\workspace\\他山之石\\l2_exec\\母版-20260506-Clone.py",
+      "sha256": "621a9c968473d73dfa1699be0a16714790e4f93ab950957c0a3f88f4f34bcc8e"
+    }
+  },
+  "hdata_root": "D:\\work space\\hdata",
+  "hdata_manifest_sha256": "cd95c4c385008ab232916fb1122438b7f8ec1ac5d20514a559476f6ecf80175f",
+  "artifacts_sha256_full": {
+    "hook_counts.json": "1b219459ade35d8650b7fa620628ddf1c99fc4b0f2fb05a27cb832371680c085",
+    "local_equity_2025.csv": "041bfbe4a99cd9f5c31074d388c1c70f66ac7fd4d0d772c0ccfa0b74b9e7cad3",
+    "local_portfolio_stats_2025.csv": "a330e21afc0128750fa87ec411b553ca9740d84129ca3c3b2dffa58d0937d412",
+    "local_positions_2025.csv": "d646c5977f0d60e799e4064e52de06aed728b8bcf809eb29f3f9ca68826e18ca",
+    "local_state_2025.csv": "13501dbda83b207cd347a35805df72632c8457ffc57255783e07e08807797832",
+    "local_trades_2025.csv": "00a4c3ee709e816179f0585e4a11ab8723cb865845b67c57557b8f2b60fc2216",
+    "order_presence_hook_events.csv": "52e1561abca88f4d9dd348a44f75bb478da6b0a826eb61d60916416e1c2c6b83",
+    "profile_manifest.json": "4099f0c74afef95e8306f7aa64ab5aa3e546661377a99cf0fcf1fa4c6fd9655d",
+    "run_command.txt": "6397cc2e391c826b548c0e7fda01a076acf30aeb3765a1634742dab6a2e82af0",
+    "RUN_PROVENANCE.json": "cdebbbb3d3621eabd662049ecec80973d40d7db3296631ee18e7c746d1db7da3",
+    "run_summary.json": "6a4e900fc1ca4bfd68bc26bd60c62cf4b26b08288b0e004e21cad6d380f7b7d0",
+    "source_commit.txt": "d1011225b07487919c366964017a2d8ed503d1520b88b94e8226351128b54b5e"
+  }
+}

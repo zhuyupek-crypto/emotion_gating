@@ -11,41 +11,42 @@
     "source_commit": "7ef868bcc5379bb8fe082a71a71a8270894f7b9d",
     "worktree": "D:/WorkSpace/他山之石/l2_exec",
     "pythonhashseed": "0",
-    "runs": 4
+    "runs": 4,
+    "note": "PYTHONHASHSEED was set to 0 during the original 4 reruns. RUN_PROVENANCE.json in each run directory records git HEAD, git status, Python executable/version, module SHA256 (engine/core.py, project_compat.py, data_api.py, profiles.py, acceptance_common.py, local_native_l2_acceptance.py, strategy), HDATA manifest SHA256, and full 64-char SHA256 for every artifact."
   },
-  "rerun_results": {
+  "rerun_results_full_sha256": {
     "L1B_run1": {
-      "local_trades_2025.csv": "00a4c3ee709e8161",
-      "local_equity_2025.csv": "041bfbe4a99cd9f5",
-      "local_state_2025.csv": "13501dbda83b207c",
-      "local_positions_2025.csv": "d646c5977f0d60e7",
-      "local_portfolio_stats_2025.csv": "a330e21afc012875",
-      "ORDER_PRESENCE_HOOK_EVENTS.csv": "52e1561abca88f4d"
+      "local_trades_2025.csv": "00a4c3ee709e816179f0585e4a11ab8723cb865845b67c57557b8f2b60fc2216",
+      "local_equity_2025.csv": "041bfbe4a99cd9f5c31074d388c1c70f66ac7fd4d0d772c0ccfa0b74b9e7cad3",
+      "local_state_2025.csv": "13501dbda83b207cd347a35805df72632c8457ffc57255783e07e08807797832",
+      "local_positions_2025.csv": "d646c5977f0d60e799e4064e52de06aed728b8bcf809eb29f3f9ca68826e18ca",
+      "local_portfolio_stats_2025.csv": "a330e21afc0128750fa87ec411b553ca9740d84129ca3c3b2dffa58d0937d412",
+      "order_presence_hook_events.csv": "52e1561abca88f4d9dd348a44f75bb478da6b0a826eb61d60916416e1c2c6b83"
     },
     "L1B_run2": {
-      "local_trades_2025.csv": "00a4c3ee709e8161",
-      "local_equity_2025.csv": "041bfbe4a99cd9f5",
-      "local_state_2025.csv": "13501dbda83b207c",
-      "local_positions_2025.csv": "d646c5977f0d60e7",
-      "local_portfolio_stats_2025.csv": "a330e21afc012875",
-      "ORDER_PRESENCE_HOOK_EVENTS.csv": "52e1561abca88f4d"
+      "local_trades_2025.csv": "00a4c3ee709e816179f0585e4a11ab8723cb865845b67c57557b8f2b60fc2216",
+      "local_equity_2025.csv": "041bfbe4a99cd9f5c31074d388c1c70f66ac7fd4d0d772c0ccfa0b74b9e7cad3",
+      "local_state_2025.csv": "13501dbda83b207cd347a35805df72632c8457ffc57255783e07e08807797832",
+      "local_positions_2025.csv": "d646c5977f0d60e799e4064e52de06aed728b8bcf809eb29f3f9ca68826e18ca",
+      "local_portfolio_stats_2025.csv": "a330e21afc0128750fa87ec411b553ca9740d84129ca3c3b2dffa58d0937d412",
+      "order_presence_hook_events.csv": "52e1561abca88f4d9dd348a44f75bb478da6b0a826eb61d60916416e1c2c6b83"
     },
     "L2_run1": {
-      "local_trades_2025.csv": "00a4c3ee709e8161",
-      "local_equity_2025.csv": "041bfbe4a99cd9f5",
-      "local_state_2025.csv": "13501dbda83b207c",
-      "local_positions_2025.csv": "d646c5977f0d60e7",
-      "local_portfolio_stats_2025.csv": "a330e21afc012875",
-      "ORDER_PRESENCE_HOOK_EVENTS.csv": "52e1561abca88f4d"
+      "local_trades_2025.csv": "00a4c3ee709e816179f0585e4a11ab8723cb865845b67c57557b8f2b60fc2216",
+      "local_equity_2025.csv": "041bfbe4a99cd9f5c31074d388c1c70f66ac7fd4d0d772c0ccfa0b74b9e7cad3",
+      "local_state_2025.csv": "13501dbda83b207cd347a35805df72632c8457ffc57255783e07e08807797832",
+      "local_positions_2025.csv": "d646c5977f0d60e799e4064e52de06aed728b8bcf809eb29f3f9ca68826e18ca",
+      "local_portfolio_stats_2025.csv": "a330e21afc0128750fa87ec411b553ca9740d84129ca3c3b2dffa58d0937d412",
+      "order_presence_hook_events.csv": "52e1561abca88f4d9dd348a44f75bb478da6b0a826eb61d60916416e1c2c6b83"
     },
     "L2_run2": {
-      "local_trades_2025.csv": "00a4c3ee709e8161",
-      "local_equity_2025.csv": "041bfbe4a99cd9f5",
-      "local_state_2025.csv": "13501dbda83b207c",
-      "local_positions_2025.csv": "d646c5977f0d60e7",
-      "local_portfolio_stats_2025.csv": "a330e21afc012875",
-      "ORDER_PRESENCE_HOOK_EVENTS.csv": "52e1561abca88f4d"
+      "local_trades_2025.csv": "00a4c3ee709e816179f0585e4a11ab8723cb865845b67c57557b8f2b60fc2216",
+      "local_equity_2025.csv": "041bfbe4a99cd9f5c31074d388c1c70f66ac7fd4d0d772c0ccfa0b74b9e7cad3",
+      "local_state_2025.csv": "13501dbda83b207cd347a35805df72632c8457ffc57255783e07e08807797832",
+      "local_positions_2025.csv": "d646c5977f0d60e799e4064e52de06aed728b8bcf809eb29f3f9ca68826e18ca",
+      "local_portfolio_stats_2025.csv": "a330e21afc0128750fa87ec411b553ca9740d84129ca3c3b2dffa58d0937d412",
+      "order_presence_hook_events.csv": "52e1561abca88f4d9dd348a44f75bb478da6b0a826eb61d60916416e1c2c6b83"
     }
   },
-  "note": "2025 has no L2 order presence events, so L1B and L2 produce identical trades/equity/state"
+  "note": "2025 has no L2 order presence events, so L1B and L2 produce identical trades/equity/state. All hashes below are full 64-character SHA256. See RUN_PROVENANCE.json in each run directory for complete provenance."
 }

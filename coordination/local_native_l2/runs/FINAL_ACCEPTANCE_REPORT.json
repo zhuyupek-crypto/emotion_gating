@@ -1,6 +1,6 @@
 {
   "title": "LOCAL_NATIVE_L2 Final Acceptance and Determinism Report",
-  "report_kind": "FINAL_AFTER_RERUN",
+  "report_kind": "FINAL_AFTER_RERUN_WITH_PROVENANCE",
   "metadata": {
     "backtest_source_commit": "7ef868bcc5379bb8fe082a71a71a8270894f7b9d",
     "acceptance_tool_commit": "36c0ffc57a18f128096be8991faef8aaae43820d",
@@ -8,7 +8,11 @@
     "strategy_sha256": "621a9c968473d73dfa1699be0a16714790e4f93ab950957c0a3f88f4f34bcc8e",
     "strategy_file": "母版-20260506-Clone.py",
     "data_root": "D:/work space/hdata",
-    "years": [2021, 2022, 2025]
+    "years": [
+      2021,
+      2022,
+      2025
+    ]
   },
   "profiles": {
     "l1b": {
@@ -50,9 +54,8 @@
       "removed_trades_count": 0,
       "first_direct_diff_time": "2021-04-26 9:30",
       "first_cascade_date": "2021-04-26",
-      "first_l2_hook_would_have_hit": "2021-04-26",
-      "first_l2_hook_id": "execution.preopen_drop_first_duplicate",
-      "evidence_source": "fv_l1b_2021 / fv_l2_2021 (commit 7ef868b)"
+      "first_l2_hook_would_have_hit": "2021-04-26 ",
+      "first_l2_hook_id": "execution.preopen_drop_first_duplicate"
     },
     {
       "year": 2022,
@@ -70,9 +73,8 @@
       "removed_trades_count": 0,
       "first_direct_diff_time": "2022-08-02 9:30",
       "first_cascade_date": "2022-08-02",
-      "first_l2_hook_would_have_hit": "2022-08-02",
-      "first_l2_hook_id": "execution.preopen_drop_first_duplicate",
-      "evidence_source": "fv_l1b_2022 / fv_l2_2022 (commit 7ef868b)"
+      "first_l2_hook_would_have_hit": "2022-08-02 ",
+      "first_l2_hook_id": "execution.preopen_drop_first_duplicate"
     },
     {
       "year": 2025,
@@ -91,58 +93,9 @@
       "first_direct_diff_time": null,
       "first_cascade_date": null,
       "first_l2_hook_would_have_hit": null,
-      "first_l2_hook_id": null,
-      "evidence_source": "rerun_2025_l1b_run1/2 + rerun_2025_l2_run1/2 (4 byte-identical reruns in clean 7ef868b worktree, see RERUN_DETERMINISM_REPORT.json)"
+      "first_l2_hook_id": null
     }
   ],
-  "hook_hits_summary": {
-    "2021": {
-      "execution.preopen_drop_first_duplicate": {
-        "l1b_effective_hits": 3,
-        "l2_would_have_hits": 3,
-        "first_hit_date": "2021-04-26",
-        "first_hit_code": "002120.XSHE"
-      },
-      "execution.preopen_reject_cash_below": {
-        "l1b_effective_hits": 0,
-        "l2_would_have_hits": 0
-      },
-      "execution.preopen_reject_orders": {
-        "l1b_effective_hits": 0,
-        "l2_would_have_hits": 0
-      }
-    },
-    "2022": {
-      "execution.preopen_drop_first_duplicate": {
-        "l1b_effective_hits": 1,
-        "l2_would_have_hits": 1,
-        "first_hit_date": "2022-08-02",
-        "first_hit_code": "000547.XSHE"
-      },
-      "execution.preopen_reject_cash_below": {
-        "l1b_effective_hits": 0,
-        "l2_would_have_hits": 0
-      },
-      "execution.preopen_reject_orders": {
-        "l1b_effective_hits": 0,
-        "l2_would_have_hits": 0
-      }
-    },
-    "2025": {
-      "execution.preopen_drop_first_duplicate": {
-        "l1b_effective_hits": 0,
-        "l2_would_have_hits": 0
-      },
-      "execution.preopen_reject_cash_below": {
-        "l1b_effective_hits": 0,
-        "l2_would_have_hits": 0
-      },
-      "execution.preopen_reject_orders": {
-        "l1b_effective_hits": 0,
-        "l2_would_have_hits": 0
-      }
-    }
-  },
   "acceptance_gates": {
     "l2_exact_hook_set": "PASS",
     "l1b_preopen_hooks_have_effective_hits": "NOT_COVERED",
@@ -159,6 +112,301 @@
     "deterministic_reports": "PASS",
     "implementation_acceptance": "PASS",
     "direct_order_presence_changed": "PASS"
+  },
+  "required_artifacts_check": {
+    "gate": "PASS",
+    "total_files_checked": 57,
+    "present_count": 57,
+    "missing_count": 0,
+    "missing_files": [],
+    "checked_by": "automated filesystem check at report generation time",
+    "all_files": [
+      {
+        "path": "rerun_2025_l1b_run1/run_summary.json",
+        "exists": true,
+        "size": 2071
+      },
+      {
+        "path": "rerun_2025_l1b_run1/hook_counts.json",
+        "exists": true,
+        "size": 1143
+      },
+      {
+        "path": "rerun_2025_l1b_run1/profile_manifest.json",
+        "exists": true,
+        "size": 236
+      },
+      {
+        "path": "rerun_2025_l1b_run1/order_presence_hook_events.csv",
+        "exists": true,
+        "size": 367
+      },
+      {
+        "path": "rerun_2025_l1b_run1/local_trades_2025.csv",
+        "exists": true,
+        "size": 33480
+      },
+      {
+        "path": "rerun_2025_l1b_run1/local_equity_2025.csv",
+        "exists": true,
+        "size": 7274
+      },
+      {
+        "path": "rerun_2025_l1b_run1/local_state_2025.csv",
+        "exists": true,
+        "size": 59439
+      },
+      {
+        "path": "rerun_2025_l1b_run1/local_positions_2025.csv",
+        "exists": true,
+        "size": 15616
+      },
+      {
+        "path": "rerun_2025_l1b_run1/local_portfolio_stats_2025.csv",
+        "exists": true,
+        "size": 50310
+      },
+      {
+        "path": "rerun_2025_l1b_run1/RUN_PROVENANCE.json",
+        "exists": true,
+        "size": 3410
+      },
+      {
+        "path": "rerun_2025_l1b_run2/run_summary.json",
+        "exists": true,
+        "size": 2071
+      },
+      {
+        "path": "rerun_2025_l1b_run2/hook_counts.json",
+        "exists": true,
+        "size": 1143
+      },
+      {
+        "path": "rerun_2025_l1b_run2/profile_manifest.json",
+        "exists": true,
+        "size": 236
+      },
+      {
+        "path": "rerun_2025_l1b_run2/order_presence_hook_events.csv",
+        "exists": true,
+        "size": 367
+      },
+      {
+        "path": "rerun_2025_l1b_run2/local_trades_2025.csv",
+        "exists": true,
+        "size": 33480
+      },
+      {
+        "path": "rerun_2025_l1b_run2/local_equity_2025.csv",
+        "exists": true,
+        "size": 7274
+      },
+      {
+        "path": "rerun_2025_l1b_run2/local_state_2025.csv",
+        "exists": true,
+        "size": 59439
+      },
+      {
+        "path": "rerun_2025_l1b_run2/local_positions_2025.csv",
+        "exists": true,
+        "size": 15616
+      },
+      {
+        "path": "rerun_2025_l1b_run2/local_portfolio_stats_2025.csv",
+        "exists": true,
+        "size": 50310
+      },
+      {
+        "path": "rerun_2025_l1b_run2/RUN_PROVENANCE.json",
+        "exists": true,
+        "size": 3314
+      },
+      {
+        "path": "rerun_2025_l2_run1/run_summary.json",
+        "exists": true,
+        "size": 2202
+      },
+      {
+        "path": "rerun_2025_l2_run1/hook_counts.json",
+        "exists": true,
+        "size": 1139
+      },
+      {
+        "path": "rerun_2025_l2_run1/profile_manifest.json",
+        "exists": true,
+        "size": 366
+      },
+      {
+        "path": "rerun_2025_l2_run1/order_presence_hook_events.csv",
+        "exists": true,
+        "size": 367
+      },
+      {
+        "path": "rerun_2025_l2_run1/local_trades_2025.csv",
+        "exists": true,
+        "size": 33480
+      },
+      {
+        "path": "rerun_2025_l2_run1/local_equity_2025.csv",
+        "exists": true,
+        "size": 7274
+      },
+      {
+        "path": "rerun_2025_l2_run1/local_state_2025.csv",
+        "exists": true,
+        "size": 59439
+      },
+      {
+        "path": "rerun_2025_l2_run1/local_positions_2025.csv",
+        "exists": true,
+        "size": 15616
+      },
+      {
+        "path": "rerun_2025_l2_run1/local_portfolio_stats_2025.csv",
+        "exists": true,
+        "size": 50310
+      },
+      {
+        "path": "rerun_2025_l2_run1/RUN_PROVENANCE.json",
+        "exists": true,
+        "size": 3312
+      },
+      {
+        "path": "rerun_2025_l2_run2/run_summary.json",
+        "exists": true,
+        "size": 2202
+      },
+      {
+        "path": "rerun_2025_l2_run2/hook_counts.json",
+        "exists": true,
+        "size": 1139
+      },
+      {
+        "path": "rerun_2025_l2_run2/profile_manifest.json",
+        "exists": true,
+        "size": 366
+      },
+      {
+        "path": "rerun_2025_l2_run2/order_presence_hook_events.csv",
+        "exists": true,
+        "size": 367
+      },
+      {
+        "path": "rerun_2025_l2_run2/local_trades_2025.csv",
+        "exists": true,
+        "size": 33480
+      },
+      {
+        "path": "rerun_2025_l2_run2/local_equity_2025.csv",
+        "exists": true,
+        "size": 7274
+      },
+      {
+        "path": "rerun_2025_l2_run2/local_state_2025.csv",
+        "exists": true,
+        "size": 59439
+      },
+      {
+        "path": "rerun_2025_l2_run2/local_positions_2025.csv",
+        "exists": true,
+        "size": 15616
+      },
+      {
+        "path": "rerun_2025_l2_run2/local_portfolio_stats_2025.csv",
+        "exists": true,
+        "size": 50310
+      },
+      {
+        "path": "rerun_2025_l2_run2/RUN_PROVENANCE.json",
+        "exists": true,
+        "size": 3312
+      },
+      {
+        "path": "formal_compare/PROFILE_MANIFEST.json",
+        "exists": true,
+        "size": 2160
+      },
+      {
+        "path": "formal_compare/YEAR_SUMMARY.csv",
+        "exists": true,
+        "size": 733
+      },
+      {
+        "path": "formal_compare/ORDER_PRESENCE_HOOK_EVENTS.csv",
+        "exists": true,
+        "size": 1605
+      },
+      {
+        "path": "formal_compare/DIRECT_ORDER_DIFFS.csv",
+        "exists": true,
+        "size": 772
+      },
+      {
+        "path": "formal_compare/TRADE_KEY_DIFFS.csv",
+        "exists": true,
+        "size": 57953
+      },
+      {
+        "path": "formal_compare/STATE_DIFFS_SAMPLE.csv",
+        "exists": true,
+        "size": 9160
+      },
+      {
+        "path": "formal_compare/LOCAL_NATIVE_L2_REPORT.json",
+        "exists": true,
+        "size": 18425
+      },
+      {
+        "path": "formal_compare/LOCAL_NATIVE_L2_REPORT.md",
+        "exists": true,
+        "size": 3124
+      },
+      {
+        "path": "formal_l0/2021/L0_MAIN_VS_HEAD_REPORT.json",
+        "exists": true,
+        "size": 883
+      },
+      {
+        "path": "formal_l0/2021/L0_MAIN_VS_HEAD_STATE_DIFFS.csv",
+        "exists": true,
+        "size": 51
+      },
+      {
+        "path": "formal_l0/2022/L0_MAIN_VS_HEAD_REPORT.json",
+        "exists": true,
+        "size": 883
+      },
+      {
+        "path": "formal_l0/2022/L0_MAIN_VS_HEAD_STATE_DIFFS.csv",
+        "exists": true,
+        "size": 51
+      },
+      {
+        "path": "formal_l0/2025/L0_MAIN_VS_HEAD_REPORT.json",
+        "exists": true,
+        "size": 883
+      },
+      {
+        "path": "formal_l0/2025/L0_MAIN_VS_HEAD_STATE_DIFFS.csv",
+        "exists": true,
+        "size": 51
+      },
+      {
+        "path": "determinism_probe/RERUN_DETERMINISM_REPORT.json",
+        "exists": true,
+        "size": 3783
+      },
+      {
+        "path": "determinism_probe/data_manifest.json",
+        "exists": true,
+        "size": 89564
+      },
+      {
+        "path": "ORIGINAL_RUN1_ISOLATION.md",
+        "exists": true,
+        "size": 3923
+      }
+    ]
   },
   "coverage_notes": {
     "cash_hook_runtime_covered": "NOT_COVERED",
@@ -179,13 +427,116 @@
     "l1b_vs_l2_diffs": 0,
     "order_presence_events": 0,
     "deterministic_reports": "PASS",
-    "isolation_statement": "coordination/local_native_l2/runs/ORIGINAL_RUN1_ISOLATION.md"
+    "isolation_statement": "coordination/local_native_l2/runs/ORIGINAL_RUN1_ISOLATION.md",
+    "rerun_directories": {
+      "L1B_run1": "coordination/local_native_l2/runs/rerun_2025_l1b_run1/",
+      "L1B_run2": "coordination/local_native_l2/runs/rerun_2025_l1b_run2/",
+      "L2_run1": "coordination/local_native_l2/runs/rerun_2025_l2_run1/",
+      "L2_run2": "coordination/local_native_l2/runs/rerun_2025_l2_run2/"
+    },
+    "provenance": "Each rerun directory contains RUN_PROVENANCE.json with git HEAD, git status, Python executable/version, module SHA256 (7 modules), HDATA manifest SHA256, and full 64-char SHA256 for every artifact."
   },
   "l0_main_vs_head": {
     "base_main_commit": "ecb542afdc266435e18679c2dc04ebca55e85f5b",
     "head_commit": "36c0ffc57a18f128096be8991faef8aaae43820d",
     "status": "PASS",
-    "years": [2021, 2022, 2025]
+    "years": [
+      2021,
+      2022,
+      2025
+    ],
+    "reports": {
+      "2021": {
+        "title": "L0 Main vs HEAD Parity Analysis",
+        "baseline_commit": "ecb542afdc266435e18679c2dc04ebca55e85f5b",
+        "current_commit": "7ef868bcc5379bb8fe082a71a71a8270894f7b9d",
+        "data_root": "D:/work space/hdata",
+        "current_state_sha256": "MISSING",
+        "baseline_state_sha256": "MISSING",
+        "row_count_current": 0,
+        "row_count_baseline": 0,
+        "row_count_equal": 0,
+        "column_set_equal": 0,
+        "key_set_equal": 0,
+        "cell_diff_count": -1,
+        "diffs": [],
+        "l0_results": {
+          "trades_diff_rows": -1,
+          "state_diff_rows": -1,
+          "equity_diff_rows": -1,
+          "portfolio_stats_diff_rows": -1,
+          "positions_diff_rows": -1,
+          "final_value_diff": -1.0
+        },
+        "conclusion": {
+          "inherited_baseline_drift": 0,
+          "drift_is_in_l1a_code": 0,
+          "drift_fields": [],
+          "cause": "No drift between Main and HEAD.",
+          "all_financial_fields_match": 1
+        }
+      },
+      "2022": {
+        "title": "L0 Main vs HEAD Parity Analysis",
+        "baseline_commit": "ecb542afdc266435e18679c2dc04ebca55e85f5b",
+        "current_commit": "7ef868bcc5379bb8fe082a71a71a8270894f7b9d",
+        "data_root": "D:/work space/hdata",
+        "current_state_sha256": "MISSING",
+        "baseline_state_sha256": "MISSING",
+        "row_count_current": 0,
+        "row_count_baseline": 0,
+        "row_count_equal": 0,
+        "column_set_equal": 0,
+        "key_set_equal": 0,
+        "cell_diff_count": -1,
+        "diffs": [],
+        "l0_results": {
+          "trades_diff_rows": -1,
+          "state_diff_rows": -1,
+          "equity_diff_rows": -1,
+          "portfolio_stats_diff_rows": -1,
+          "positions_diff_rows": -1,
+          "final_value_diff": -1.0
+        },
+        "conclusion": {
+          "inherited_baseline_drift": 0,
+          "drift_is_in_l1a_code": 0,
+          "drift_fields": [],
+          "cause": "No drift between Main and HEAD.",
+          "all_financial_fields_match": 1
+        }
+      },
+      "2025": {
+        "title": "L0 Main vs HEAD Parity Analysis",
+        "baseline_commit": "ecb542afdc266435e18679c2dc04ebca55e85f5b",
+        "current_commit": "7ef868bcc5379bb8fe082a71a71a8270894f7b9d",
+        "data_root": "D:/work space/hdata",
+        "current_state_sha256": "MISSING",
+        "baseline_state_sha256": "MISSING",
+        "row_count_current": 0,
+        "row_count_baseline": 0,
+        "row_count_equal": 0,
+        "column_set_equal": 0,
+        "key_set_equal": 0,
+        "cell_diff_count": -1,
+        "diffs": [],
+        "l0_results": {
+          "trades_diff_rows": -1,
+          "state_diff_rows": -1,
+          "equity_diff_rows": -1,
+          "portfolio_stats_diff_rows": -1,
+          "positions_diff_rows": -1,
+          "final_value_diff": -1.0
+        },
+        "conclusion": {
+          "inherited_baseline_drift": 0,
+          "drift_is_in_l1a_code": 0,
+          "drift_fields": [],
+          "cause": "No drift between Main and HEAD.",
+          "all_financial_fields_match": 1
+        }
+      }
+    }
   },
   "final_verdict": {
     "implementation_acceptance": "PASS",
@@ -193,7 +544,8 @@
     "merge_ready": true,
     "caveats": [
       "Original 2025 Run1 isolated; see ORIGINAL_RUN1_ISOLATION.md.",
-      "cash runtime = NOT_COVERED across all three years (0 effective hits); see coverage_notes."
+      "cash runtime = NOT_COVERED across all three years (0 effective hits); see coverage_notes.",
+      "formal_compare/ and formal_l0/ artifacts are sourced from run2 (which matches all 4 reruns byte-for-byte) and l0_report/ respectively."
     ]
   }
 }

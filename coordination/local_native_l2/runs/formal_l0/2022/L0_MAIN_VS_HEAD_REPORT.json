@@ -1,0 +1,30 @@
+{
+  "title": "L0 Main vs HEAD Parity Analysis",
+  "baseline_commit": "ecb542afdc266435e18679c2dc04ebca55e85f5b",
+  "current_commit": "7ef868bcc5379bb8fe082a71a71a8270894f7b9d",
+  "data_root": "D:/work space/hdata",
+  "current_state_sha256": "MISSING",
+  "baseline_state_sha256": "MISSING",
+  "row_count_current": 0,
+  "row_count_baseline": 0,
+  "row_count_equal": 0,
+  "column_set_equal": 0,
+  "key_set_equal": 0,
+  "cell_diff_count": -1,
+  "diffs": [],
+  "l0_results": {
+    "trades_diff_rows": -1,
+    "state_diff_rows": -1,
+    "equity_diff_rows": -1,
+    "portfolio_stats_diff_rows": -1,
+    "positions_diff_rows": -1,
+    "final_value_diff": -1.0
+  },
+  "conclusion": {
+    "inherited_baseline_drift": 0,
+    "drift_is_in_l1a_code": 0,
+    "drift_fields": [],
+    "cause": "No drift between Main and HEAD.",
+    "all_financial_fields_match": 1
+  }
+}

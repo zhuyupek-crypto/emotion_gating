@@ -1,0 +1,69 @@
+{
+  "l1b": {
+    "2021": {
+      "profile": "local_native_l1b",
+      "disabled_hook_ids": [
+        "execution.execution_price_anomalies",
+        "execution.fill_amount_anomalies",
+        "execution.order_amount_anomalies",
+        "market_data.minute_price_anomalies"
+      ]
+    },
+    "2022": {
+      "profile": "local_native_l1b",
+      "disabled_hook_ids": [
+        "execution.execution_price_anomalies",
+        "execution.fill_amount_anomalies",
+        "execution.order_amount_anomalies",
+        "market_data.minute_price_anomalies"
+      ]
+    },
+    "2025": {
+      "profile": "local_native_l1b",
+      "disabled_hook_ids": [
+        "execution.execution_price_anomalies",
+        "execution.fill_amount_anomalies",
+        "execution.order_amount_anomalies",
+        "market_data.minute_price_anomalies"
+      ]
+    }
+  },
+  "l2": {
+    "2021": {
+      "profile": "local_native_l2",
+      "disabled_hook_ids": [
+        "execution.execution_price_anomalies",
+        "execution.fill_amount_anomalies",
+        "execution.order_amount_anomalies",
+        "execution.preopen_drop_first_duplicate",
+        "execution.preopen_reject_cash_below",
+        "execution.preopen_reject_orders",
+        "market_data.minute_price_anomalies"
+      ]
+    },
+    "2022": {
+      "profile": "local_native_l2",
+      "disabled_hook_ids": [
+        "execution.execution_price_anomalies",
+        "execution.fill_amount_anomalies",
+        "execution.order_amount_anomalies",
+        "execution.preopen_drop_first_duplicate",
+        "execution.preopen_reject_cash_below",
+        "execution.preopen_reject_orders",
+        "market_data.minute_price_anomalies"
+      ]
+    },
+    "2025": {
+      "profile": "local_native_l2",
+      "disabled_hook_ids": [
+        "execution.execution_price_anomalies",
+        "execution.fill_amount_anomalies",
+        "execution.order_amount_anomalies",
+        "execution.preopen_drop_first_duplicate",
+        "execution.preopen_reject_cash_below",
+        "execution.preopen_reject_orders",
+        "market_data.minute_price_anomalies"
+      ]
+    }
+  }
+}
