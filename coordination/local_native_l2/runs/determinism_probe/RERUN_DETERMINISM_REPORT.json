@@ -1,0 +1,51 @@
+{
+  "backtest_source_commit": "7ef868bcc5379bb8fe082a71a71a8270894f7b9d",
+  "original_run1_isolated": true,
+  "original_failure_root_cause": "UNKNOWN_ENVIRONMENT_OR_PROVENANCE_DIFFERENCE",
+  "new_2025_l1b_run1_vs_run2": "PASS",
+  "new_2025_l2_run1_vs_run2": "PASS",
+  "l1b_vs_l2_diffs": 0,
+  "order_presence_events": 0,
+  "deterministic_reports": "PASS",
+  "rerun_environment": {
+    "source_commit": "7ef868bcc5379bb8fe082a71a71a8270894f7b9d",
+    "worktree": "D:/WorkSpace/他山之石/l2_exec",
+    "pythonhashseed": "0",
+    "runs": 4
+  },
+  "rerun_results": {
+    "L1B_run1": {
+      "local_trades_2025.csv": "00a4c3ee709e8161",
+      "local_equity_2025.csv": "041bfbe4a99cd9f5",
+      "local_state_2025.csv": "13501dbda83b207c",
+      "local_positions_2025.csv": "d646c5977f0d60e7",
+      "local_portfolio_stats_2025.csv": "a330e21afc012875",
+      "ORDER_PRESENCE_HOOK_EVENTS.csv": "52e1561abca88f4d"
+    },
+    "L1B_run2": {
+      "local_trades_2025.csv": "00a4c3ee709e8161",
+      "local_equity_2025.csv": "041bfbe4a99cd9f5",
+      "local_state_2025.csv": "13501dbda83b207c",
+      "local_positions_2025.csv": "d646c5977f0d60e7",
+      "local_portfolio_stats_2025.csv": "a330e21afc012875",
+      "ORDER_PRESENCE_HOOK_EVENTS.csv": "52e1561abca88f4d"
+    },
+    "L2_run1": {
+      "local_trades_2025.csv": "00a4c3ee709e8161",
+      "local_equity_2025.csv": "041bfbe4a99cd9f5",
+      "local_state_2025.csv": "13501dbda83b207c",
+      "local_positions_2025.csv": "d646c5977f0d60e7",
+      "local_portfolio_stats_2025.csv": "a330e21afc012875",
+      "ORDER_PRESENCE_HOOK_EVENTS.csv": "52e1561abca88f4d"
+    },
+    "L2_run2": {
+      "local_trades_2025.csv": "00a4c3ee709e8161",
+      "local_equity_2025.csv": "041bfbe4a99cd9f5",
+      "local_state_2025.csv": "13501dbda83b207c",
+      "local_positions_2025.csv": "d646c5977f0d60e7",
+      "local_portfolio_stats_2025.csv": "a330e21afc012875",
+      "ORDER_PRESENCE_HOOK_EVENTS.csv": "52e1561abca88f4d"
+    }
+  },
+  "note": "2025 has no L2 order presence events, so L1B and L2 produce identical trades/equity/state"
+}
