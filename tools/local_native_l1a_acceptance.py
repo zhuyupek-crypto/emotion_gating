@@ -969,48 +969,102 @@ from tools.acceptance_common import (
 )
 
 
-def generate_l0_report(current_dir: Path, baseline_dir: Path, out_dir: Path, title: str, report_filename: str, csv_filename: str, baseline_commit: str, current_commit: str):
+def generate_l0_report(current_dir: Path, baseline_dir: Path, out_dir: Path, title: str, report_filename: str, csv_filename: str, baseline_commit: str, current_commit: str, year: int = 2020):
     out_dir.mkdir(parents=True, exist_ok=True)
-    
+
     # Compare the 5 files
     results = {}
     KEY_MAP = {
         "trades": "time", "state": "date", "equity": "date",
         "portfolio_stats": "date", "positions": ["date", "code"],
     }
-    
+
     for suffix in ["trades", "state", "equity", "portfolio_stats", "positions"]:
-        rf = current_dir / f"local_{suffix}_2020.csv"
-        bf = baseline_dir / f"local_{suffix}_2020.csv"
+        rf = current_dir / f"local_{suffix}_{year}.csv"
+        bf = baseline_dir / f"local_{suffix}_{year}.csv"
         cr = compare_baseline_file(rf, bf, suffix, key_col=KEY_MAP.get(suffix))
         results[f"{suffix}_diff_rows"] = cr["diff_rows"]
-        
-    jqe_path = current_dir / "local_equity_2020.csv"
-    be_path = baseline_dir / "local_equity_2020.csv"
+        # Track per-file row counts for 0-row detection (not just state)
+        results[f"{suffix}_row_count_current"] = cr.get("row_count_current", 0)
+        results[f"{suffix}_row_count_baseline"] = cr.get("row_count_baseline", 0)
+
+    # equity final value diff (guard against empty file crashing on iloc[-1])
+    jqe_path = current_dir / f"local_equity_{year}.csv"
+    be_path = baseline_dir / f"local_equity_{year}.csv"
+    val_diff = -1.0
     if jqe_path.exists() and be_path.exists():
-        jqe = pd.read_csv(jqe_path)
-        be = pd.read_csv(be_path)
-        val_diff = round(abs(float(jqe["value"].iloc[-1]) - float(be["value"].iloc[-1])), 6)
-    else:
-        val_diff = -1.0
+        try:
+            jqe = pd.read_csv(jqe_path)
+            be = pd.read_csv(be_path)
+            if len(jqe) > 0 and len(be) > 0 and "value" in jqe.columns and "value" in be.columns:
+                val_diff = round(abs(float(jqe["value"].iloc[-1]) - float(be["value"].iloc[-1])), 6)
+            else:
+                val_diff = -1.0  # empty or missing value column -> treated as FAIL
+        except Exception:
+            val_diff = -1.0  # parse error -> controlled FAIL, not crash
     results["final_value_diff"] = val_diff
-    
+
     # Compare state file cell-by-cell
-    state_rf = current_dir / "local_state_2020.csv"
-    state_bf = baseline_dir / "local_state_2020.csv"
+    state_rf = current_dir / f"local_state_{year}.csv"
+    state_bf = baseline_dir / f"local_state_{year}.csv"
     cell_diff_count, diffs = compare_state_files(state_rf, state_bf)
-    
+
     # SHA256 of state files
     curr_sha = hashlib.sha256(state_rf.read_bytes()).hexdigest() if state_rf.exists() else "MISSING"
     base_sha = hashlib.sha256(state_bf.read_bytes()).hexdigest() if state_bf.exists() else "MISSING"
-    
+
+    row_count_current = len(pd.read_csv(state_rf)) if state_rf.exists() else 0
+    row_count_baseline = len(pd.read_csv(state_bf)) if state_bf.exists() else 0
+
     drift_fields = sorted(list(set(d["column"] for d in diffs)))
     all_financial_fields_match = all(not f.startswith("cand_") for f in drift_fields) if drift_fields else True
-    
+
     is_baseline_drift = False
     if "drift" in report_filename.lower():
         is_baseline_drift = True
-        
+
+    # L0 pass/fail: FAIL on MISSING, 0-row (any of 5 files), or -1 diff
+    suffixes = ["trades", "state", "equity", "portfolio_stats", "positions"]
+    any_input_missing = (
+        curr_sha == "MISSING" or base_sha == "MISSING"
+        or any(results.get(f"{s}_diff_rows") == -1 for s in suffixes)
+    )
+    # Check 0-row for ALL 5 files (not just state)
+    any_zero_rows = any(
+        results.get(f"{s}_row_count_current", 0) == 0
+        or results.get(f"{s}_row_count_baseline", 0) == 0
+        for s in suffixes
+    )
+    has_diffs = (cell_diff_count > 0 or any(results.get(f"{s}_diff_rows", 0) > 0 for s in suffixes))
+
+    if is_baseline_drift:
+        cause = "Candidate count columns fluctuate by \u00b11 between snapshots. Frozen baseline generated months before L1A branch."
+        l0_status = "FAIL" if (any_input_missing or any_zero_rows) else "PASS"
+    elif any_input_missing or any_zero_rows:
+        cause = "FAIL: L0 inputs missing or empty (MISSING/0-row/-1 diff). Cannot verify main-vs-head parity."
+        l0_status = "FAIL"
+    elif has_diffs:
+        cause = "FAIL: Main and HEAD differ."
+        l0_status = "FAIL"
+    else:
+        cause = "No drift between Main and HEAD."
+        l0_status = "PASS"
+
+    has_diffs = (cell_diff_count > 0 or any(results.get(f"{s}_diff_rows", 0) > 0 for s in suffixes))
+
+    if is_baseline_drift:
+        cause = "Candidate count columns fluctuate by \u00b11 between snapshots. Frozen baseline generated months before L1A branch."
+        l0_status = "FAIL" if (any_input_missing or any_zero_rows) else "PASS"
+    elif any_input_missing or any_zero_rows:
+        cause = "FAIL: L0 inputs missing or empty (MISSING/0-row/-1 diff). Cannot verify main-vs-head parity."
+        l0_status = "FAIL"
+    elif has_diffs:
+        cause = "FAIL: Main and HEAD differ."
+        l0_status = "FAIL"
+    else:
+        cause = "No drift between Main and HEAD."
+        l0_status = "PASS"
+
     report = {
         "title": title,
         "baseline_commit": baseline_commit,
@@ -1018,19 +1072,20 @@ def generate_l0_report(current_dir: Path, baseline_dir: Path, out_dir: Path, tit
         "data_root": str(HDATA_ROOT).replace("\\", "/"),
         "current_state_sha256": curr_sha,
         "baseline_state_sha256": base_sha,
-        "row_count_current": len(pd.read_csv(state_rf)) if state_rf.exists() else 0,
-        "row_count_baseline": len(pd.read_csv(state_bf)) if state_bf.exists() else 0,
-        "row_count_equal": results.get("state_diff_rows") != -1 and len(pd.read_csv(state_rf)) == len(pd.read_csv(state_bf)),
+        "row_count_current": row_count_current,
+        "row_count_baseline": row_count_baseline,
+        "row_count_equal": results.get("state_diff_rows") != -1 and row_count_current == row_count_baseline,
         "column_set_equal": results.get("state_diff_rows") != -1,
         "key_set_equal": results.get("state_diff_rows") != -1,
         "cell_diff_count": cell_diff_count,
         "diffs": diffs,
         "l0_results": results,
+        "l0_status": l0_status,
         "conclusion": {
             "inherited_baseline_drift": is_baseline_drift,
             "drift_is_in_l1a_code": False,
             "drift_fields": drift_fields,
-            "cause": "Candidate count columns fluctuate by ±1 between snapshots. Frozen baseline generated months before L1A branch." if is_baseline_drift else "No drift between Main and HEAD.",
+            "cause": cause,
             "all_financial_fields_match": all_financial_fields_match
         }
     }

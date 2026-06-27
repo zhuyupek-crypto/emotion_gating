@@ -1,0 +1,5 @@
+year,date,time,code,hook_id,order_id,l1b_effective_hit,l2_would_have_hit,l1b_affected_order_ids,l2_would_have_affected_order_ids,l1b_actual_canceled_count,l2_would_have_canceled_count,l1b_pending_count_before,l1b_pending_count_after,l2_pending_count_before,l2_pending_count_after,diff_type
+2021,2021-04-26,nan,002120.XSHE,execution.preopen_drop_first_duplicate,84,True,True,['83'],['83'],1,1,2,1,2,2,direct
+2021,2021-12-01,nan,600072.XSHG,execution.preopen_drop_first_duplicate,406,True,True,['404'],['404'],1,1,3,2,3,3,direct
+2021,2021-12-08,nan,002508.XSHE,execution.preopen_drop_first_duplicate,414,True,True,['413'],['413'],1,1,2,1,2,2,direct
+2022,2022-08-02,nan,000547.XSHE,execution.preopen_drop_first_duplicate,244,True,True,['242'],['242'],1,1,3,2,3,3,direct

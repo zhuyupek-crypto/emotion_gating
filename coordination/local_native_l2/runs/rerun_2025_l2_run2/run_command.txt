@@ -1,0 +1,1 @@
+python tools/local_native_l2_acceptance.py run --profile local_native_l2 --year 2025 --out-dir rerun_2025_l2_run2

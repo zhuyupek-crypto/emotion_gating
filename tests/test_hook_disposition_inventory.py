@@ -191,6 +191,7 @@ def test_emotion_gate_compat_public_methods_covered():
         "disabled_hook_ids": None, # property - not a compat hook
         "is_hook_enabled": None,   # profile query - not a compat hook
         "profile_manifest": None,  # profile query - not a compat hook
+        "record_order_presence_event": None,  # L2 telemetry recorder - called by Engine
         "_feature_path": None,
         "_load_feature_year": None,
     }
