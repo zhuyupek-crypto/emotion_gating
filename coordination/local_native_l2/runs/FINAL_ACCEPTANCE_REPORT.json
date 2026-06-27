@@ -3,7 +3,7 @@
   "report_kind": "FINAL_AFTER_RERUN_WITH_PROVENANCE",
   "metadata": {
     "backtest_source_commit": "7ef868bcc5379bb8fe082a71a71a8270894f7b9d",
-    "acceptance_tool_commit": "36c0ffc57a18f128096be8991faef8aaae43820d",
+    "acceptance_tool_commit": "2062fe6afeff6267dc2000653310d6322d0b5a41",
     "base_main_commit": "ecb542afdc266435e18679c2dc04ebca55e85f5b",
     "strategy_sha256": "621a9c968473d73dfa1699be0a16714790e4f93ab950957c0a3f88f4f34bcc8e",
     "strategy_file": "母版-20260506-Clone.py",
@@ -436,11 +436,11 @@
     },
     "provenance": "Each rerun directory contains RUN_PROVENANCE.json with git HEAD, git status, Python executable/version, module SHA256 (7 modules), HDATA manifest SHA256, and full 64-char SHA256 for every artifact.",
     "pythonhashseed": "<not set>",
-    "provenance_note": "Each rerun directory contains RUN_PROVENANCE.json labeled as 'post_run_snapshot'. PYTHONHASHSEED was NOT set during the reruns. Determinism was verified empirically by byte-identical artifacts across 4 runs."
+    "provenance_note": "Each rerun directory contains RUN_PROVENANCE.json labeled as 'post_run_snapshot'. git_head in RUN_PROVENANCE reflects the worktree HEAD at snapshot time (post-run), NOT the runtime execution commit. Execution version is determined by: source_commit.txt = 7ef868b..., run_summary.source_commit = 7ef868b..., and the actual loaded module SHA256 values. PYTHONHASHSEED was NOT set during the reruns. Determinism was verified empirically by byte-identical artifacts across 4 runs."
   },
   "l0_main_vs_head": {
     "base_main_commit": "ecb542afdc266435e18679c2dc04ebca55e85f5b",
-    "head_commit": "36c0ffc57a18f128096be8991faef8aaae43820d",
+    "head_commit": "7ef868bcc5379bb8fe082a71a71a8270894f7b9d",
     "status": "PASS",
     "years": [
       2021,
@@ -457,26 +457,36 @@
         "baseline_state_sha256": "eefab1b2633cc7c219d19c95f488cd320e503d83dad17cfd532a38f229fed68f",
         "row_count_current": 243,
         "row_count_baseline": 243,
-        "row_count_equal": 1,
-        "column_set_equal": 1,
-        "key_set_equal": 1,
+        "row_count_equal": true,
+        "column_set_equal": true,
+        "key_set_equal": true,
         "cell_diff_count": 0,
         "diffs": [],
         "l0_results": {
           "trades_diff_rows": 0,
+          "trades_row_count_current": 445,
+          "trades_row_count_baseline": 445,
           "state_diff_rows": 0,
+          "state_row_count_current": 243,
+          "state_row_count_baseline": 243,
           "equity_diff_rows": 0,
+          "equity_row_count_current": 243,
+          "equity_row_count_baseline": 243,
           "portfolio_stats_diff_rows": 0,
+          "portfolio_stats_row_count_current": 243,
+          "portfolio_stats_row_count_baseline": 243,
           "positions_diff_rows": 0,
+          "positions_row_count_current": 290,
+          "positions_row_count_baseline": 290,
           "final_value_diff": 0.0
         },
         "l0_status": "PASS",
         "conclusion": {
-          "inherited_baseline_drift": 0,
-          "drift_is_in_l1a_code": 0,
+          "inherited_baseline_drift": false,
+          "drift_is_in_l1a_code": false,
           "drift_fields": [],
           "cause": "No drift between Main and HEAD.",
-          "all_financial_fields_match": 1
+          "all_financial_fields_match": true
         }
       },
       "2022": {
@@ -488,26 +498,36 @@
         "baseline_state_sha256": "cdd6a3d2a29d4ef0725301a6c76799d816d228bf869e381b6e7c06bee2fa9bb2",
         "row_count_current": 242,
         "row_count_baseline": 242,
-        "row_count_equal": 1,
-        "column_set_equal": 1,
-        "key_set_equal": 1,
+        "row_count_equal": true,
+        "column_set_equal": true,
+        "key_set_equal": true,
         "cell_diff_count": 0,
         "diffs": [],
         "l0_results": {
           "trades_diff_rows": 0,
+          "trades_row_count_current": 405,
+          "trades_row_count_baseline": 405,
           "state_diff_rows": 0,
+          "state_row_count_current": 242,
+          "state_row_count_baseline": 242,
           "equity_diff_rows": 0,
+          "equity_row_count_current": 242,
+          "equity_row_count_baseline": 242,
           "portfolio_stats_diff_rows": 0,
+          "portfolio_stats_row_count_current": 242,
+          "portfolio_stats_row_count_baseline": 242,
           "positions_diff_rows": 0,
+          "positions_row_count_current": 264,
+          "positions_row_count_baseline": 264,
           "final_value_diff": 0.0
         },
         "l0_status": "PASS",
         "conclusion": {
-          "inherited_baseline_drift": 0,
-          "drift_is_in_l1a_code": 0,
+          "inherited_baseline_drift": false,
+          "drift_is_in_l1a_code": false,
           "drift_fields": [],
           "cause": "No drift between Main and HEAD.",
-          "all_financial_fields_match": 1
+          "all_financial_fields_match": true
         }
       },
       "2025": {
@@ -519,30 +539,42 @@
         "baseline_state_sha256": "d9da4f7baa7d34dbf66e3262f676641a5c4bb250c52c02d2ddc5636a45086f2c",
         "row_count_current": 243,
         "row_count_baseline": 243,
-        "row_count_equal": 1,
-        "column_set_equal": 1,
-        "key_set_equal": 1,
+        "row_count_equal": true,
+        "column_set_equal": true,
+        "key_set_equal": true,
         "cell_diff_count": 0,
         "diffs": [],
         "l0_results": {
           "trades_diff_rows": 0,
+          "trades_row_count_current": 529,
+          "trades_row_count_baseline": 529,
           "state_diff_rows": 0,
+          "state_row_count_current": 243,
+          "state_row_count_baseline": 243,
           "equity_diff_rows": 0,
+          "equity_row_count_current": 243,
+          "equity_row_count_baseline": 243,
           "portfolio_stats_diff_rows": 0,
+          "portfolio_stats_row_count_current": 243,
+          "portfolio_stats_row_count_baseline": 243,
           "positions_diff_rows": 0,
+          "positions_row_count_current": 365,
+          "positions_row_count_baseline": 365,
           "final_value_diff": 0.0
         },
         "l0_status": "PASS",
         "conclusion": {
-          "inherited_baseline_drift": 0,
-          "drift_is_in_l1a_code": 0,
+          "inherited_baseline_drift": false,
+          "drift_is_in_l1a_code": false,
           "drift_fields": [],
           "cause": "No drift between Main and HEAD.",
-          "all_financial_fields_match": 1
+          "all_financial_fields_match": true
         }
       }
     },
-    "verification_method": "generate_l0_report with year parameter (fixed from hardcoded 2020); real SHA256, real row counts, 0 cell diffs confirmed"
+    "verification_method": "generate_l0_report with year parameter + per-file 0-row check + equity crash guard. Real SHA256, real row counts (243/242/243), 0 cell diffs. L0 head runs executed against execution_code_commit 7ef868b (NOT acceptance tool commit).",
+    "head_commit_meaning": "execution_code_commit (the commit L0 head runs were executed against), NOT the acceptance tool commit",
+    "execution_code_commit": "7ef868bcc5379bb8fe082a71a71a8270894f7b9d"
   },
   "final_verdict": {
     "implementation_acceptance": "PASS",
@@ -552,7 +584,7 @@
       "Original 2025 Run1 isolated; see ORIGINAL_RUN1_ISOLATION.md.",
       "cash runtime = NOT_COVERED across all three years (0 effective hits); see coverage_notes.",
       "formal_compare/ and formal_l0/ artifacts are sourced from run2 (which matches all 4 reruns byte-for-byte) and l0_report/ respectively.",
-      "L0 tool fixed: hardcoded year 2020 replaced with year parameter; MISSING/0-row/-1 now correctly produce FAIL instead of false PASS. L0 reports regenerated from existing jq_parity raw outputs — all 3 years verified with real SHA256, real row counts (243/242/243), 0 cell diffs."
+      "L0 tool fully fixed: per-file 0-row check for ALL 5 files (not just state); equity empty file crash guard (val_diff=-1.0 instead of IndexError); 2 new negative tests (trades-empty, equity-empty). FINAL_ACCEPTANCE_REPORT metadata fixed: acceptance_tool_commit = C_TOOL_FINAL (2062fe6); l0_main_vs_head.head_commit renamed to execution_code_commit = 7ef868b (was stale 36c0ffc). provenance_note fixed: git_head is post-run snapshot, NOT runtime execution commit."
     ]
   }
 }

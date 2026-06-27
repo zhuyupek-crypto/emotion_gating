@@ -54,8 +54,8 @@
     "run_command.txt": "e82721af5a0771048c4afbf0b83144416c7561a2b6c67fa502d86af085e8f713",
     "run_summary.json": "a3bc27fc2ad0536de5a6bdf5c31f9fcaff8377357cc6e2b11da4d868e224f65d",
     "source_commit.txt": "d1011225b07487919c366964017a2d8ed503d1520b88b94e8226351128b54b5e",
-    "RUN_PROVENANCE.json": "57f795e5410ec13d9da6a625d95325d1ee6d2382b7c1b70d6347107db3ed5f1c"
+    "RUN_PROVENANCE.json": "46bcf6d8ccd74dc5b05d2e9fe9e62f19d92cd4ec1c970cf1067b66cab75b48aa"
   },
   "provenance_kind": "post_run_snapshot",
-  "provenance_note": "POST-RUN SNAPSHOT: This file was generated AFTER the backtest completed and all artifacts were written. git_status_clean=false reflects the post-run state (artifacts present in worktree), NOT a pre-run runtime git clean check. PYTHONHASHSEED='<not set>' is accurate — it was not set in the environment during the run. For runtime provenance, refer to git_head (the commit used for execution) and the module SHA256 values (the actual code loaded at runtime)."
+  "provenance_note": "POST-RUN SNAPSHOT: This file was generated AFTER the backtest completed and all artifacts were written. git_status_clean=false reflects the post-run state (artifacts present in worktree), NOT a pre-run runtime git clean check. PYTHONHASHSEED='<not set>' is accurate -- it was not set in the environment during the run. git_head reflects the worktree HEAD at snapshot time (post-run), NOT the runtime execution commit. Execution version is determined by: source_commit.txt = 7ef868b..., run_summary.source_commit = 7ef868b..., and the actual loaded module SHA256 values (see modules.*.sha256 above)."
 }
