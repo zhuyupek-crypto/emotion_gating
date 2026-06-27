@@ -539,3 +539,68 @@ class TestL0ReportMissingInput:
             year=2025,
         )
         assert report["l0_status"] == "FAIL", f"Expected FAIL for differing files, got {report['l0_status']}"
+
+
+    def test_state_present_trades_empty_fails(self, tmp_path):
+        """state non-empty but trades empty (header-only) must FAIL."""
+        from tools.local_native_l1a_acceptance import generate_l0_report
+        import pandas as pd
+        current = tmp_path / "current"
+        baseline = tmp_path / "baseline"
+        current.mkdir()
+        baseline.mkdir()
+        # state non-empty, trades header-only (0 rows)
+        state_df = pd.DataFrame({"date": ["2025-01-01"], "value": [1.0]})
+        state_df.to_csv(current / "local_state_2025.csv", index=False)
+        state_df.to_csv(baseline / "local_state_2025.csv", index=False)
+        # header-only trades
+        pd.DataFrame(columns=["time", "price", "amount"]).to_csv(current / "local_trades_2025.csv", index=False)
+        pd.DataFrame(columns=["time", "price", "amount"]).to_csv(baseline / "local_trades_2025.csv", index=False)
+        # other 3 files normal
+        for suffix in ["equity", "portfolio_stats", "positions"]:
+            if suffix == "positions":
+                df = pd.DataFrame({"date": ["2025-01-01"], "code": ["000001"], "amount": [100]})
+            else:
+                df = pd.DataFrame({"date": ["2025-01-01"], "value": [1.0]})
+            df.to_csv(current / f"local_{suffix}_2025.csv", index=False)
+            df.to_csv(baseline / f"local_{suffix}_2025.csv", index=False)
+        report = generate_l0_report(
+            current_dir=current, baseline_dir=baseline, out_dir=tmp_path / "out",
+            title="L0 Main vs HEAD Parity Analysis",
+            report_filename="L0_MAIN_VS_HEAD_REPORT.json",
+            csv_filename="L0_MAIN_VS_HEAD_STATE_DIFFS.csv",
+            baseline_commit="aaa", current_commit="bbb", year=2025,
+        )
+        assert report["l0_status"] == "FAIL", f"Expected FAIL for empty trades, got {report['l0_status']}: {report['conclusion']['cause']}"
+
+    def test_state_present_equity_empty_fails(self, tmp_path):
+        """state non-empty but equity header-only must FAIL (and not crash on iloc[-1])."""
+        from tools.local_native_l1a_acceptance import generate_l0_report
+        import pandas as pd
+        current = tmp_path / "current"
+        baseline = tmp_path / "baseline"
+        current.mkdir()
+        baseline.mkdir()
+        state_df = pd.DataFrame({"date": ["2025-01-01"], "value": [1.0]})
+        state_df.to_csv(current / "local_state_2025.csv", index=False)
+        state_df.to_csv(baseline / "local_state_2025.csv", index=False)
+        # header-only equity (would crash on iloc[-1] without guard)
+        pd.DataFrame(columns=["date", "value"]).to_csv(current / "local_equity_2025.csv", index=False)
+        pd.DataFrame(columns=["date", "value"]).to_csv(baseline / "local_equity_2025.csv", index=False)
+        for suffix in ["trades", "portfolio_stats", "positions"]:
+            if suffix == "trades":
+                df = pd.DataFrame({"time": ["2025-01-01 09:30"], "price": [10.0], "amount": [100]})
+            elif suffix == "positions":
+                df = pd.DataFrame({"date": ["2025-01-01"], "code": ["000001"], "amount": [100]})
+            else:
+                df = pd.DataFrame({"date": ["2025-01-01"], "value": [1.0]})
+            df.to_csv(current / f"local_{suffix}_2025.csv", index=False)
+            df.to_csv(baseline / f"local_{suffix}_2025.csv", index=False)
+        report = generate_l0_report(
+            current_dir=current, baseline_dir=baseline, out_dir=tmp_path / "out",
+            title="L0 Main vs HEAD Parity Analysis",
+            report_filename="L0_MAIN_VS_HEAD_REPORT.json",
+            csv_filename="L0_MAIN_VS_HEAD_STATE_DIFFS.csv",
+            baseline_commit="aaa", current_commit="bbb", year=2025,
+        )
+        assert report["l0_status"] == "FAIL", f"Expected FAIL for empty equity, got {report['l0_status']}: {report['conclusion']['cause']}"

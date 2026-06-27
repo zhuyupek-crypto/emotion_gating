@@ -984,15 +984,24 @@ def generate_l0_report(current_dir: Path, baseline_dir: Path, out_dir: Path, tit
         bf = baseline_dir / f"local_{suffix}_{year}.csv"
         cr = compare_baseline_file(rf, bf, suffix, key_col=KEY_MAP.get(suffix))
         results[f"{suffix}_diff_rows"] = cr["diff_rows"]
+        # Track per-file row counts for 0-row detection (not just state)
+        results[f"{suffix}_row_count_current"] = cr.get("row_count_current", 0)
+        results[f"{suffix}_row_count_baseline"] = cr.get("row_count_baseline", 0)
 
+    # equity final value diff (guard against empty file crashing on iloc[-1])
     jqe_path = current_dir / f"local_equity_{year}.csv"
     be_path = baseline_dir / f"local_equity_{year}.csv"
+    val_diff = -1.0
     if jqe_path.exists() and be_path.exists():
-        jqe = pd.read_csv(jqe_path)
-        be = pd.read_csv(be_path)
-        val_diff = round(abs(float(jqe["value"].iloc[-1]) - float(be["value"].iloc[-1])), 6)
-    else:
-        val_diff = -1.0
+        try:
+            jqe = pd.read_csv(jqe_path)
+            be = pd.read_csv(be_path)
+            if len(jqe) > 0 and len(be) > 0 and "value" in jqe.columns and "value" in be.columns:
+                val_diff = round(abs(float(jqe["value"].iloc[-1]) - float(be["value"].iloc[-1])), 6)
+            else:
+                val_diff = -1.0  # empty or missing value column -> treated as FAIL
+        except Exception:
+            val_diff = -1.0  # parse error -> controlled FAIL, not crash
     results["final_value_diff"] = val_diff
 
     # Compare state file cell-by-cell
@@ -1014,13 +1023,33 @@ def generate_l0_report(current_dir: Path, baseline_dir: Path, out_dir: Path, tit
     if "drift" in report_filename.lower():
         is_baseline_drift = True
 
-    # L0 pass/fail: FAIL on MISSING, 0-row, or -1 diff (previously always claimed "No drift")
+    # L0 pass/fail: FAIL on MISSING, 0-row (any of 5 files), or -1 diff
     suffixes = ["trades", "state", "equity", "portfolio_stats", "positions"]
     any_input_missing = (
         curr_sha == "MISSING" or base_sha == "MISSING"
         or any(results.get(f"{s}_diff_rows") == -1 for s in suffixes)
     )
-    any_zero_rows = (row_count_current == 0 or row_count_baseline == 0)
+    # Check 0-row for ALL 5 files (not just state)
+    any_zero_rows = any(
+        results.get(f"{s}_row_count_current", 0) == 0
+        or results.get(f"{s}_row_count_baseline", 0) == 0
+        for s in suffixes
+    )
+    has_diffs = (cell_diff_count > 0 or any(results.get(f"{s}_diff_rows", 0) > 0 for s in suffixes))
+
+    if is_baseline_drift:
+        cause = "Candidate count columns fluctuate by \u00b11 between snapshots. Frozen baseline generated months before L1A branch."
+        l0_status = "FAIL" if (any_input_missing or any_zero_rows) else "PASS"
+    elif any_input_missing or any_zero_rows:
+        cause = "FAIL: L0 inputs missing or empty (MISSING/0-row/-1 diff). Cannot verify main-vs-head parity."
+        l0_status = "FAIL"
+    elif has_diffs:
+        cause = "FAIL: Main and HEAD differ."
+        l0_status = "FAIL"
+    else:
+        cause = "No drift between Main and HEAD."
+        l0_status = "PASS"
+
     has_diffs = (cell_diff_count > 0 or any(results.get(f"{s}_diff_rows", 0) > 0 for s in suffixes))
 
     if is_baseline_drift:
