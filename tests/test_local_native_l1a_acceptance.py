@@ -425,3 +425,117 @@ class TestProductionFunctionExtended:
             assert a in hashes
             assert hashes[a] == hashlib.sha256((d1 / a).read_bytes()).hexdigest()
 
+
+
+# ── L0 negative tests: missing inputs must FAIL ──
+
+class TestL0ReportMissingInput:
+    """L0 report must FAIL when any input file is missing (negative test)."""
+
+    def test_all_inputs_missing_fails(self, tmp_path):
+        from tools.local_native_l1a_acceptance import generate_l0_report
+        report = generate_l0_report(
+            current_dir=tmp_path / "empty_current",
+            baseline_dir=tmp_path / "empty_baseline",
+            out_dir=tmp_path / "out",
+            title="L0 Main vs HEAD Parity Analysis",
+            report_filename="L0_MAIN_VS_HEAD_REPORT.json",
+            csv_filename="L0_MAIN_VS_HEAD_STATE_DIFFS.csv",
+            baseline_commit="aaa",
+            current_commit="bbb",
+            year=2025,
+        )
+        assert report["l0_status"] == "FAIL", f"Expected FAIL for all-missing, got {report['l0_status']}"
+        assert "missing" in report["conclusion"]["cause"].lower() or "empty" in report["conclusion"]["cause"].lower()
+
+    def test_one_input_missing_fails(self, tmp_path):
+        """If any of the 5 files is missing, L0 must FAIL."""
+        from tools.local_native_l1a_acceptance import generate_l0_report
+        import pandas as pd
+        current = tmp_path / "current"
+        baseline = tmp_path / "baseline"
+        current.mkdir()
+        baseline.mkdir()
+        # Create 4 of 5 files, leave positions missing
+        for suffix in ["trades", "state", "equity", "portfolio_stats"]:
+            if suffix == "trades":
+                df = pd.DataFrame({"time": ["2025-01-01 09:30"], "price": [10.0], "amount": [100]})
+            else:
+                df = pd.DataFrame({"date": ["2025-01-01"], "value": [1.0]})
+            df.to_csv(current / f"local_{suffix}_2025.csv", index=False)
+            df.to_csv(baseline / f"local_{suffix}_2025.csv", index=False)
+        report = generate_l0_report(
+            current_dir=current,
+            baseline_dir=baseline,
+            out_dir=tmp_path / "out",
+            title="L0 Main vs HEAD Parity Analysis",
+            report_filename="L0_MAIN_VS_HEAD_REPORT.json",
+            csv_filename="L0_MAIN_VS_HEAD_STATE_DIFFS.csv",
+            baseline_commit="aaa",
+            current_commit="bbb",
+            year=2025,
+        )
+        assert report["l0_status"] == "FAIL", f"Expected FAIL for one-missing, got {report['l0_status']}"
+
+    def test_all_inputs_present_passes(self, tmp_path):
+        """When all 5 files present and identical, L0 must PASS."""
+        from tools.local_native_l1a_acceptance import generate_l0_report
+        import pandas as pd
+        current = tmp_path / "current"
+        baseline = tmp_path / "baseline"
+        current.mkdir()
+        baseline.mkdir()
+        for suffix in ["trades", "state", "equity", "portfolio_stats", "positions"]:
+            if suffix == "trades":
+                df = pd.DataFrame({"time": ["2025-01-01 09:30"], "price": [10.0], "amount": [100]})
+            elif suffix == "positions":
+                df = pd.DataFrame({"date": ["2025-01-01"], "code": ["000001"], "amount": [100]})
+            else:
+                df = pd.DataFrame({"date": ["2025-01-01"], "value": [1.0]})
+            df.to_csv(current / f"local_{suffix}_2025.csv", index=False)
+            df.to_csv(baseline / f"local_{suffix}_2025.csv", index=False)
+        report = generate_l0_report(
+            current_dir=current,
+            baseline_dir=baseline,
+            out_dir=tmp_path / "out",
+            title="L0 Main vs HEAD Parity Analysis",
+            report_filename="L0_MAIN_VS_HEAD_REPORT.json",
+            csv_filename="L0_MAIN_VS_HEAD_STATE_DIFFS.csv",
+            baseline_commit="aaa",
+            current_commit="bbb",
+            year=2025,
+        )
+        assert report["l0_status"] == "PASS", f"Expected PASS for all-present, got {report['l0_status']}: {report['conclusion']['cause']}"
+
+    def test_main_head_differ_fails(self, tmp_path):
+        """When files differ, L0 must FAIL."""
+        from tools.local_native_l1a_acceptance import generate_l0_report
+        import pandas as pd
+        current = tmp_path / "current"
+        baseline = tmp_path / "baseline"
+        current.mkdir()
+        baseline.mkdir()
+        for suffix in ["trades", "state", "equity", "portfolio_stats", "positions"]:
+            if suffix == "trades":
+                df_c = pd.DataFrame({"time": ["2025-01-01 09:30"], "price": [10.0], "amount": [100]})
+                df_b = pd.DataFrame({"time": ["2025-01-01 09:30"], "price": [11.0], "amount": [100]})
+            elif suffix == "positions":
+                df_c = pd.DataFrame({"date": ["2025-01-01"], "code": ["000001"], "amount": [100]})
+                df_b = pd.DataFrame({"date": ["2025-01-01"], "code": ["000001"], "amount": [100]})
+            else:
+                df_c = pd.DataFrame({"date": ["2025-01-01"], "value": [1.0]})
+                df_b = pd.DataFrame({"date": ["2025-01-01"], "value": [1.0]})
+            df_c.to_csv(current / f"local_{suffix}_2025.csv", index=False)
+            df_b.to_csv(baseline / f"local_{suffix}_2025.csv", index=False)
+        report = generate_l0_report(
+            current_dir=current,
+            baseline_dir=baseline,
+            out_dir=tmp_path / "out",
+            title="L0 Main vs HEAD Parity Analysis",
+            report_filename="L0_MAIN_VS_HEAD_REPORT.json",
+            csv_filename="L0_MAIN_VS_HEAD_STATE_DIFFS.csv",
+            baseline_commit="aaa",
+            current_commit="bbb",
+            year=2025,
+        )
+        assert report["l0_status"] == "FAIL", f"Expected FAIL for differing files, got {report['l0_status']}"

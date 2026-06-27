@@ -1316,6 +1316,7 @@ def cmd_l0_main_vs_head(args):
             csv_filename="L0_MAIN_VS_HEAD_STATE_DIFFS.csv",
             baseline_commit=args.main_commit,
             current_commit=args.head_commit or get_source_commit(),
+            year=year,
         )
 
         results = report.get("l0_results", {})

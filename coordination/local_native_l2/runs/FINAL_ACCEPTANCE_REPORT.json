@@ -434,7 +434,9 @@
       "L2_run1": "coordination/local_native_l2/runs/rerun_2025_l2_run1/",
       "L2_run2": "coordination/local_native_l2/runs/rerun_2025_l2_run2/"
     },
-    "provenance": "Each rerun directory contains RUN_PROVENANCE.json with git HEAD, git status, Python executable/version, module SHA256 (7 modules), HDATA manifest SHA256, and full 64-char SHA256 for every artifact."
+    "provenance": "Each rerun directory contains RUN_PROVENANCE.json with git HEAD, git status, Python executable/version, module SHA256 (7 modules), HDATA manifest SHA256, and full 64-char SHA256 for every artifact.",
+    "pythonhashseed": "<not set>",
+    "provenance_note": "Each rerun directory contains RUN_PROVENANCE.json labeled as 'post_run_snapshot'. PYTHONHASHSEED was NOT set during the reruns. Determinism was verified empirically by byte-identical artifacts across 4 runs."
   },
   "l0_main_vs_head": {
     "base_main_commit": "ecb542afdc266435e18679c2dc04ebca55e85f5b",
@@ -451,23 +453,24 @@
         "baseline_commit": "ecb542afdc266435e18679c2dc04ebca55e85f5b",
         "current_commit": "7ef868bcc5379bb8fe082a71a71a8270894f7b9d",
         "data_root": "D:/work space/hdata",
-        "current_state_sha256": "MISSING",
-        "baseline_state_sha256": "MISSING",
-        "row_count_current": 0,
-        "row_count_baseline": 0,
-        "row_count_equal": 0,
-        "column_set_equal": 0,
-        "key_set_equal": 0,
-        "cell_diff_count": -1,
+        "current_state_sha256": "eefab1b2633cc7c219d19c95f488cd320e503d83dad17cfd532a38f229fed68f",
+        "baseline_state_sha256": "eefab1b2633cc7c219d19c95f488cd320e503d83dad17cfd532a38f229fed68f",
+        "row_count_current": 243,
+        "row_count_baseline": 243,
+        "row_count_equal": 1,
+        "column_set_equal": 1,
+        "key_set_equal": 1,
+        "cell_diff_count": 0,
         "diffs": [],
         "l0_results": {
-          "trades_diff_rows": -1,
-          "state_diff_rows": -1,
-          "equity_diff_rows": -1,
-          "portfolio_stats_diff_rows": -1,
-          "positions_diff_rows": -1,
-          "final_value_diff": -1.0
+          "trades_diff_rows": 0,
+          "state_diff_rows": 0,
+          "equity_diff_rows": 0,
+          "portfolio_stats_diff_rows": 0,
+          "positions_diff_rows": 0,
+          "final_value_diff": 0.0
         },
+        "l0_status": "PASS",
         "conclusion": {
           "inherited_baseline_drift": 0,
           "drift_is_in_l1a_code": 0,
@@ -481,23 +484,24 @@
         "baseline_commit": "ecb542afdc266435e18679c2dc04ebca55e85f5b",
         "current_commit": "7ef868bcc5379bb8fe082a71a71a8270894f7b9d",
         "data_root": "D:/work space/hdata",
-        "current_state_sha256": "MISSING",
-        "baseline_state_sha256": "MISSING",
-        "row_count_current": 0,
-        "row_count_baseline": 0,
-        "row_count_equal": 0,
-        "column_set_equal": 0,
-        "key_set_equal": 0,
-        "cell_diff_count": -1,
+        "current_state_sha256": "cdd6a3d2a29d4ef0725301a6c76799d816d228bf869e381b6e7c06bee2fa9bb2",
+        "baseline_state_sha256": "cdd6a3d2a29d4ef0725301a6c76799d816d228bf869e381b6e7c06bee2fa9bb2",
+        "row_count_current": 242,
+        "row_count_baseline": 242,
+        "row_count_equal": 1,
+        "column_set_equal": 1,
+        "key_set_equal": 1,
+        "cell_diff_count": 0,
         "diffs": [],
         "l0_results": {
-          "trades_diff_rows": -1,
-          "state_diff_rows": -1,
-          "equity_diff_rows": -1,
-          "portfolio_stats_diff_rows": -1,
-          "positions_diff_rows": -1,
-          "final_value_diff": -1.0
+          "trades_diff_rows": 0,
+          "state_diff_rows": 0,
+          "equity_diff_rows": 0,
+          "portfolio_stats_diff_rows": 0,
+          "positions_diff_rows": 0,
+          "final_value_diff": 0.0
         },
+        "l0_status": "PASS",
         "conclusion": {
           "inherited_baseline_drift": 0,
           "drift_is_in_l1a_code": 0,
@@ -511,23 +515,24 @@
         "baseline_commit": "ecb542afdc266435e18679c2dc04ebca55e85f5b",
         "current_commit": "7ef868bcc5379bb8fe082a71a71a8270894f7b9d",
         "data_root": "D:/work space/hdata",
-        "current_state_sha256": "MISSING",
-        "baseline_state_sha256": "MISSING",
-        "row_count_current": 0,
-        "row_count_baseline": 0,
-        "row_count_equal": 0,
-        "column_set_equal": 0,
-        "key_set_equal": 0,
-        "cell_diff_count": -1,
+        "current_state_sha256": "d9da4f7baa7d34dbf66e3262f676641a5c4bb250c52c02d2ddc5636a45086f2c",
+        "baseline_state_sha256": "d9da4f7baa7d34dbf66e3262f676641a5c4bb250c52c02d2ddc5636a45086f2c",
+        "row_count_current": 243,
+        "row_count_baseline": 243,
+        "row_count_equal": 1,
+        "column_set_equal": 1,
+        "key_set_equal": 1,
+        "cell_diff_count": 0,
         "diffs": [],
         "l0_results": {
-          "trades_diff_rows": -1,
-          "state_diff_rows": -1,
-          "equity_diff_rows": -1,
-          "portfolio_stats_diff_rows": -1,
-          "positions_diff_rows": -1,
-          "final_value_diff": -1.0
+          "trades_diff_rows": 0,
+          "state_diff_rows": 0,
+          "equity_diff_rows": 0,
+          "portfolio_stats_diff_rows": 0,
+          "positions_diff_rows": 0,
+          "final_value_diff": 0.0
         },
+        "l0_status": "PASS",
         "conclusion": {
           "inherited_baseline_drift": 0,
           "drift_is_in_l1a_code": 0,
@@ -536,7 +541,8 @@
           "all_financial_fields_match": 1
         }
       }
-    }
+    },
+    "verification_method": "generate_l0_report with year parameter (fixed from hardcoded 2020); real SHA256, real row counts, 0 cell diffs confirmed"
   },
   "final_verdict": {
     "implementation_acceptance": "PASS",
@@ -545,7 +551,8 @@
     "caveats": [
       "Original 2025 Run1 isolated; see ORIGINAL_RUN1_ISOLATION.md.",
       "cash runtime = NOT_COVERED across all three years (0 effective hits); see coverage_notes.",
-      "formal_compare/ and formal_l0/ artifacts are sourced from run2 (which matches all 4 reruns byte-for-byte) and l0_report/ respectively."
+      "formal_compare/ and formal_l0/ artifacts are sourced from run2 (which matches all 4 reruns byte-for-byte) and l0_report/ respectively.",
+      "L0 tool fixed: hardcoded year 2020 replaced with year parameter; MISSING/0-row/-1 now correctly produce FAIL instead of false PASS. L0 reports regenerated from existing jq_parity raw outputs — all 3 years verified with real SHA256, real row counts (243/242/243), 0 cell diffs."
     ]
   }
 }

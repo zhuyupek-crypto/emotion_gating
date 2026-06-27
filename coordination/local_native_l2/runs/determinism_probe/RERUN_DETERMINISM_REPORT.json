@@ -10,9 +10,9 @@
   "rerun_environment": {
     "source_commit": "7ef868bcc5379bb8fe082a71a71a8270894f7b9d",
     "worktree": "D:/WorkSpace/他山之石/l2_exec",
-    "pythonhashseed": "0",
+    "pythonhashseed": "<not set>",
     "runs": 4,
-    "note": "PYTHONHASHSEED was set to 0 during the original 4 reruns. RUN_PROVENANCE.json in each run directory records git HEAD, git status, Python executable/version, module SHA256 (engine/core.py, project_compat.py, data_api.py, profiles.py, acceptance_common.py, local_native_l2_acceptance.py, strategy), HDATA manifest SHA256, and full 64-char SHA256 for every artifact."
+    "note": "RUN_PROVENANCE.json in each run directory records git HEAD, git status (post-run snapshot, artifacts present), Python executable/version, module SHA256 (engine/core.py, project_compat.py, data_api.py, profiles.py, acceptance_common.py, local_native_l2_acceptance.py, strategy), HDATA manifest SHA256, and full 64-char SHA256 for every artifact. PYTHONHASHSEED was NOT set during the reruns (each RUN_PROVENANCE.json confirms '<not set>'). Determinism was verified empirically: all 4 runs produced byte-identical artifacts."
   },
   "rerun_results_full_sha256": {
     "L1B_run1": {

@@ -53,6 +53,9 @@
     "profile_manifest.json": "a70fa010db6b565ed212d1fca8dcde708ed92b2cc30ec2ace5a529cca6d7b859",
     "run_command.txt": "3fc3566d83057bc0894bd429342812b751f05e5cee9c6f29123e849453cd410f",
     "run_summary.json": "a3bc27fc2ad0536de5a6bdf5c31f9fcaff8377357cc6e2b11da4d868e224f65d",
-    "source_commit.txt": "d1011225b07487919c366964017a2d8ed503d1520b88b94e8226351128b54b5e"
-  }
+    "source_commit.txt": "d1011225b07487919c366964017a2d8ed503d1520b88b94e8226351128b54b5e",
+    "RUN_PROVENANCE.json": "a39bbe4f8b8147faa008ac0cdb4ffa8755cfce6f650b17ca34f06d18dace5816"
+  },
+  "provenance_kind": "post_run_snapshot",
+  "provenance_note": "POST-RUN SNAPSHOT: This file was generated AFTER the backtest completed and all artifacts were written. git_status_clean=false reflects the post-run state (artifacts present in worktree), NOT a pre-run runtime git clean check. PYTHONHASHSEED='<not set>' is accurate — it was not set in the environment during the run. For runtime provenance, refer to git_head (the commit used for execution) and the module SHA256 values (the actual code loaded at runtime)."
 }
