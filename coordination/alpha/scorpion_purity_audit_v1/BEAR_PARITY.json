@@ -1,0 +1,38 @@
+{
+  "status": "PASS",
+  "logic_selection_consistency": "PASS",
+  "portfolio_shares_consistency": "not_applicable",
+  "count_before": 169,
+  "count_after": 169,
+  "field_parity": {
+    "code": "identical",
+    "entry_date": "identical",
+    "buy_price": "identical",
+    "exit_date": "identical",
+    "sell_price": "identical",
+    "shares": "differs"
+  },
+  "shares_difference_reason": "Removing 62 non-bear trades changes cash and compounding path, so subsequent shares changes are an expected portfolio-state effect, not a signal or trade-logic difference.",
+  "shares_difference_evidence": [
+    "Rows 0-4 (first 5 bear trades): identical shares (no non-bear trades yet)",
+    "Rows 5-30: after_fix shares consistently larger (cash released by removed non-bear trades)",
+    "Rows 93-168: differences compound significantly over the 8-year backtest"
+  ],
+  "shares_differences_sample": [
+    "Row 5 shares: 26800 vs 27300",
+    "Row 6 shares: 286800 vs 292300",
+    "Row 7 shares: 59300 vs 60400",
+    "Row 8 shares: 30300 vs 30800",
+    "Row 9 shares: 63800 vs 65000",
+    "Row 10 shares: 79400 vs 80900",
+    "Row 11 shares: 38600 vs 39400",
+    "Row 12 shares: 79100 vs 80400",
+    "Row 13 shares: 40300 vs 41100",
+    "Row 14 shares: 126400 vs 128800",
+    "Row 15 shares: 16600 vs 16900",
+    "Row 16 shares: 26500 vs 27000",
+    "Row 17 shares: 148500 vs 151300",
+    "Row 18 shares: 22100 vs 22500",
+    "Row 19 shares: 78200 vs 79700"
+  ]
+}

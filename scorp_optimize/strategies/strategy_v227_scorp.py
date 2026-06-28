@@ -573,7 +573,7 @@ def _scan_boards_for_prev(context):
     g._today_max_boards = max_b
 
     print(f'[DEBUG] _scan_boards_for_prev on {context.current_dt}. Found {len(fb)} FBs.')
-    if bear_pool:
+    if bear_pool and g.market_mode == 'bear':
         closes_60 = history(60, field='close', security_list=bear_pool, df=False, fq='pre')
         for s in bear_pool:
             c60 = closes_60.get(s)

@@ -1,0 +1,25 @@
+{
+  "strategy_file": "scorp_optimize/strategies/strategy_v227_scorp.py",
+  "strategy_sha256": "d34af30fd8805300403df6af7e5943aba4acb01f429018c1ac0c60cd79307fda",
+  "emotion_gating_commit": "3e75774556e1aa8e85451f8558c9536161ade278",
+  "git_clean_at_snapshot": false,
+  "hdata_reader_sha256": "bbd4671ea342fcf206dfec5f4ada6da85dbcaf3df3a5bb7c3b1b1010f6d9e361",
+  "backtest_period": {
+    "start": "2018-01-01",
+    "end": "2025-12-31"
+  },
+  "slots": 2,
+  "initial_cash": 1000000,
+  "cost_model": "Engine default (commission: open 0.0003, close 0.0003, tax 0.001; min_commission 5)",
+  "slippage": "FixedSlippage(0.01) per share",
+  "elapsed_seconds": 3160.997,
+  "run_timestamp": "2026-06-29T07:43:39.781066",
+  "fix_description": "history_fallback path (line 576): 'if bear_pool:' -> 'if bear_pool and g.market_mode == 'bear':' (one-line formal fix, no monkey patching)",
+  "verification": {
+    "completed_trades": 169,
+    "bear_trades": 169,
+    "bull_trades": 0,
+    "cautious_trades": 0,
+    "all_bear_assertion": true
+  }
+}
