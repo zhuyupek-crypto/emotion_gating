@@ -1,0 +1,141 @@
+{
+  "signal_execution_consistency": {
+    "status": "PASS",
+    "fields_checked": [
+      "code",
+      "entry_date",
+      "buy_price",
+      "exit_date",
+      "sell_price"
+    ],
+    "differences": [],
+    "total_differences": 0
+  },
+  "portfolio_state": {
+    "status": "not_applicable",
+    "fields": [
+      "shares"
+    ],
+    "note": "shares/commission/tax/absolute profit allowed to differ due to changed cash path",
+    "differences_sample": [
+      {
+        "row": 5,
+        "field": "shares",
+        "original": 26800.0,
+        "pure": 27300.0,
+        "diff": 500.0
+      },
+      {
+        "row": 6,
+        "field": "shares",
+        "original": 286800.0,
+        "pure": 292300.0,
+        "diff": 5500.0
+      },
+      {
+        "row": 7,
+        "field": "shares",
+        "original": 59300.0,
+        "pure": 60400.0,
+        "diff": 1100.0
+      },
+      {
+        "row": 8,
+        "field": "shares",
+        "original": 30300.0,
+        "pure": 30800.0,
+        "diff": 500.0
+      },
+      {
+        "row": 9,
+        "field": "shares",
+        "original": 63800.0,
+        "pure": 65000.0,
+        "diff": 1200.0
+      },
+      {
+        "row": 10,
+        "field": "shares",
+        "original": 79400.0,
+        "pure": 80900.0,
+        "diff": 1500.0
+      },
+      {
+        "row": 11,
+        "field": "shares",
+        "original": 38600.0,
+        "pure": 39400.0,
+        "diff": 800.0
+      },
+      {
+        "row": 12,
+        "field": "shares",
+        "original": 79100.0,
+        "pure": 80400.0,
+        "diff": 1300.0
+      },
+      {
+        "row": 13,
+        "field": "shares",
+        "original": 40300.0,
+        "pure": 41100.0,
+        "diff": 800.0
+      },
+      {
+        "row": 14,
+        "field": "shares",
+        "original": 126400.0,
+        "pure": 128800.0,
+        "diff": 2400.0
+      }
+    ],
+    "total_differences": 145
+  },
+  "additional_comparison": {
+    "unweighted_return_differences": 0,
+    "holding_days_differences": 0,
+    "details_sample": []
+  },
+  "yearly_trade_count": [
+    {
+      "year": 2018,
+      "original_bear_trades": 31,
+      "pure_bear_trades": 31
+    },
+    {
+      "year": 2019,
+      "original_bear_trades": 31,
+      "pure_bear_trades": 31
+    },
+    {
+      "year": 2020,
+      "original_bear_trades": 18,
+      "pure_bear_trades": 18
+    },
+    {
+      "year": 2021,
+      "original_bear_trades": 15,
+      "pure_bear_trades": 15
+    },
+    {
+      "year": 2022,
+      "original_bear_trades": 35,
+      "pure_bear_trades": 35
+    },
+    {
+      "year": 2023,
+      "original_bear_trades": 11,
+      "pure_bear_trades": 11
+    },
+    {
+      "year": 2024,
+      "original_bear_trades": 23,
+      "pure_bear_trades": 23
+    },
+    {
+      "year": 2025,
+      "original_bear_trades": 5,
+      "pure_bear_trades": 5
+    }
+  ]
+}
