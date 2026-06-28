@@ -1,0 +1,42 @@
+{
+  "status": "PASS",
+  "scope": "full_year_2025",
+  "trades": {
+    "differences": 0,
+    "before_rows": 531,
+    "after_rows": 531
+  },
+  "equity": {
+    "differences": 0,
+    "max_abs_diff": 0.0,
+    "before_rows": 243,
+    "after_rows": 243
+  },
+  "state": {
+    "differences": 0,
+    "before_rows": 243,
+    "after_rows": 243
+  },
+  "positions": {
+    "differences": 0,
+    "before_rows": 364,
+    "after_rows": 364
+  },
+  "portfolio_stats": {
+    "differences": 0,
+    "before_rows": 243,
+    "after_rows": 243
+  },
+  "routing_check": {
+    "differences": 0,
+    "details": []
+  },
+  "tolerance": "1e-8 absolute error",
+  "details": {
+    "trades": [],
+    "equity": [],
+    "state": [],
+    "positions": [],
+    "portfolio": []
+  }
+}

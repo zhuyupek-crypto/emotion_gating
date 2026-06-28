@@ -1,0 +1,72 @@
+--- a/scripts/core/hdata_reader.py
++++ b/scripts/core/hdata_reader.py
+@@ -880,29 +880,38 @@
+         if fq in ('pre', 'post'):
+             all_fields_to_load.add('factor')
+ 
++        # PERFORMANCE: build numpy array first, construct DataFrame once.
++        # The original code created a NaN DataFrame and filled it column-by-column
++        # via df_field[codes] = values (DataFrame.__setitem__), which triggered
++        # 1.6M+ internal iset/_iset_split_block calls per backtest. Filling a
++        # numpy array and constructing the DataFrame in one shot avoids all of
++        # those internal calls.
++        col_idx_map = {c: i for i, c in enumerate(hd_codes)}
+         for f in all_fields_to_load:
+-            df_field = pd.DataFrame(np.nan, index=target_dates, columns=hd_codes)
+-            
++            arr = np.full((len(target_dates), len(hd_codes)), np.nan, dtype=np.float64)
++
+             # Fill Stocks
+             if stock_codes:
+                 if f in _PIVOT_CACHE:
+                     sub_df = _PIVOT_CACHE[f].loc[target_dates]
+                     indexer = sub_df.columns.get_indexer(stock_codes)
+-                    df_field[stock_codes] = sub_df.values[:, indexer]
++                    stock_col_positions = [col_idx_map[c] for c in stock_codes]
++                    arr[:, stock_col_positions] = sub_df.values[:, indexer]
+ 
+             # Fill Indices
+             if index_codes:
+                 for c in index_codes:
+                     if c in idx_dfs:
+                         df_idx = idx_dfs[c]
++                        ci = col_idx_map[c]
+                         if f == 'paused':
+-                            df_field.loc[:, c] = 0.0
++                            arr[:, ci] = 0.0
+                         elif f in ('high_limit', 'low_limit'):
+-                            df_field.loc[:, c] = np.nan
++                            pass  # already NaN
+                         else:
+                             h_col = FIELD_MAP.get(f)
+                             if h_col in df_idx.columns:
+-                                df_field[c] = df_idx[h_col].reindex(target_dates)
++                                arr[:, ci] = df_idx[h_col].reindex(target_dates).values
+ 
+             # Fill ETFs
+             if etf_codes and not etf_df_all.empty:
+@@ -913,7 +922,7 @@
+                     h_col = 'limit_down_price'
+                 elif f == 'paused':
+                     h_col = 'paused'
+-                
++
+                 if h_col in etf_df_all.columns:
+                     etf_pivot = etf_df_all.pivot(index='date_int', columns='code', values=h_col)
+                     etf_reindexed = etf_pivot.reindex(index=target_dates, columns=etf_codes)
+@@ -924,10 +933,12 @@
+                     elif f == 'money':
+                         etf_reindexed = etf_reindexed * 1000
+                     if not stock_codes and not index_codes:
+-                        df_field = etf_reindexed
++                        arr = etf_reindexed.values
+                     else:
+-                        df_field[etf_codes] = etf_reindexed
+-
++                        etf_col_positions = [col_idx_map[c] for c in etf_codes]
++                        arr[:, etf_col_positions] = etf_reindexed.values
++
++            df_field = pd.DataFrame(arr, index=target_dates, columns=hd_codes)
+             sliced_dfs[f] = df_field
+ 
+         if fq in ('pre', 'post'):

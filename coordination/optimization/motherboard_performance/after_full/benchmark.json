@@ -1,0 +1,16 @@
+{
+  "label": "after_full",
+  "start_date": "2025-01-01",
+  "end_date": "2025-12-31",
+  "strategy_file": "母版-20260506-Clone.py",
+  "profile": "local_native_l2",
+  "initial_cash": 1000000,
+  "start_time": "1970-01-11 12:55:48",
+  "end_time": "1970-01-11 13:12:04",
+  "elapsed_seconds": 975.787,
+  "history_calls": 15137,
+  "trade_count": 531,
+  "final_value": 2513109.47,
+  "total_return_pct": 151.310947,
+  "max_drawdown_pct": 24.3692
+}

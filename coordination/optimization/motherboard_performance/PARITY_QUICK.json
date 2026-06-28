@@ -1,0 +1,40 @@
+{
+  "status": "PASS",
+  "trades": {
+    "differences": 0,
+    "before_rows": 92,
+    "after_rows": 92
+  },
+  "equity": {
+    "differences": 0,
+    "max_abs_diff": 0.0,
+    "before_rows": 61,
+    "after_rows": 61
+  },
+  "state": {
+    "differences": 0,
+    "before_rows": 61,
+    "after_rows": 61
+  },
+  "positions": {
+    "differences": 0,
+    "before_rows": 64,
+    "after_rows": 64
+  },
+  "portfolio_stats": {
+    "differences": 0,
+    "before_rows": 61,
+    "after_rows": 61
+  },
+  "routing_check": {
+    "differences": 0,
+    "details": []
+  },
+  "details": {
+    "trades": [],
+    "equity": [],
+    "state": [],
+    "positions": [],
+    "portfolio": []
+  }
+}
