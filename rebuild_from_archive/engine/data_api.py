@@ -129,7 +129,10 @@ class DataAPI:
         )
         if len(self._history_cache) > 4096:
             self._history_cache.pop(next(iter(self._history_cache)))
-        self._history_cache[key] = result.copy() if hasattr(result, 'copy') else result
+        # PERFORMANCE: store the fresh result directly (no caller holds a reference
+        # to it), then return a defensive copy so callers cannot mutate the cache.
+        # This reduces 2 .copy() calls per cache miss to 1.
+        self._history_cache[key] = result
         return result.copy() if hasattr(result, 'copy') else result
 
     def _normalize(self, code):
@@ -972,10 +975,13 @@ class DataAPI:
         cache_key = (types_key, date_key)
         cached = self._all_securities_cache.get(cache_key)
         if cached is not None:
+            # PERFORMANCE: one defensive copy is enough — _apply_jq_security_name_overrides
+            # either returns the same `out` object or a new one derived from it;
+            # neither mutates `cached`. Previously we copied twice (on hit + on return).
             out = cached.copy()
             if date:
                 out = self._apply_jq_security_name_overrides(out, date)
-            return out.copy()
+            return out
 
         if self._stock_basic is None:
             basic_path = os.path.join(self.data_root, 'stock_basic.parquet')

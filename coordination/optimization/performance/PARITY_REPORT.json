@@ -1,0 +1,13 @@
+{
+  "status": "PASS",
+  "trade_rows_before": 20,
+  "trade_rows_after": 20,
+  "trade_differences": 0,
+  "equity_rows_before": 243,
+  "equity_rows_after": 243,
+  "max_equity_absolute_difference": 0.0,
+  "state_differences": 0,
+  "trade_details": [],
+  "equity_details": [],
+  "state_details": []
+}
