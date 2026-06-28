@@ -1,0 +1,16 @@
+{
+  "strategy_file": "scorp_optimize/strategies/strategy_v227_scorp.py",
+  "strategy_sha256": "55e96b2225d14c6d94052ff3dad03079094b3f7a66b46c76e6b6409d7618c2b0",
+  "emotion_gating_commit": "cf542415191e952aa328250a3ee86bb15346a6b8",
+  "baseline_tag": "motherboard-performance-baseline-v1",
+  "hdata_reader_sha256": "bbd4671ea342fcf206dfec5f4ada6da85dbcaf3df3a5bb7c3b1b1010f6d9e361",
+  "hdata_reader_status": "optimized (verified via apply_hdata_reader_performance_patch.py --check)",
+  "backtest_start": "2018-01-01",
+  "backtest_end": "2025-12-31",
+  "slots": 2,
+  "initial_cash": 1000000,
+  "cost_model": "Engine default (commission + tax per trade)",
+  "slippage": "Engine default (execution at signal price)",
+  "elapsed_seconds": 3734.655,
+  "run_timestamp": "2026-06-28T22:29:26.164432"
+}

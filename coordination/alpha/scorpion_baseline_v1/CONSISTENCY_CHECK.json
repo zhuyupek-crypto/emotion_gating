@@ -1,0 +1,66 @@
+{
+  "task": "TASK-SCORPION-BASELINE-001",
+  "check_type": "three_month_consistency",
+  "interval": {
+    "start": "2019-05-01",
+    "end": "2019-07-31"
+  },
+  "run1": {
+    "elapsed": 109.372,
+    "trade_count": 49,
+    "final_value": 1218211.7399999993
+  },
+  "run2": {
+    "elapsed": 125.206,
+    "trade_count": 49,
+    "final_value": 1218211.7399999993
+  },
+  "status": "PASS",
+  "checks": [
+    {
+      "name": "TRADES row count + content",
+      "status": "PASS",
+      "detail": "run1=49 rows, run2=49 rows"
+    },
+    {
+      "name": "EQUITY values",
+      "status": "PASS",
+      "detail": "rows=62, max_diff=0.00e+00"
+    },
+    {
+      "name": "Final value",
+      "status": "PASS",
+      "detail": "run1=1218211.740000, run2=1218211.740000, diff=0.00e+00"
+    },
+    {
+      "name": "Candidate count (cand_yjj)",
+      "status": "PASS",
+      "detail": "identical=True"
+    },
+    {
+      "name": "Candidate count (cand_bear)",
+      "status": "PASS",
+      "detail": "identical=True"
+    },
+    {
+      "name": "Candidate count (cand_rzq)",
+      "status": "PASS",
+      "detail": "identical=True"
+    },
+    {
+      "name": "Candidate count (cand_zb)",
+      "status": "PASS",
+      "detail": "identical=True"
+    },
+    {
+      "name": "Candidate count (cand_auction)",
+      "status": "PASS",
+      "detail": "identical=True"
+    },
+    {
+      "name": "market_mode",
+      "status": "PASS",
+      "detail": "identical=True"
+    }
+  ]
+}

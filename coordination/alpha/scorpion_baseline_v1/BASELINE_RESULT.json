@@ -1,0 +1,141 @@
+{
+  "task": "TASK-SCORPION-BASELINE-001",
+  "strategy_file": "scorp_optimize/strategies/strategy_v227_scorp.py",
+  "backtest_period": {
+    "start": "2018-01-01",
+    "end": "2025-12-31"
+  },
+  "initial_cash": 1000000,
+  "slots": 2,
+  "overall": {
+    "total_return": 2.743372,
+    "annualized_return": 0.179391,
+    "max_drawdown": 0.132913,
+    "final_value": 3743371.56,
+    "completed_trades": 231,
+    "execution_rows": 462,
+    "win_rate": 0.597403,
+    "ev": 0.013884,
+    "avg_gain": 0.046932,
+    "avg_loss": -0.035156,
+    "profit_loss_ratio": 1.334977,
+    "avg_holding_days": 1.53,
+    "max_consecutive_losses": 5
+  },
+  "yearly": [
+    {
+      "year": 2018,
+      "trades": 35,
+      "win_rate": 0.6,
+      "ev": 0.010579,
+      "profit_contribution": 0.370277,
+      "max_drawdown": 0.089649
+    },
+    {
+      "year": 2019,
+      "trades": 35,
+      "win_rate": 0.714286,
+      "ev": 0.022504,
+      "profit_contribution": 0.787656,
+      "max_drawdown": 0.035444
+    },
+    {
+      "year": 2020,
+      "trades": 36,
+      "win_rate": 0.555556,
+      "ev": 0.008601,
+      "profit_contribution": 0.309635,
+      "max_drawdown": 0.094394
+    },
+    {
+      "year": 2021,
+      "trades": 30,
+      "win_rate": 0.5,
+      "ev": 0.012377,
+      "profit_contribution": 0.371301,
+      "max_drawdown": 0.132913
+    },
+    {
+      "year": 2022,
+      "trades": 39,
+      "win_rate": 0.564103,
+      "ev": 0.0081,
+      "profit_contribution": 0.315886,
+      "max_drawdown": 0.112203
+    },
+    {
+      "year": 2023,
+      "trades": 14,
+      "win_rate": 0.642857,
+      "ev": 0.01513,
+      "profit_contribution": 0.211821,
+      "max_drawdown": 0.044616
+    },
+    {
+      "year": 2024,
+      "trades": 29,
+      "win_rate": 0.62069,
+      "ev": 0.021618,
+      "profit_contribution": 0.626908,
+      "max_drawdown": 0.069108
+    },
+    {
+      "year": 2025,
+      "trades": 13,
+      "win_rate": 0.615385,
+      "ev": 0.016435,
+      "profit_contribution": 0.213649,
+      "max_drawdown": 0.079318
+    }
+  ],
+  "concentration": {
+    "max_gain_trade": {
+      "code": "002143.XSHE",
+      "entry_date": "2018-09-06",
+      "exit_date": "2018-09-10",
+      "buy_price": 3.42,
+      "sell_price": 4.56,
+      "shares": 147400,
+      "ret": 0.33333333333333326,
+      "year": "2018",
+      "holding_days": 4
+    },
+    "max_loss_trade": {
+      "code": "600212.XSHG",
+      "entry_date": "2020-03-12",
+      "exit_date": "2020-03-13",
+      "buy_price": 3.63,
+      "sell_price": 3.3,
+      "shares": 229200,
+      "ret": -0.09090909090909093,
+      "year": "2020",
+      "holding_days": 1
+    },
+    "top5_profit_ratio": 0.356941,
+    "top10_profit_ratio": 0.552154,
+    "best_year": 2019,
+    "worst_year": 2023,
+    "best_year_profit_ratio": 0.245595
+  },
+  "market_mode_stats": {
+    "bear": {
+      "trades": 169,
+      "win_rate": 0.656805,
+      "ev": 0.020757,
+      "profit_contribution": 3.508013
+    },
+    "bull": {
+      "trades": 28,
+      "win_rate": 0.357143,
+      "ev": -0.002709,
+      "profit_contribution": -0.075857
+    },
+    "cautious": {
+      "trades": 34,
+      "win_rate": 0.5,
+      "ev": -0.006618,
+      "profit_contribution": -0.225023
+    }
+  },
+  "primary_market_mode": "bear"
+}
