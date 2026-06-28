@@ -1,0 +1,10 @@
+{
+  "relative_path": "scripts/core/hdata_reader.py",
+  "baseline_sha256": "33050a95d18b0e48ead37bcc0b710cc4b14527b396f83710570849c68cf28818",
+  "optimized_sha256": "bbd4671ea342fcf206dfec5f4ada6da85dbcaf3df3a5bb7c3b1b1010f6d9e361",
+  "patch_sha256": "cce3ad31adbcec324a1178d41ed8de5f3c9d1a497c5c568085346512b343dcd5",
+  "patch_file": "coordination/optimization/motherboard_performance/hdata_reader_performance.patch",
+  "benchmark_commit": "58540f42c2f869137a5d14b65dfefc93bb8b43d8",
+  "description": "hdata_reader.history() numpy array construction optimization",
+  "applies_to": "D:\\work space\\hdata (LOCALQUANT_HDATA_ROOT)"
+}

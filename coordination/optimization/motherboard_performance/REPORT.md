@@ -123,4 +123,29 @@ for f in all_fields_to_load:
 - `AFTER.json` — 优化后基准 (含加速倍数)
 - `PARITY.json` — 全年一致性校验
 - `REPORT.md` — 本报告
-- 公共代码修改: `hdata_reader.py` 中 `history()` 函数结果构造逻辑
+- `hdata_reader_performance.patch` — 标准 unified diff 补丁 (可应用到 baseline hdata_reader.py)
+- `HDATA_READER_VERSION.json` — 文件身份记录 (baseline/optimized/patch SHA256)
+- `tools/apply_hdata_reader_performance_patch.py` — 极简应用与校验脚本
+- 公共代码修改: `hdata_reader.py` 中 `history()` 函数结果构造逻辑 (外部 HDATA 目录, 通过 patch 固化)
+
+## 外部代码版本固化
+
+实际性能代码位于外部 HDATA 目录 (`D:\work space\hdata`), 该目录不是 git 仓库. 仓库通过以下方式对该修改进行版本固化:
+
+1. **标准 patch**: `hdata_reader_performance.patch` 是标准 unified diff, 可直接应用到优化前 `hdata_reader.py` (通过 `git apply --no-index -p1` 或 `patch -p1`).
+2. **基线 SHA**: `HDATA_READER_VERSION.json` 记录 `baseline_sha256` = `33050a95d18b0e48ead37bcc0b710cc4b14527b396f83710570849c68cf28818`
+3. **优化后 SHA**: `HDATA_READER_VERSION.json` 记录 `optimized_sha256` = `bbd4671ea342fcf206dfec5f4ada6da85dbcaf3df3a5bb7c3b1b1010f6d9e361`
+4. **patch SHA**: `HDATA_READER_VERSION.json` 记录 `patch_sha256` = `cce3ad31adbcec324a1178d41ed8de5f3c9d1a497c5c568085346512b343dcd5`
+5. **应用工具**: `tools/apply_hdata_reader_performance_patch.py` 提供安全的 apply/check 流程:
+   - 定位 HDATA 根目录 (`$LOCALQUANT_HDATA_ROOT` 或默认 `D:\work space\hdata`)
+   - 校验当前 `hdata_reader.py` SHA256
+   - 已是 optimized: 报告 already applied, 正常退出
+   - 是 baseline: 应用 patch, 然后重新校验 SHA256 必须等于 optimized
+   - 既不是 baseline 也不是 optimized: 拒绝修改并报告冲突
+   - `--check` 模式只校验不修改
+
+**重要**: 母版性能标签同时依赖 `emotion_gating` commit 和 optimized `hdata_reader` SHA256. 仅有仓库 commit 不够, 还需确认外部 HDATA 文件的 SHA256 匹配 `bbd4671ea342fcf206dfec5f4ada6da85dbcaf3df3a5bb7c3b1b1010f6d9e361`. 校验命令:
+
+```bash
+python tools/apply_hdata_reader_performance_patch.py --check
+```
