@@ -1,0 +1,26 @@
+{
+  "label": "BEFORE",
+  "baseline_commit": "e61c75b1ddb32f30ed20462f4059144122914b65",
+  "strategy_file": "母版-20260506-Clone.py",
+  "profile": "local_native_l2",
+  "quick_interval": {
+    "start_date": "2025-03-01",
+    "end_date": "2025-05-31",
+    "elapsed_seconds": 1157.291,
+    "history_calls": 3238,
+    "trade_count": 92,
+    "final_value": 1291597.37,
+    "total_return_pct": 29.159737,
+    "max_drawdown_pct": 6.8527
+  },
+  "full_year": {
+    "start_date": "2025-01-01",
+    "end_date": "2025-12-31",
+    "elapsed_seconds": 5328.463,
+    "history_calls": 15137,
+    "trade_count": 531,
+    "final_value": 2513109.47,
+    "total_return_pct": 151.310947,
+    "max_drawdown_pct": 24.3692
+  }
+}
