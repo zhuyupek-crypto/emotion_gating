@@ -42,6 +42,9 @@
 
 ## Concentration
 
+> **Note**: profit_contribution 字段表示各交易收益率之和，不代表组合资金利润占比。
+
+
 - Best year: 2019
 - Worst year: 2023
 - Best year profit ratio: 24.5595%
