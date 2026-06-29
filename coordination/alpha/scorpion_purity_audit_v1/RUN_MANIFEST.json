@@ -1,0 +1,13 @@
+{
+  "task": "TASK-SCORPION-PURITY-AUDIT-001",
+  "base_commit": "7708e2e5060064898a341936b04279fc3c57e664",
+  "strategy_sha256": "55e96b2225d14c6d94052ff3dad03079094b3f7a66b46c76e6b6409d7618c2b0",
+  "emotion_gating_commit": "7708e2e5060064898a341936b04279fc3c57e664",
+  "hdata_reader_sha256": "bbd4671ea342fcf206dfec5f4ada6da85dbcaf3df3a5bb7c3b1b1010f6d9e361",
+  "audit_finding": "compat=None -> get_project_board_snapshot returns empty -> board_snapshot path never executes -> ALL trades from history_fallback",
+  "fix": "history_fallback: 'if bear_pool:' -> 'if bear_pool and g.market_mode == bear:' (in-memory only, strategy file unchanged)",
+  "backtest_period": {
+    "start": "2018-01-01",
+    "end": "2025-12-31"
+  }
+}

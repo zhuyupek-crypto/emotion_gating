@@ -1,0 +1,133 @@
+{
+  "task": "TASK-SCORPION-PURE-BASELINE-001",
+  "strategy_file": "scorp_optimize/strategies/strategy_v227_scorp.py",
+  "fix_description": "history_fallback path (line 576): 'if bear_pool:' -> 'if bear_pool and g.market_mode == 'bear':'",
+  "backtest_period": {
+    "start": "2018-01-01",
+    "end": "2025-12-31"
+  },
+  "initial_cash": 1000000,
+  "slots": 2,
+  "overall": {
+    "total_return": 3.653283,
+    "annualized_return": 0.211909,
+    "max_drawdown": 0.132933,
+    "final_value": 4653282.83,
+    "completed_trades": 169,
+    "execution_rows": 338,
+    "win_rate": 0.656805,
+    "ev": 0.020757,
+    "avg_gain": 0.050396,
+    "avg_loss": -0.035964,
+    "profit_loss_ratio": 1.401282,
+    "avg_holding_days": 1.585799,
+    "max_consecutive_losses": 2
+  },
+  "yearly": [
+    {
+      "year": 2018,
+      "trades": 31,
+      "win_rate": 0.612903,
+      "ev": 0.01295,
+      "profit_contribution": 0.401451,
+      "max_drawdown": 0.0896
+    },
+    {
+      "year": 2019,
+      "trades": 31,
+      "win_rate": 0.709677,
+      "ev": 0.023874,
+      "profit_contribution": 0.740105,
+      "max_drawdown": 0.035453
+    },
+    {
+      "year": 2020,
+      "trades": 18,
+      "win_rate": 0.611111,
+      "ev": 0.015018,
+      "profit_contribution": 0.270317,
+      "max_drawdown": 0.042809
+    },
+    {
+      "year": 2021,
+      "trades": 15,
+      "win_rate": 0.6,
+      "ev": 0.0275,
+      "profit_contribution": 0.412506,
+      "max_drawdown": 0.132933
+    },
+    {
+      "year": 2022,
+      "trades": 35,
+      "win_rate": 0.6,
+      "ev": 0.011665,
+      "profit_contribution": 0.408276,
+      "max_drawdown": 0.065853
+    },
+    {
+      "year": 2023,
+      "trades": 11,
+      "win_rate": 0.727273,
+      "ev": 0.023076,
+      "profit_contribution": 0.253836,
+      "max_drawdown": 0.044614
+    },
+    {
+      "year": 2024,
+      "trades": 23,
+      "win_rate": 0.73913,
+      "ev": 0.034444,
+      "profit_contribution": 0.792223,
+      "max_drawdown": 0.065135
+    },
+    {
+      "year": 2025,
+      "trades": 5,
+      "win_rate": 0.8,
+      "ev": 0.04586,
+      "profit_contribution": 0.229301,
+      "max_drawdown": 0.031062
+    }
+  ],
+  "concentration": {
+    "max_gain_trade": {
+      "code": "002143.XSHE",
+      "entry_date": "2018-09-06",
+      "exit_date": "2018-09-10",
+      "buy_price": "3.42",
+      "sell_price": "4.56",
+      "shares": "150200",
+      "ret": "0.33333333333333326",
+      "year": "2018",
+      "holding_days": "4",
+      "buy_market_mode": "bear"
+    },
+    "max_loss_trade": {
+      "code": "000760.XSHE",
+      "entry_date": "2018-09-03",
+      "exit_date": "2018-09-04",
+      "buy_price": "3.5",
+      "sell_price": "3.21",
+      "shares": "147900",
+      "ret": "-0.08285714285714287",
+      "year": "2018",
+      "holding_days": "1",
+      "buy_market_mode": "bear"
+    },
+    "top5_profit_ratio": 0.326326,
+    "top10_profit_ratio": 0.502423,
+    "best_year": 2025,
+    "worst_year": 2022,
+    "best_year_profit_ratio": 0.065365
+  },
+  "market_mode_stats": {
+    "bear": {
+      "trades": 169,
+      "win_rate": 0.656805,
+      "ev": 0.020757,
+      "profit_contribution": 3.508013
+    }
+  },
+  "primary_market_mode": "bear",
+  "monkey_patched": false
+}

@@ -1,0 +1,7 @@
+# Override parent .gitignore for this deliverables directory
+!*.csv
+!*.json
+!*.md
+
+# Do not commit local backtest checkpoint
+bt_checkpoint.pkl
