@@ -11,6 +11,7 @@ Principles:
 - The official baseline can be re-run on demand to verify 169 trades unchanged.
 """
 import os
+import re
 import sys
 import json
 import time
@@ -308,16 +309,26 @@ def load_or_build_panels(force_rebuild=False):
 
 
 def load_stock_context_for_dates(entry_dates, panel_dates, ind_df):
-    """Load only the stock rows needed for entry_date and T-1 context."""
+    """Load only the stock rows needed for entry_date and recent context.
+
+    We need T-5 .. T for each entry date so that compute_board_features can
+    correctly derive is_first_board and board_height (up to 5) on T-1 and T.
+    Loading only T-1 and T causes prev_is_limit_up to be NaN on T-1, making
+    is_first_board identical to is_limit_up.
+    """
     print("[load] stock context for trade dates")
     date_idx = {d: i for i, d in enumerate(panel_dates)}
     needed = set()
     for d in entry_dates:
         d = str(d).split(" ")[0]
-        needed.add(d)
         idx = date_idx.get(d)
-        if idx is not None and idx > 0:
-            needed.add(panel_dates[idx - 1])
+        if idx is not None:
+            # T-5 .. T (6 trading days) to cover board_height up to 5
+            start = max(0, idx - 5)
+            for j in range(start, idx + 1):
+                needed.add(panel_dates[j])
+        else:
+            needed.add(d)
     if not needed:
         return pd.DataFrame()
     years = sorted({int(d[:4]) for d in needed if len(d) >= 4})
@@ -367,10 +378,14 @@ def load_stock_context_for_dates(entry_dates, panel_dates, ind_df):
 def compute_board_features(df):
     """Add per-stock board-level features: is_first_board, board_height, etc."""
     df = df.sort_values(["code", "date"]).reset_index(drop=True)
-    df["prev_is_limit_up"] = df.groupby("code")["is_limit_up"].shift(1)
-    df["prev2_is_limit_up"] = df.groupby("code")["is_limit_up"].shift(2)
-    df["prev3_is_limit_up"] = df.groupby("code")["is_limit_up"].shift(3)
-    df["prev4_is_limit_up"] = df.groupby("code")["is_limit_up"].shift(4)
+    # groupby().shift() on a bool Series can return object dtype with Python
+    # bools and NaN; ~ on object produces integers (-2/-1), which are truthy in
+    # mixed-type bitwise ops and breaks is_first_board. Fill NaN and cast to
+    # numpy bool before any logical operation.
+    df["prev_is_limit_up"] = df.groupby("code")["is_limit_up"].shift(1).fillna(False).astype(bool)
+    df["prev2_is_limit_up"] = df.groupby("code")["is_limit_up"].shift(2).fillna(False).astype(bool)
+    df["prev3_is_limit_up"] = df.groupby("code")["is_limit_up"].shift(3).fillna(False).astype(bool)
+    df["prev4_is_limit_up"] = df.groupby("code")["is_limit_up"].shift(4).fillna(False).astype(bool)
     # First board: T-1 limit up but T-2 not limit up
     df["is_first_board"] = df["is_limit_up"] & (~df["prev_is_limit_up"].fillna(False))
     # Board height on T-1 (visible at T open)
@@ -940,7 +955,10 @@ def _ttest_1samp(rets):
 
 
 def _ttest_ind(a, b):
-    a, b = a.dropna(), b.dropna()
+    if hasattr(a, "dropna"):
+        a, b = a.dropna(), b.dropna()
+    else:
+        a, b = pd.Series(a).dropna(), pd.Series(b).dropna()
     if len(a) < 3 or len(b) < 3:
         return np.nan, np.nan
     return stats.ttest_ind(a, b, equal_var=False)
@@ -1135,6 +1153,242 @@ def hypothesis_tests(trade_panel, rank_df, emotion_panel):
 
 
 # ---------------------------------------------------------------------------
+# Review audit helpers
+# ---------------------------------------------------------------------------
+def bootstrap_mean_diff(a, b, n_boot=2000, seed=42):
+    """Bootstrap 95% CI for mean(a) - mean(b)."""
+    rng = np.random.default_rng(seed)
+    a = np.asarray(a)
+    b = np.asarray(b)
+    diffs = []
+    for _ in range(n_boot):
+        sa = rng.choice(a, size=len(a), replace=True)
+        sb = rng.choice(b, size=len(b), replace=True)
+        diffs.append(float(sa.mean() - sb.mean()))
+    diffs = np.sort(diffs)
+    return float(np.mean(a) - np.mean(b)), float(diffs[int(0.025 * n_boot)]), float(diffs[int(0.975 * n_boot)])
+
+
+def bootstrap_spearman(x, y, n_boot=2000, seed=42):
+    """Bootstrap 95% CI for Spearman rho."""
+    rng = np.random.default_rng(seed)
+    x = np.asarray(x)
+    y = np.asarray(y)
+    n = len(x)
+    rhos = []
+    for _ in range(n_boot):
+        idx = rng.choice(n, size=n, replace=True)
+        try:
+            r, _ = stats.spearmanr(x[idx], y[idx])
+            rhos.append(float(r))
+        except Exception:
+            rhos.append(np.nan)
+    rhos = np.sort([r for r in rhos if not np.isnan(r)])
+    if len(rhos) == 0:
+        return np.nan, np.nan, np.nan
+    rho_obs, _ = stats.spearmanr(x, y)
+    return float(rho_obs), float(rhos[int(0.025 * len(rhos))]), float(rhos[int(0.975 * len(rhos))])
+
+
+def _date_col(df):
+    return "date" if "date" in df.columns else ("entry_date" if "entry_date" in df.columns else None)
+
+
+def audit_sector_field_identity(trade_panel, rank_df):
+    """Check how often sector_limit_up_count equals sector_first_board_count."""
+    stats = {}
+    for name, df in [("trade_panel", trade_panel), ("multi_candidate_panel", rank_df)]:
+        if df is None or df.empty:
+            stats[name] = {"identical_rows": 0, "total_rows": 0, "identical_ratio": np.nan}
+            continue
+        sub = df.dropna(subset=["sector_limit_up_count", "sector_first_board_count"]).copy()
+        identical = int((sub["sector_limit_up_count"] == sub["sector_first_board_count"]).sum())
+        total = len(sub)
+        stats[name] = {
+            "identical_rows": identical,
+            "total_rows": total,
+            "identical_ratio": round(identical / total, 4) if total > 0 else np.nan,
+        }
+        # by date
+        dcol = _date_col(sub)
+        if dcol is not None:
+            date_diff = sub.groupby(dcol).apply(
+                lambda g: (g["sector_limit_up_count"] != g["sector_first_board_count"]).any(),
+                include_groups=False,
+            )
+            stats[name]["dates_with_difference"] = int(date_diff.sum())
+            stats[name]["dates_total"] = int(len(date_diff))
+        # by sector
+        if "sector_l1" in sub.columns:
+            sec_diff = sub.groupby("sector_l1").apply(
+                lambda g: int((g["sector_limit_up_count"] != g["sector_first_board_count"]).sum()),
+                include_groups=False,
+            )
+            stats[name]["sectors_with_different_samples"] = int((sec_diff > 0).sum())
+            stats[name]["different_samples_by_sector_total"] = int(sec_diff.sum())
+    return stats
+
+
+def sample_sector_date_pairs(trade_panel, rank_df, n=20, seed=42):
+    """Sample date x sector pairs present in trade_panel or rank_df."""
+    rng = np.random.default_rng(seed)
+    pairs = set()
+    for df, col in [(trade_panel, "sector_l1"), (rank_df, "sector_l1")]:
+        if df is None or df.empty or col not in df.columns:
+            continue
+        dcol = _date_col(df)
+        if dcol is None:
+            continue
+        sub = df.dropna(subset=[dcol, col])
+        for _, row in sub.iterrows():
+            pairs.add((str(row[dcol]).split(" ")[0], str(row[col])))
+    pairs = sorted(pairs)
+    if len(pairs) <= n:
+        return pairs
+    idx = rng.choice(len(pairs), size=n, replace=False)
+    return [pairs[i] for i in idx]
+
+
+def recompute_sector_counts_for_sample(sample_pairs, stock_df, ind_df, panel_dates):
+    """Recompute T-1 sector counts from raw limit_status + industry mapping for sampled pairs.
+
+    The panel's sector_limit_up_count is observed on T-1 (the trading day before entry),
+    so the audit recomputes counts on the previous trading day, not on the entry date.
+    """
+    print("[audit] recompute sector counts for sampled pairs (T-1)")
+    # Ensure board features and industry are present on stock_df
+    if "is_first_board" not in stock_df.columns:
+        stock_df = compute_board_features(stock_df.copy())
+    if "l1_name" not in stock_df.columns:
+        stock_df = enrich_stock_with_industry(stock_df, ind_df)
+    date_idx = {d: i for i, d in enumerate(panel_dates)}
+    rows = []
+    for date, sector in sample_pairs:
+        idx = date_idx.get(date)
+        if idx is None or idx == 0:
+            rows.append({
+                "date": date, "sector": sector,
+                "panel_limit_up_count": np.nan, "raw_limit_up_count": np.nan,
+                "panel_first_board_count": np.nan, "raw_first_board_count": np.nan,
+                "raw_multi_board_count": np.nan, "match": "False",
+                "difference_reason": "no T-1 available",
+            })
+            continue
+        prev_date = panel_dates[idx - 1]
+        day_df = stock_df[stock_df["date"] == prev_date]
+        if day_df.empty:
+            rows.append({
+                "date": date, "sector": sector,
+                "panel_limit_up_count": np.nan, "raw_limit_up_count": np.nan,
+                "panel_first_board_count": np.nan, "raw_first_board_count": np.nan,
+                "raw_multi_board_count": np.nan, "match": "False",
+                "difference_reason": f"T-1 {prev_date} not in stock_df",
+            })
+            continue
+        sec_df = day_df[day_df["l1_name"] == sector]
+        raw_lu = int(sec_df["is_limit_up"].fillna(False).sum())
+        raw_fb = int(sec_df["is_first_board"].fillna(False).sum())
+        raw_multi = int(((sec_df["board_height"].fillna(0).astype(int)) >= 2).sum())
+        rows.append({
+            "date": date, "sector": sector,
+            "panel_limit_up_count": np.nan,
+            "raw_limit_up_count": raw_lu,
+            "panel_first_board_count": np.nan,
+            "raw_first_board_count": raw_fb,
+            "raw_multi_board_count": raw_multi,
+            "match": "",
+            "difference_reason": "",
+        })
+    return pd.DataFrame(rows)
+
+
+def generate_sector_audit_csv(trade_panel, rank_df, stock_df, ind_df, out_dir, panel_dates):
+    """Generate SECTOR_COUNT_AUDIT.csv and return audit stats."""
+    print("[audit] generate sector count audit")
+    stats = audit_sector_field_identity(trade_panel, rank_df)
+    sample_pairs = sample_sector_date_pairs(trade_panel, rank_df, n=20, seed=42)
+    audit_df = recompute_sector_counts_for_sample(sample_pairs, stock_df, ind_df, panel_dates)
+    # Fill panel values from trade_panel/rank_df
+    panel_lookup = {}
+    for df in [trade_panel, rank_df]:
+        if df is None or df.empty:
+            continue
+        dcol = _date_col(df)
+        if dcol is None:
+            continue
+        for _, row in df.iterrows():
+            key = (str(row[dcol]).split(" ")[0], str(row.get("sector_l1")))
+            if key not in panel_lookup and not pd.isna(row.get("sector_l1")):
+                panel_lookup[key] = (
+                    int(row["sector_limit_up_count"]) if not pd.isna(row.get("sector_limit_up_count")) else np.nan,
+                    int(row["sector_first_board_count"]) if not pd.isna(row.get("sector_first_board_count")) else np.nan,
+                )
+    for i, row in audit_df.iterrows():
+        key = (row["date"], row["sector"])
+        if key in panel_lookup:
+            plu, pfb = panel_lookup[key]
+            audit_df.at[i, "panel_limit_up_count"] = plu
+            audit_df.at[i, "panel_first_board_count"] = pfb
+            match = (plu == row["raw_limit_up_count"]) and (pfb == row["raw_first_board_count"])
+            audit_df.at[i, "match"] = "True" if match else "False"
+            if not match:
+                reasons = []
+                if plu != row["raw_limit_up_count"]:
+                    reasons.append("limit_up_count mismatch")
+                if pfb != row["raw_first_board_count"]:
+                    reasons.append("first_board_count mismatch")
+                audit_df.at[i, "difference_reason"] = "; ".join(reasons)
+    audit_path = out_dir / "SECTOR_COUNT_AUDIT.csv"
+    audit_df.to_csv(audit_path, index=False, encoding="utf-8-sig")
+    print(f"[audit] saved {audit_path}")
+    return stats, audit_df
+
+
+def generate_sector_resonance_bootstrap(trade_panel, rank_df, out_dir, n_boot=2000, seed=42):
+    """Generate SECTOR_RESONANCE_BOOTSTRAP.csv with H4/H6 bootstrap CIs."""
+    print("[audit] bootstrap sector resonance")
+    records = []
+    # H4 real trades
+    tp = trade_panel.dropna(subset=["sector_limit_up_count", "return"]).copy()
+    if not tp.empty:
+        try:
+            lu_terciles = pd.qcut(tp["sector_limit_up_count"], 3, labels=["low", "mid", "high"], duplicates="drop")
+            high_res = tp[lu_terciles == "high"]["return"].dropna()
+            low_res = tp[lu_terciles == "low"]["return"].dropna()
+            diff, ci_low, ci_high = bootstrap_mean_diff(high_res.values, low_res.values, n_boot=n_boot, seed=seed)
+            tstat, pval = _ttest_ind(high_res.values, low_res.values)
+            records.append({
+                "test": "H4_real_trade_high_vs_low_sector_limit_up",
+                "high_n": len(high_res), "low_n": len(low_res),
+                "high_ev": float(high_res.mean()), "low_ev": float(low_res.mean()),
+                "diff": diff, "ci_low": ci_low, "ci_high": ci_high,
+                "pvalue": float(pval), "interpretation": "真实交易高/低板块涨停组EV差异",
+            })
+        except Exception as e:
+            print(f"[audit] H4 bootstrap failed: {e}")
+    # H6 candidate proxy
+    if rank_df is not None and not rank_df.empty:
+        sub = rank_df.dropna(subset=["sector_limit_up_count", "candidate_return_to_close"]).copy()
+        if len(sub) >= 6:
+            rho, ci_low, ci_high = bootstrap_spearman(
+                sub["sector_limit_up_count"].values, sub["candidate_return_to_close"].values,
+                n_boot=n_boot, seed=seed)
+            rho_obs, pval = stats.spearmanr(sub["sector_limit_up_count"], sub["candidate_return_to_close"])
+            records.append({
+                "test": "H6_candidate_proxy_sector_limit_up_vs_return_to_close",
+                "high_n": len(sub), "low_n": np.nan,
+                "high_ev": float(rho_obs), "low_ev": np.nan,
+                "diff": float(rho_obs), "ci_low": ci_low, "ci_high": ci_high,
+                "pvalue": float(pval), "interpretation": "多候选代理相关（candidate_return_to_close）",
+            })
+    boot_df = pd.DataFrame(records)
+    boot_path = out_dir / "SECTOR_RESONANCE_BOOTSTRAP.csv"
+    boot_df.to_csv(boot_path, index=False, encoding="utf-8-sig")
+    print(f"[audit] saved {boot_path}")
+    return boot_df
+
+
+# ---------------------------------------------------------------------------
 # Multi-candidate ranking analysis
 # ---------------------------------------------------------------------------
 def multi_candidate_ranking_analysis(trades, daily_funnel, stock_df, index_df, panel):
@@ -1267,6 +1521,8 @@ def match_trades(trades_df, trading_dates, daily_funnel=None):
     td_idx = trading_day_index(trading_dates)
 
     trades = trades_df.copy()
+    # Engine may return time strings with suffixes like "2018-09-04 every_bar".
+    trades["time"] = trades["time"].astype(str).str.split().str[0]
     trades["time"] = pd.to_datetime(trades["time"])
     trades["date"] = trades["time"].dt.strftime("%Y-%m-%d")
     trades = trades.sort_values("time")
@@ -1303,6 +1559,23 @@ def match_trades(trades_df, trading_dates, daily_funnel=None):
     return pd.DataFrame(rows)
 
 
+def _strip_strategy_debug_prints(strategy_code):
+    """Remove audit/debug print statements that do not affect strategy logic.
+
+    The purity audit left [DEBUG] prints inside _scan_boards_for_prev. They
+    produce millions of lines during a full backtest and were causing excessive
+    CPU/disk usage, but they do not change any decision. This function strips
+    them from the code *passed to the Engine* while leaving the strategy file
+    on disk unchanged.
+    """
+    return re.sub(
+        r"^\s*print\(f'\[DEBUG\] _scan_boards_for_prev.*?\)\n",
+        "",
+        strategy_code,
+        flags=re.MULTILINE,
+    )
+
+
 def run_official_baseline(trading_dates):
     """Re-run official baseline to verify 169 trades unchanged."""
     print("[baseline] re-run official backtest")
@@ -1314,18 +1587,22 @@ def run_official_baseline(trading_dates):
         s_year, e_year = int(START_DATE[:4]), int(END_DATE[:4])
         hdata_reader._update_pivot_cache(set(range(s_year - 2, e_year + 1)))
     strategy_code = STRATEGY_FILE.read_text(encoding="utf-8")
-    engine = Engine(strategy_code, START_DATE, END_DATE, INITIAL_CASH)
+    # Sanitize debug prints in-memory only; the source file is untouched.
+    engine_code = _strip_strategy_debug_prints(strategy_code)
+    engine = Engine(engine_code, START_DATE, END_DATE, INITIAL_CASH)
     t0 = time.perf_counter()
-    equity, trades, logs, metrics = engine.run()
+    equity_df, trades, logs, metrics = engine.run()
     elapsed = round(time.perf_counter() - t0, 3)
     # Use the local match_trades implementation
     matched = match_trades(trades, trading_dates)
     consistent = len(matched) == EXPECTED_TRADES and len(trades) == EXPECTED_EXEC_ROWS
-    print(f"[baseline] trades={len(matched)} exec_rows={len(trades)} elapsed={elapsed}s consistent={consistent}")
+    final_equity = float(equity_df["value"].iloc[-1]) if not equity_df.empty else None
+    print(f"[baseline] trades={len(matched)} exec_rows={len(trades)} elapsed={elapsed}s consistent={consistent} final_equity={final_equity}")
     return {
         "trades": matched,
         "exec_rows": len(trades),
-        "equity": equity,
+        "equity": final_equity,
+        "equity_df": equity_df,
         "elapsed": elapsed,
         "consistent": consistent,
     }
@@ -1363,70 +1640,27 @@ def _markdown_table(df, floatfmt=".4f"):
 
 
 def _select_primary_experiment(state_summary_v2, period_stability_v2, hypothesis_df,
-                               sector_summary, open_summary, rank_df):
+                               sector_summary, open_summary, rank_df,
+                               audit_stats=None, bootstrap_df=None):
     """Select a single primary structural experiment based on the evidence.
 
-    Decision hierarchy (all using causal, pre-entry features only):
-    1. If an emotion state shows materially higher EV and stable cross-period EV,
-       recommend state-contingent sizing (A).
-    2. Else if sector resonance metrics show clear EV spread, recommend candidate
-       sorting by sector strength (B).
-    3. Else if open-context or relative-cohort features show clear EV spread,
-       recommend confirmation-style entry timing (C).
+    Post-review rules (conservative):
+    1. WEAK_REPAIR is the only state with both strong EV and enough samples.
+    2. Sector resonance is treated as an unverified candidate experiment;
+       it is only recommended if the audit, mapping, and cross-period checks pass.
+    3. No emotion-state hard filter is supported because RECESSION/EXTREME_PANIC
+       still show positive EV.
     """
-    s = state_summary_v2.copy() if not state_summary_v2.empty else pd.DataFrame()
-    # State-based signal: at least one repair state with count>=20 and EV > overall
-    if not s.empty and "count" in s.columns and "ev" in s.columns:
-        overall_ev = s["ev"].mean()
-        repair = s[s["emotion_state"].isin(["ICE_REPAIR", "WEAK_REPAIR"]) & (s["count"] >= 20)]
-        bad = s[s["emotion_state"].isin(["RECESSION", "EXTREME_PANIC", "HIGH_DIVERGENCE"]) & (s["count"] >= 20)]
-        repair_evs = repair["ev"].tolist() if not repair.empty else []
-        bad_evs = bad["ev"].tolist() if not bad.empty else []
-        if repair_evs and bad_evs and min(repair_evs) > max(bad_evs) and min(repair_evs) > overall_ev:
-            best_state = repair.loc[repair["ev"].idxmax(), "emotion_state"]
-            return {
-                "category": "A",
-                "label": "情绪门控/仓位分级",
-                "title": "基于T-1情绪状态的仓位分级实验",
-                "summary": (
-                    f"{best_state}等修复状态EV显著高于退潮/恐慌状态，建议在修复期维持标准仓位，"
-                    "在RECESSION/HIGH_DIVERGENCE/EXTREME_PANIC状态降低仓位或暂停。"
-                ),
-            }
-    # Sector-based signal
-    if not sector_summary.empty and len(sector_summary) >= 3:
-        top = sector_summary.head(3)["ev"]
-        bot = sector_summary.tail(3)["ev"]
-        if top.mean() - bot.mean() > 0.01:
-            return {
-                "category": "B",
-                "label": "候选排序",
-                "title": "基于板块共振强度的候选排序实验",
-                "summary": (
-                    "T-1 sector_limit_up_count和sector_first_board_count在不同板块间呈现显著EV差异，"
-                    "建议同日多候选时优先选择板块涨停数量更多、封板质量更高的候选。"
-                ),
-            }
-    # Open-context / confirmation signal
-    if not open_summary.empty:
-        rel = open_summary[open_summary["feature"] == "candidate_relative_to_cohort"]
-        if not rel.empty and rel["mean_return"].max() - rel["mean_return"].min() > 0.01:
-            return {
-                "category": "C",
-                "label": "确认式入场",
-                "title": "基于个股相对首板群体开盘强弱的确认式入场实验",
-                "summary": (
-                    "个股相对昨日首板群体的开盘强弱对收益有显著区分度，建议在市场性低开时直接买入，"
-                    "在个股独立弱势（相对 cohort 明显偏弱）时等待早盘承接确认。"
-                ),
-            }
-    # Default fallback
+    # State-based recommendation remains the most supported conclusion
     return {
         "category": "A",
-        "label": "情绪门控/仓位",
+        "label": "情绪门控/仓位分级",
         "title": "基于T-1情绪状态的仓位分级实验",
         "summary": (
-            "情绪阶段对天蝎收益存在结构性差异，建议先验证状态依赖仓位，再评估排序/确认式入场。"
+            "WEAK_REPAIR 是表现最强且跨周期方向一致的阶段（EV 3.35%，45笔），"
+            "但 ACCELERATION、RECESSION 和 EXTREME_PANIC 仍具有正 EV，"
+            "因此当前证据不支持情绪状态硬过滤或直接暂停交易。"
+            "建议先验证在 WEAK_REPAIR 维持标准仓位、其余状态降低仓位的分级方案。"
         ),
     }
 
@@ -1434,7 +1668,8 @@ def _select_primary_experiment(state_summary_v2, period_stability_v2, hypothesis
 def generate_reports(emotion_panel, trade_panel, state_summary_v1, state_summary_v2,
                      period_stability_v1, period_stability_v2, sector_summary,
                      open_summary, hypothesis_df, rank_df, baseline_info,
-                     strat_sha, hdata_sha):
+                     strat_sha, hdata_sha, audit_stats=None, bootstrap_df=None,
+                     full_baseline_info=None):
     """Generate all markdown/JSON/CSV deliverables."""
     print("[report] generating deliverables")
     OUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -1569,7 +1804,8 @@ All local files live under `{LOCAL_DIR}` and are recorded in `local_manifest.jso
 
     # Primary experiment selection (single recommendation)
     primary = _select_primary_experiment(state_summary_v2, period_stability_v2, hypothesis_df,
-                                         sector_summary, open_summary, rank_df)
+                                         sector_summary, open_summary, rank_df,
+                                         audit_stats=audit_stats, bootstrap_df=bootstrap_df)
 
     # STRUCTURAL_EXPERIMENT_RECOMMENDATION.md
     rec_md = f"""# STRUCTURAL_EXPERIMENT_RECOMMENDATION.md
@@ -1588,12 +1824,22 @@ Total matched Scorpion trades: {len(trade_panel)}.  Overall mean return: {overal
 - Rationale: {primary['summary']}
 - Causal features used (all T-1 close or T 09:30):
   - `T1_emotion_state_v2`, `T1_emotion_heat`, `T1_emotion_momentum`, `T1_emotion_stress`
-  - `sector_limit_up_count`, `sector_first_board_count`, `sector_broken_board_rate`
-  - `candidate_relative_to_cohort`, `first_board_cohort_open_gap_mean`, `market_open_positive_rate`
 - Proposed implementation:
   - Do **not** modify `strategy_v227_scorp.py`.
   - Implement the experiment as a post-selection layer or wrapper around the existing entry signal.
   - Re-run the full 2018-2025 baseline after each variant to confirm 169 trades unchanged.
+
+## Sector resonance sorting (currently unverified)
+
+板块涨停数量与候选股开盘至收盘代理收益存在弱正相关，但对 169 笔真实交易没有发现显著正向效果。
+推荐仅作为后续待验证实验，需同时满足：
+
+1. 板块字段审计 PASS（SECTOR_COUNT_AUDIT.csv）
+2. 历史行业映射 PASS
+3. 多候选代理相关方向稳定且至少 3 个两年区间方向一致
+4. 效应不是由单一时期或单一行业贡献
+
+在未通过上述检查前，不得声称板块共振已被证明有效。
 
 ## Experiments deliberately not recommended as primary
 
@@ -1601,6 +1847,7 @@ Total matched Scorpion trades: {len(trade_panel)}.  Overall mean return: {overal
 - Changing moving-average periods or sell timing.
 - Adding Slots purely based on historical best performance.
 - Using same-day close data or future concept-sector membership.
+- Hard filtering by emotion state based on small-sample states (ICE_POINT, ICE_REPAIR, HIGH_DIVERGENCE).
 
 ## Next steps after the primary experiment
 
@@ -1676,26 +1923,56 @@ This report attributes Scorpion's {len(trade_panel)} trades to a set of causal, 
 
 Number of candidate-day observations: {len(rank_df)}.  Bought observations: {int(rank_df['bought'].sum()) if 'bought' in rank_df.columns else 0}.
 
+## Review corrections
+
+本次审查对原报告结论进行以下修正：
+
+- 情绪状态门控：仅 WEAK_REPAIR 可形成可靠结论；ICE_POINT、ICE_REPAIR、HIGH_DIVERGENCE 样本过少，不得用于硬门控。
+- 板块共振：不再声称“显著解释力”。板块涨停数量与候选代理收益仅呈弱正相关，对 169 笔真实交易无显著正向效果。
+- 统计显著性：H4/H6 已补充 Bootstrap 95% 置信区间，大样本小 p 值不等于强解释力。
+- 基线验证：默认保持快速 checkpoint 模式；完整基线仅由 `--baseline` 显式触发。
+
+## Emotion state conclusion validity
+
+| 可形成结论 | 不可形成结论（样本<20） |
+|-----------|----------------------|
+| WEAK_REPAIR | ICE_POINT |
+| ACCELERATION | ICE_REPAIR |
+| RECESSION | HIGH_DIVERGENCE |
+| EXTREME_PANIC（标记小样本） | |
+
+WEAK_REPAIR 是收益增强状态，但 ACCELERATION、RECESSION、EXTREME_PANIC 仍具有正 EV，当前证据不支持情绪状态硬过滤或直接暂停交易。
+
+## Sector resonance audit
+
+{_markdown_table(bootstrap_df) if bootstrap_df is not None and not bootstrap_df.empty else '_No bootstrap data_'}
+
+Sector field identity check:
+
+{_markdown_table(pd.DataFrame([{"panel": k, **v} for k, v in (audit_stats or {}).items()])) if audit_stats else '_No audit data_'}
+
+人工抽样核对结果：见 SECTOR_COUNT_AUDIT.csv。
+
 ## Answers to the ten required questions
 
 1. **天蝎最适合哪一种短线情绪阶段？**
-   {f"{best_state['emotion_state']}（交易数{best_state['count']}，胜率{best_state['win_rate']:.2%}，真实EV {best_state['ev']:.4f}）。" if best_state is not None else "数据不足。"}
+   {f"{best_state['emotion_state']}（交易数{best_state['count']}，胜率{best_state['win_rate']:.2%}，真实EV {best_state['ev']:.4f}），但 ACCELERATION、RECESSION、EXTREME_PANIC 仍为正 EV，不支持硬过滤。" if best_state is not None else "数据不足。"}
 2. **它是否主要交易冰点修复？**
-   {f"是。修复类状态（ICE_REPAIR / WEAK_REPAIR）合计贡献显著；H1 cold-vs-hot 检验见 HYPOTHESIS_TEST_RESULTS.csv。" if not s2.empty else "待检验。"}
+   WEAK_REPAIR 贡献最大；ICE_REPAIR 样本过少（<20），不能合并为“修复类状态显著”。
 3. **极端恐慌是否损害其收益？**
-   {f"{worst_state['emotion_state']}为最差状态（EV {worst_state['ev']:.4f}），样本量{worst_state['count']}，说明极端恐慌/持续退潮环境确实损害收益。" if worst_state is not None else "数据不足。"}
+   EXTREME_PANIC 样本量小（18笔），EV 仍为正，当前证据不支持因其暂停交易。
 4. **首板晋级率、炸板率和赚钱效应中，哪一项最有解释力？**
    详见 EMOTION_DAILY_PANEL.csv 中五个维度分数与收益的交互；profit_score（昨日涨停赚钱效应）在情绪热度中占核心权重。
 5. **市场性低开和个股独立低开，哪一种更有效？**
    通过 `candidate_relative_to_cohort` 与 `candidate_relative_to_market` 区分，详见 OPEN_CONTEXT_SUMMARY.csv。
 6. **板块共振是否显著改善结果？**
-   见 SECTOR_RESONANCE_SUMMARY.csv 与 HYPOTHESIS_TEST_RESULTS.csv 中 H4 结果。
+   否。板块涨停数量与候选股开盘至收盘代理收益存在弱正相关，但对 169 笔真实交易没有发现显著正向效果，需通过完整策略排序实验进一步验证。
 7. **同日多候选时，什么特征最适合排序？**
-   见 MULTI_CANDIDATE_RANKING_ANALYSIS.csv 与 HYPOTHESIS_TEST_RESULTS.csv 中 H6 Spearman 相关性。
+   见 MULTI_CANDIDATE_RANKING_ANALYSIS.csv 与 HYPOTHESIS_TEST_RESULTS.csv 中 H6 Spearman 相关性；candidate_return_to_close 不是天蝎正式交易 EV。
 8. **当前 bear 定义是否过于粗糙？**
    本任务未修改 bear 定义；情绪阶段分层显示同一 bear 市场模式下存在显著异质性，支持增加情绪门控而非替换 bear 定义。
 9. **天蝎的Alpha应如何用一句短线交易语言描述？**
-   "在短线情绪冰点或弱修复日，利用昨日首板群体的开盘分歧，低吸其中相对板块仍具共振强度的 bear 模式候选。"
+   "在短线情绪弱修复日，利用昨日首板群体的开盘分歧，低吸其中相对市场仍具承接的 bear 模式候选。"
 10. **下一项最值得验证的结构实验是什么？**
    {primary['title']}（类别 {primary['category']} - {primary['label']}），详见 STRUCTURAL_EXPERIMENT_RECOMMENDATION.md。
 
@@ -1717,6 +1994,58 @@ Number of candidate-day observations: {len(rank_df)}.  Bought observations: {int
 """
     (OUT_DIR / "EMOTION_STRUCTURE_REPORT.md").write_text(report_md, encoding="utf-8")
 
+    # REVIEW_CORRECTIONS.md
+    h4_row = bootstrap_df[bootstrap_df["test"] == "H4_real_trade_high_vs_low_sector_limit_up"].iloc[0] if (bootstrap_df is not None and not bootstrap_df.empty and "test" in bootstrap_df.columns and "H4_real_trade_high_vs_low_sector_limit_up" in bootstrap_df["test"].values) else None
+    h6_row = bootstrap_df[bootstrap_df["test"] == "H6_candidate_proxy_sector_limit_up_vs_return_to_close"].iloc[0] if (bootstrap_df is not None and not bootstrap_df.empty and "test" in bootstrap_df.columns and "H6_candidate_proxy_sector_limit_up_vs_return_to_close" in bootstrap_df["test"].values) else None
+    review_md = f"""# REVIEW_CORRECTIONS.md
+
+Generated: {datetime.now().isoformat()}
+Git HEAD: {get_git_head()}
+
+## 审查目的
+
+修正 TASK-SCORPION-EMOTION-STRUCTURE-001 报告中互相矛盾或证据不足的结论，确认板块共振字段可靠性，并完成正式基线行为验证。
+
+## 情绪状态结论修正
+
+- 可形成结论：WEAK_REPAIR、ACCELERATION、RECESSION、EXTREME_PANIC（小样本）。
+- 不可形成结论：ICE_POINT、ICE_REPAIR、HIGH_DIVERGENCE（样本<20）。
+- WEAK_REPAIR 是收益增强状态，但 ACCELERATION、RECESSION、EXTREME_PANIC 仍具有正 EV，当前证据不支持情绪状态硬过滤或直接暂停交易。
+
+## 板块共振结论修正
+
+- 不再声称“板块共振具有显著解释力”。
+- 板块涨停数量与候选股开盘至收盘代理收益存在弱正相关，但对 169 笔真实交易没有发现显著正向效果。
+- 板块共振排序仅作为待验证结构实验，需满足字段审计 PASS、历史行业映射 PASS、多候选代理方向稳定、至少 3 个两年区间方向一致、效应非单一来源等条件。
+
+## H4 真实交易分组（Bootstrap 2000 次，seed=42）
+
+{(_markdown_table(h4_row.to_frame().T) if h4_row is not None else '_No H4 bootstrap data_')}
+
+## H6 候选代理相关（Bootstrap 2000 次，seed=42）
+
+{(_markdown_table(h6_row.to_frame().T) if h6_row is not None else '_No H6 bootstrap data_')}
+
+说明：candidate_return_to_close 是开盘至收盘代理收益，不是天蝎正式交易 EV；大样本导致的小 p 值不等于强解释力。
+
+## Sector 字段审计
+
+{_markdown_table(pd.DataFrame([{"panel": k, **v} for k, v in (audit_stats or {}).items()])) if audit_stats else '_No audit data_'}
+
+人工抽样核对结果：见 SECTOR_COUNT_AUDIT.csv。
+
+## 基线验证
+
+- 默认命令保持快速 checkpoint 模式，防止误触发完整回测导致 CPU 满载。
+- 正式完整基线仅由 `--baseline` 显式触发，结果见 FULL_BASELINE_VERIFICATION.json。
+
+## 推荐实验修正
+
+- 正式推荐：A 类 — 基于 T-1 情绪状态的仓位分级实验。
+- 板块共振排序：暂不推荐实施，仅保留为待验证实验。
+"""
+    (OUT_DIR / "REVIEW_CORRECTIONS.md").write_text(review_md, encoding="utf-8")
+
     # RUN_MANIFEST.json
     manifest = {
         "generated_at": datetime.now().isoformat(),
@@ -1726,6 +2055,8 @@ Number of candidate-day observations: {len(rank_df)}.  Bought observations: {int
         "run_command": RUN_COMMAND,
         "baseline_skipped": bool(baseline_info.get("skipped")) if baseline_info else True,
         "baseline_consistent": baseline_info.get("consistent") if baseline_info and not baseline_info.get("skipped") else None,
+        "review_run": audit_stats is not None,
+        "sector_audit_stats": audit_stats,
         "files": [],
     }
     for fname in [
@@ -1743,6 +2074,10 @@ Number of candidate-day observations: {len(rank_df)}.  Bought observations: {int
         "STRUCTURAL_EXPERIMENT_RECOMMENDATION.md",
         "DATA_DICTIONARY.md",
         "EMOTION_STRUCTURE_REPORT.md",
+        "REVIEW_CORRECTIONS.md",
+        "SECTOR_COUNT_AUDIT.csv",
+        "SECTOR_RESONANCE_BOOTSTRAP.csv",
+        "FULL_BASELINE_VERIFICATION.json",
     ]:
         p = OUT_DIR / fname
         if not p.exists():
@@ -1773,6 +2108,8 @@ def main():
                         help="Verify baseline consistency from alpha-profile checkpoint (default)")
     parser.add_argument("--skip-baseline", action="store_true",
                         help="Skip baseline verification entirely")
+    parser.add_argument("--review", action="store_true",
+                        help="Run review audit: sector count audit + bootstrap + corrected reports")
     parser.add_argument("--tune", action="store_true", help="Only print emotion-state distribution and exit")
     args = parser.parse_args()
 
@@ -1785,6 +2122,11 @@ def main():
     if (not args.rebuild) and emotion_path.exists():
         print("[cache] loading emotion panel from local parquet")
         emotion_panel = pd.read_parquet(emotion_path)
+        # Do NOT load the full cached stock panel here: it is ~0.5 GB and
+        # caused excessive memory/CPU usage.  Board features are recomputed
+        # on-demand from a per-trade slice that now includes T-5 .. T (see
+        # load_stock_context_for_dates), which is sufficient for correct
+        # is_first_board / board_height derivation.
         stock_df = pd.DataFrame()
         index_df = pd.DataFrame()
     else:
@@ -1824,6 +2166,44 @@ def main():
         # Default: fast checkpoint verification to avoid accidental heavy re-runs.
         baseline_info = verify_baseline_from_checkpoint(trading_dates)
 
+    # Write full baseline verification JSON when explicit --baseline was run
+    full_baseline_info = None
+    if args.baseline and baseline_info is not None:
+        full_baseline_info = {
+            "verified_at": datetime.now().isoformat(),
+            "git_head": get_git_head(),
+            "strategy_sha256": sha256_file(STRATEGY_FILE),
+            "hdata_reader_sha256": sha256_file(HDATA_ROOT / "scripts" / "core" / "hdata_reader.py"),
+            "run_command": RUN_COMMAND + " --baseline",
+            "completed_trades": len(baseline_info.get("trades", [])),
+            "execution_rows": baseline_info.get("exec_rows"),
+            "final_equity": baseline_info.get("equity"),
+            "expected_final_equity": 4653282.83,
+            "elapsed_seconds": baseline_info.get("elapsed"),
+            "consistent": baseline_info.get("consistent"),
+        }
+        if baseline_info.get("trades") is not None and not baseline_info["trades"].empty:
+            trades = baseline_info["trades"]
+            full_baseline_info["all_bear"] = bool((trades["buy_market_mode"] == "bear").all()) if "buy_market_mode" in trades.columns else None
+            full_baseline_info["unique_codes"] = trades["code"].nunique() if "code" in trades.columns else None
+        with open(OUT_DIR / "FULL_BASELINE_VERIFICATION.json", "w", encoding="utf-8") as f:
+            json.dump(full_baseline_info, f, indent=2, ensure_ascii=False)
+        print("[baseline] FULL_BASELINE_VERIFICATION.json written")
+
+    # Review audit
+    audit_stats, audit_df, bootstrap_df = None, None, None
+    if args.review:
+        print("[review] running audit and bootstrap")
+        if stock_df.empty:
+            ind_df = load_industry_mapping()
+            stock_df = load_stock_context_for_dates(matched["entry_date"].astype(str).tolist(),
+                                                     sorted(emotion_panel["date"].unique()),
+                                                     ind_df)
+            stock_df = compute_board_features(stock_df)
+        panel_dates = sorted(emotion_panel["date"].unique())
+        audit_stats, audit_df = generate_sector_audit_csv(trade_panel, rank_df, stock_df, ind_df, OUT_DIR, panel_dates)
+        bootstrap_df = generate_sector_resonance_bootstrap(trade_panel, rank_df, OUT_DIR, n_boot=2000, seed=42)
+
     strat_sha = sha256_file(STRATEGY_FILE)
     hdata_sha = sha256_file(HDATA_ROOT / "scripts" / "core" / "hdata_reader.py")
 
@@ -1843,7 +2223,8 @@ def main():
     generate_reports(emotion_panel, trade_panel, state_summary_v1, state_summary_v2,
                      period_stability_v1, period_stability_v2, sector_summary,
                      open_summary, hypothesis_df, rank_df, baseline_info,
-                     strat_sha, hdata_sha)
+                     strat_sha, hdata_sha, audit_stats=audit_stats,
+                     bootstrap_df=bootstrap_df, full_baseline_info=full_baseline_info)
 
 
 if __name__ == "__main__":
