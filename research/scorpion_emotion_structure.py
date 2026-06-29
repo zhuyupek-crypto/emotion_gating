@@ -1614,7 +1614,7 @@ Total matched Scorpion trades: {len(trade_panel)}.  Overall mean return: {overal
     baseline_str = ""
     if baseline_info is not None:
         if baseline_info.get("skipped"):
-            baseline_str = "Official baseline was skipped in this run (run with --baseline to execute)."
+            baseline_str = "Baseline verification was skipped (run with --skip-baseline)."
         else:
             baseline_str = (
                 f"Re-run produced {len(baseline_info.get('trades', []))} matched trades "
@@ -1767,8 +1767,12 @@ Number of candidate-day observations: {len(rank_df)}.  Bought observations: {int
 def main():
     parser = argparse.ArgumentParser(description="Scorpion emotion structure attribution")
     parser.add_argument("--rebuild", action="store_true", help="Force rebuild cached panels")
-    parser.add_argument("--baseline", action="store_true", help="Re-run official baseline backtest")
-    parser.add_argument("--fast-baseline", action="store_true", help="Verify baseline consistency from alpha-profile checkpoint")
+    parser.add_argument("--baseline", action="store_true",
+                        help="[SLOW, ~1h] Re-run official baseline backtest from scratch")
+    parser.add_argument("--fast-baseline", action="store_true",
+                        help="Verify baseline consistency from alpha-profile checkpoint (default)")
+    parser.add_argument("--skip-baseline", action="store_true",
+                        help="Skip baseline verification entirely")
     parser.add_argument("--tune", action="store_true", help="Only print emotion-state distribution and exit")
     args = parser.parse_args()
 
@@ -1808,15 +1812,17 @@ def main():
     hypothesis_df = hypothesis_tests(trade_panel, rank_df, emotion_panel)
 
     if args.baseline:
+        print("[baseline] WARNING: --baseline triggers a full backtest and may take ~1 hour / high CPU.")
         baseline_info = run_official_baseline(trading_dates)
-    elif args.fast_baseline:
-        baseline_info = verify_baseline_from_checkpoint(trading_dates)
-    else:
+    elif args.skip_baseline:
         baseline_info = {
             "skipped": True,
             "expected_trades": EXPECTED_TRADES,
             "expected_exec_rows": EXPECTED_EXEC_ROWS,
         }
+    else:
+        # Default: fast checkpoint verification to avoid accidental heavy re-runs.
+        baseline_info = verify_baseline_from_checkpoint(trading_dates)
 
     strat_sha = sha256_file(STRATEGY_FILE)
     hdata_sha = sha256_file(HDATA_ROOT / "scripts" / "core" / "hdata_reader.py")
