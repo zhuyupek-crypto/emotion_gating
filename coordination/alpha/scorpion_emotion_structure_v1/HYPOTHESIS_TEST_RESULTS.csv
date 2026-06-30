@@ -1,0 +1,29 @@
+hypothesis,group,count,mean_return,median_return,std,tstat,pvalue,note
+H1_emotion_phase,ICE_POINT_v2,4,-0.006408524028554017,-0.012324861518409874,0.06252620681584092,-0.2049868160859049,0.8507026898958361,per-state mean vs 0 (v2)
+H1_emotion_phase,ICE_REPAIR_v2,5,-0.00266013745577542,0.0012995451591942542,0.05786723159943487,-0.10279130375169476,0.9230757556839454,per-state mean vs 0 (v2)
+H1_emotion_phase,WEAK_REPAIR_v2,45,0.033498847612962256,0.01764705882352943,0.08034308928680009,2.7969686414384647,0.007622249177048434,per-state mean vs 0 (v2)
+H1_emotion_phase,ACCELERATION_v2,49,0.020556336491548314,0.018587360594795637,0.05523434898248368,2.6051607032875688,0.01219068271647908,per-state mean vs 0 (v2)
+H1_emotion_phase,RECESSION_v2,47,0.010699572289132887,0.014137931034482763,0.038810367918929195,1.8900251638825807,0.06506517454034706,per-state mean vs 0 (v2)
+H1_emotion_phase,EXTREME_PANIC_v2,18,0.0278826166981286,0.05426870065569388,0.055812197723593186,2.119535314711776,0.04906581950857369,per-state mean vs 0 (v2)
+H1_emotion_phase,cold_vs_hot_v2,54 vs 97,0.0272 vs 0.0159,,,0.9754986085840218,0.3324195228337787,cold states (ICE*) vs hot states (v2)
+H1_emotion_phase,ICE_POINT_v1,9,0.013488237086118324,-0.02452984464431731,0.06796949463190242,0.5953363560741012,0.5680732369170824,per-state mean vs 0 (v1)
+H1_emotion_phase,WEAK_REPAIR_v1,49,0.03184654670689302,0.01764705882352943,0.0782426934341653,2.849158396314982,0.006438397714248177,per-state mean vs 0 (v1)
+H1_emotion_phase,ACCELERATION_v1,49,0.020556336491548314,0.018587360594795637,0.05523434898248368,2.6051607032875688,0.01219068271647908,per-state mean vs 0 (v1)
+H1_emotion_phase,RECESSION_v1,55,0.009899559589484004,0.01187500000000008,0.04044794210525854,1.8151009675446466,0.07506349080413584,per-state mean vs 0 (v1)
+H1_emotion_phase,EXTREME_PANIC_v1,5,0.0626525981689318,0.06232763375620533,0.019689425222995712,7.115264508030929,0.0020618526462633257,per-state mean vs 0 (v1)
+H1_emotion_phase,cold_vs_hot_v1,59 vs 105,0.0274 vs 0.0150,,,1.118234838540429,0.2666622685652423,cold states (ICE*) vs hot states (v1)
+H2_first_board_cohort_premium,poor_but_improving_vs_poor_weak,23 vs 61,0.0158 vs 0.0282,,,-0.998892031917318,0.3217436111291998,cohort open gap below median but market open positive rate above median
+H3_market_panic,mild_vs_extreme_stress,58 vs 55,0.0203 vs 0.0184,,,0.18086473695879282,0.8568193995414155,T-1 emotion_stress bottom vs top tercile
+H3_market_panic,mild_vs_extreme_open_panic,61 vs 56,0.0254 vs 0.0110,,,1.2866361636317063,0.20081811892915588,market_open_below_minus3_count bottom vs top tercile
+H4_sector_resonance,high_vs_low_sector_limit_up,45 vs 53,0.0114 vs 0.0215,,,-0.878377039795973,0.38199478035661194,T-1 sector_limit_up_count top vs bottom tercile
+H4_sector_resonance,high_vs_low_sector_first_board,30 vs 63,0.0166 vs 0.0235,,,-0.5687342449488826,0.5713806823422368,T-1 sector_first_board_count top vs bottom tercile
+H5_momentum_of_improvement,improving_vs_deteriorating,100 vs 69,0.0256 vs 0.0137,,,1.3793916236753698,0.16962058703454783,T-1 emotion_momentum positive vs negative
+H5_momentum_of_improvement,low_heat_improving_vs_high_heat_deteriorating,29 vs 14,0.0280 vs 0.0154,,,0.6798821053058467,0.5004154139138894,low heat + positive momentum vs high heat + negative momentum
+H6_multi_candidate_ranking,spearman_open_gap_vs_return,7669,-0.1401711418559583,,,,5.933449559058818e-35,Spearman correlation between open_gap and same-day candidate return
+H6_multi_candidate_ranking,spearman_candidate_relative_to_cohort_vs_return,7210,-0.16993586759316942,,,,7.501679781347686e-48,Spearman correlation between candidate_relative_to_cohort and same-day candidate return
+H6_multi_candidate_ranking,spearman_candidate_relative_to_market_vs_return,7669,-0.15317410766019457,,,,1.7576224498239857e-41,Spearman correlation between candidate_relative_to_market and same-day candidate return
+H6_multi_candidate_ranking,spearman_sector_limit_up_count_vs_return,5978,0.10082089087305769,,,,5.561828866663762e-15,Spearman correlation between sector_limit_up_count and same-day candidate return
+H6_multi_candidate_ranking,bought_avg_rank_open_gap,169,19.349112426035504,,,0.0,,average rank of bought candidate by open_gap; top_rate in column tstat
+H6_multi_candidate_ranking,bought_avg_rank_candidate_relative_to_cohort,169,19.349112426035504,,,0.0,,average rank of bought candidate by candidate_relative_to_cohort; top_rate in column tstat
+H6_multi_candidate_ranking,bought_avg_rank_candidate_relative_to_market,169,19.349112426035504,,,0.0,,average rank of bought candidate by candidate_relative_to_market; top_rate in column tstat
+H6_multi_candidate_ranking,bought_avg_rank_sector_limit_up_count,169,7.044117647058823,,,0.15384615384615385,,average rank of bought candidate by sector_limit_up_count; top_rate in column tstat

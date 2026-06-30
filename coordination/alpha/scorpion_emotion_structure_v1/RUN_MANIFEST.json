@@ -1,0 +1,158 @@
+{
+  "generated_at": "2026-06-30T02:26:08.769829",
+  "git_head": "151f337e4bd8112f29486b99c908196c8e2e6869",
+  "strategy_sha256": "d34af30fd8805300403df6af7e5943aba4acb01f429018c1ac0c60cd79307fda",
+  "hdata_reader_sha256": "bbd4671ea342fcf206dfec5f4ada6da85dbcaf3df3a5bb7c3b1b1010f6d9e361",
+  "run_command": "python research/scorpion_emotion_structure.py",
+  "baseline_skipped": false,
+  "baseline_consistent": true,
+  "review_run": true,
+  "sector_audit_stats": {
+    "trade_panel": {
+      "identical_rows": 79,
+      "total_rows": 136,
+      "identical_ratio": 0.5809,
+      "dates_with_difference": 55,
+      "dates_total": 127,
+      "sectors_with_different_samples": 15,
+      "different_samples_by_sector_total": 57
+    },
+    "multi_candidate_panel": {
+      "identical_rows": 3049,
+      "total_rows": 5978,
+      "identical_ratio": 0.51,
+      "dates_with_difference": 379,
+      "dates_total": 447,
+      "sectors_with_different_samples": 31,
+      "different_samples_by_sector_total": 2929
+    }
+  },
+  "files": [
+    {
+      "path": "D:\\WorkSpace\\他山之石\\情绪门控\\l2_worktree\\coordination\\alpha\\scorpion_emotion_structure_v1\\EMOTION_DAILY_PANEL.csv",
+      "filename": "EMOTION_DAILY_PANEL.csv",
+      "rows": 2186,
+      "size_bytes": 1517744,
+      "sha256": "43fa4fafb06926da269ee189d4cc17535c4e753c932e4999049866dfe24777b9"
+    },
+    {
+      "path": "D:\\WorkSpace\\他山之石\\情绪门控\\l2_worktree\\coordination\\alpha\\scorpion_emotion_structure_v1\\TRADE_EMOTION_PANEL.csv",
+      "filename": "TRADE_EMOTION_PANEL.csv",
+      "rows": 169,
+      "size_bytes": 186077,
+      "sha256": "b4c1dedd7d7506b11dbabb9b904ed4981036ae93c5d4891b89399b3d721c9772"
+    },
+    {
+      "path": "D:\\WorkSpace\\他山之石\\情绪门控\\l2_worktree\\coordination\\alpha\\scorpion_emotion_structure_v1\\EMOTION_STATE_SUMMARY.csv",
+      "filename": "EMOTION_STATE_SUMMARY.csv",
+      "rows": 7,
+      "size_bytes": 1904,
+      "sha256": "4a6b458fa4062b53c73096e695c49aa5a1469f5de7261d624597abd967a88810"
+    },
+    {
+      "path": "D:\\WorkSpace\\他山之石\\情绪门控\\l2_worktree\\coordination\\alpha\\scorpion_emotion_structure_v1\\EMOTION_STATE_SUMMARY_V1.csv",
+      "filename": "EMOTION_STATE_SUMMARY_V1.csv",
+      "rows": 7,
+      "size_bytes": 1784,
+      "sha256": "d678d77e310e753eadc10fceb870a64eb322c227160aedfb47f06cc4508bbc48"
+    },
+    {
+      "path": "D:\\WorkSpace\\他山之石\\情绪门控\\l2_worktree\\coordination\\alpha\\scorpion_emotion_structure_v1\\PERIOD_STABILITY_V2.csv",
+      "filename": "PERIOD_STABILITY_V2.csv",
+      "rows": 30,
+      "size_bytes": 4631,
+      "sha256": "96eb6d92c14156e9594a8de0be6335463b3c2db44d37266d6970ffa93cc7f4fe"
+    },
+    {
+      "path": "D:\\WorkSpace\\他山之石\\情绪门控\\l2_worktree\\coordination\\alpha\\scorpion_emotion_structure_v1\\PERIOD_STABILITY_V1.csv",
+      "filename": "PERIOD_STABILITY_V1.csv",
+      "rows": 28,
+      "size_bytes": 4201,
+      "sha256": "9420b0ac169df9262d8110bad3e2e2eebfd32333c6ab8e3ccdba9b069e936123"
+    },
+    {
+      "path": "D:\\WorkSpace\\他山之石\\情绪门控\\l2_worktree\\coordination\\alpha\\scorpion_emotion_structure_v1\\SECTOR_RESONANCE_SUMMARY.csv",
+      "filename": "SECTOR_RESONANCE_SUMMARY.csv",
+      "rows": 29,
+      "size_bytes": 5760,
+      "sha256": "16e24c95582599e60b2e0369d7c1ea936529b38acdece7da2eeab0953e16a0e8"
+    },
+    {
+      "path": "D:\\WorkSpace\\他山之石\\情绪门控\\l2_worktree\\coordination\\alpha\\scorpion_emotion_structure_v1\\OPEN_CONTEXT_SUMMARY.csv",
+      "filename": "OPEN_CONTEXT_SUMMARY.csv",
+      "rows": 30,
+      "size_bytes": 3441,
+      "sha256": "e5e5f36ef95cd4198421de4999dacd60221eb162425a1bab44f1faa4f4a9f093"
+    },
+    {
+      "path": "D:\\WorkSpace\\他山之石\\情绪门控\\l2_worktree\\coordination\\alpha\\scorpion_emotion_structure_v1\\MULTI_CANDIDATE_RANKING_ANALYSIS.csv",
+      "filename": "MULTI_CANDIDATE_RANKING_ANALYSIS.csv",
+      "rows": 7669,
+      "size_bytes": 2196087,
+      "sha256": "c22ca24f230f66f3a08f0103acd21092d7617927b0222040cfab4e8c1854cb5a"
+    },
+    {
+      "path": "D:\\WorkSpace\\他山之石\\情绪门控\\l2_worktree\\coordination\\alpha\\scorpion_emotion_structure_v1\\HYPOTHESIS_TEST_RESULTS.csv",
+      "filename": "HYPOTHESIS_TEST_RESULTS.csv",
+      "rows": 28,
+      "size_bytes": 4873,
+      "sha256": "62cd1301cdf9fd40ed77ae453ccc99507b4eb4a322f373045986919e00dc0fdd"
+    },
+    {
+      "path": "D:\\WorkSpace\\他山之石\\情绪门控\\l2_worktree\\coordination\\alpha\\scorpion_emotion_structure_v1\\EMOTION_STATE_DEFINITION.md",
+      "filename": "EMOTION_STATE_DEFINITION.md",
+      "rows": null,
+      "size_bytes": 2623,
+      "sha256": "0bc7fff08fae68eabffd657e2beb0985358405352768949e58c8e58378b82ebf"
+    },
+    {
+      "path": "D:\\WorkSpace\\他山之石\\情绪门控\\l2_worktree\\coordination\\alpha\\scorpion_emotion_structure_v1\\STRUCTURAL_EXPERIMENT_RECOMMENDATION.md",
+      "filename": "STRUCTURAL_EXPERIMENT_RECOMMENDATION.md",
+      "rows": null,
+      "size_bytes": 2401,
+      "sha256": "ddbe8dfd85193be81d2b972f7028df3ff492eb4dddbf9f33aee86f0d13388f65"
+    },
+    {
+      "path": "D:\\WorkSpace\\他山之石\\情绪门控\\l2_worktree\\coordination\\alpha\\scorpion_emotion_structure_v1\\DATA_DICTIONARY.md",
+      "filename": "DATA_DICTIONARY.md",
+      "rows": null,
+      "size_bytes": 1887,
+      "sha256": "10043c548f14c7bcc009ac0dff50dd93386220297856f37704c29c5a582cc14e"
+    },
+    {
+      "path": "D:\\WorkSpace\\他山之石\\情绪门控\\l2_worktree\\coordination\\alpha\\scorpion_emotion_structure_v1\\EMOTION_STRUCTURE_REPORT.md",
+      "filename": "EMOTION_STRUCTURE_REPORT.md",
+      "rows": null,
+      "size_bytes": 31831,
+      "sha256": "6447ae5cf30034b7591f0f4d5c3b54a8341b06108c0d758ad7b4628193984c42"
+    },
+    {
+      "path": "D:\\WorkSpace\\他山之石\\情绪门控\\l2_worktree\\coordination\\alpha\\scorpion_emotion_structure_v1\\REVIEW_CORRECTIONS.md",
+      "filename": "REVIEW_CORRECTIONS.md",
+      "rows": null,
+      "size_bytes": 3782,
+      "sha256": "12a6c99190aa9fac898066736ae453a00b08bcd8bff08d50a35ef7a867537b63"
+    },
+    {
+      "path": "D:\\WorkSpace\\他山之石\\情绪门控\\l2_worktree\\coordination\\alpha\\scorpion_emotion_structure_v1\\SECTOR_COUNT_AUDIT.csv",
+      "filename": "SECTOR_COUNT_AUDIT.csv",
+      "rows": 20,
+      "size_bytes": 1204,
+      "sha256": "05ab4e73a799047e9672f72c4be28e26acc50ff773c6b9987a9d6051fc11e301"
+    },
+    {
+      "path": "D:\\WorkSpace\\他山之石\\情绪门控\\l2_worktree\\coordination\\alpha\\scorpion_emotion_structure_v1\\SECTOR_RESONANCE_BOOTSTRAP.csv",
+      "filename": "SECTOR_RESONANCE_BOOTSTRAP.csv",
+      "rows": 2,
+      "size_bytes": 515,
+      "sha256": "b1d6dbe371153b875502125a45f18326863b8ac9d16c559b67a2d055b7c2a20c"
+    },
+    {
+      "path": "D:\\WorkSpace\\他山之石\\情绪门控\\l2_worktree\\coordination\\alpha\\scorpion_emotion_structure_v1\\FULL_BASELINE_VERIFICATION.json",
+      "filename": "FULL_BASELINE_VERIFICATION.json",
+      "rows": 14,
+      "size_bytes": 603,
+      "sha256": "9cb09290ac2b756e2e07808b198d82f829f43771d9527474aa205049cfe2a109"
+    }
+  ]
+}

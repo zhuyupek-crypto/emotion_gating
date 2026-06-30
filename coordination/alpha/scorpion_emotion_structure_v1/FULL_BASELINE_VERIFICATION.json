@@ -1,0 +1,15 @@
+{
+  "verified_at": "2026-06-30T02:25:56.425489",
+  "git_head": "151f337e4bd8112f29486b99c908196c8e2e6869",
+  "strategy_sha256": "d34af30fd8805300403df6af7e5943aba4acb01f429018c1ac0c60cd79307fda",
+  "hdata_reader_sha256": "bbd4671ea342fcf206dfec5f4ada6da85dbcaf3df3a5bb7c3b1b1010f6d9e361",
+  "run_command": "python research/scorpion_emotion_structure.py --baseline",
+  "completed_trades": 169,
+  "execution_rows": 338,
+  "final_equity": 4653282.829999996,
+  "expected_final_equity": 4653282.83,
+  "elapsed_seconds": 2543.95,
+  "consistent": true,
+  "all_bear": true,
+  "unique_codes": 155
+}
