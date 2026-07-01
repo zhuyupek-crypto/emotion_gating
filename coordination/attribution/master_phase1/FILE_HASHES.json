@@ -1,0 +1,206 @@
+{
+  "generated_at": "2026-07-01T18:37:46",
+  "root": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase0-v1",
+  "git_head": "cf542415191e952aa328250a3ee86bb15346a6b8",
+  "git_branch": "codex/motherboard-attribution-phase0-v1",
+  "files": [
+    {
+      "path": "母版-20260506-Clone.py",
+      "absolute_path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase0-v1\\母版-20260506-Clone.py",
+      "exists": true,
+      "size_bytes": 83859,
+      "line_count": 2226,
+      "sha256": "621a9c968473d73dfa1699be0a16714790e4f93ab950957c0a3f88f4f34bcc8e",
+      "git_status": ""
+    },
+    {
+      "path": "母版-一进二纯版.py",
+      "absolute_path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase0-v1\\母版-一进二纯版.py",
+      "exists": true,
+      "size_bytes": 43930,
+      "line_count": 1174,
+      "sha256": "7c298c44444f142ce7b258ed80e79c42cc647e56e32b757cc8ba7634a05283bc",
+      "git_status": ""
+    },
+    {
+      "path": "母版-20260506-Clone-分支净化回测.py",
+      "absolute_path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase0-v1\\母版-20260506-Clone-分支净化回测.py",
+      "exists": true,
+      "size_bytes": 81259,
+      "line_count": 2122,
+      "sha256": "b0b6ce13e984efe5a928f8faf723c56ec1d7453df765206bfc1286ddecf73a23",
+      "git_status": ""
+    },
+    {
+      "path": "codex_strategy_dissection/branch_strategies/mother_branch_force_v227.py",
+      "absolute_path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase0-v1\\codex_strategy_dissection\\branch_strategies\\mother_branch_force_v227.py",
+      "exists": true,
+      "size_bytes": 81502,
+      "line_count": 2127,
+      "sha256": "725f03bb093d96844adfa258538d65c2452fab3bb5f6e4126081230c2ffef515",
+      "git_status": ""
+    },
+    {
+      "path": "codex_strategy_dissection/branch_strategies/mother_branch_force_rzq.py",
+      "absolute_path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase0-v1\\codex_strategy_dissection\\branch_strategies\\mother_branch_force_rzq.py",
+      "exists": true,
+      "size_bytes": 81500,
+      "line_count": 2127,
+      "sha256": "8cbe0473937447412b3d1c59b5e2e7d7ab9b372dd68426b23c91769b6508d247",
+      "git_status": ""
+    },
+    {
+      "path": "codex_strategy_dissection/branch_strategies/mother_branch_force_zb.py",
+      "absolute_path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase0-v1\\codex_strategy_dissection\\branch_strategies\\mother_branch_force_zb.py",
+      "exists": true,
+      "size_bytes": 81498,
+      "line_count": 2127,
+      "sha256": "5844828c4cf109466f7f83eef042822cd607ee26687de05a4ab804cfaa1eac0f",
+      "git_status": ""
+    },
+    {
+      "path": "codex_strategy_dissection/branch_strategies/mother_branch_force_rzq_zb.py",
+      "absolute_path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase0-v1\\codex_strategy_dissection\\branch_strategies\\mother_branch_force_rzq_zb.py",
+      "exists": true,
+      "size_bytes": 81506,
+      "line_count": 2127,
+      "sha256": "1089d7d7c20a48590b5f83f84802ec6b17fb3c991aeb9d6ff2f1993d797e1c4f",
+      "git_status": ""
+    },
+    {
+      "path": "codex_strategy_dissection/branch_strategies/mother_branch_force_auction.py",
+      "absolute_path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase0-v1\\codex_strategy_dissection\\branch_strategies\\mother_branch_force_auction.py",
+      "exists": true,
+      "size_bytes": 81508,
+      "line_count": 2127,
+      "sha256": "addf91c8572d96c0d1786a71e5a3c6a3f91c23f17f42daa4988e84f4e60df6f3",
+      "git_status": ""
+    },
+    {
+      "path": "scorp_optimize/strategies/strategy_v227_scorp.py",
+      "absolute_path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase0-v1\\scorp_optimize\\strategies\\strategy_v227_scorp.py",
+      "exists": true,
+      "size_bytes": 72379,
+      "line_count": 1943,
+      "sha256": "55e96b2225d14c6d94052ff3dad03079094b3f7a66b46c76e6b6409d7618c2b0",
+      "git_status": ""
+    },
+    {
+      "path": "rebuild_from_archive/engine/core.py",
+      "absolute_path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase0-v1\\rebuild_from_archive\\engine\\core.py",
+      "exists": true,
+      "size_bytes": 87141,
+      "line_count": 1973,
+      "sha256": "0dd86bb0a000e6647e2dbd07abc480531c60fd47f1d21a2d1b0cc5eacca64100",
+      "git_status": ""
+    },
+    {
+      "path": "rebuild_from_archive/engine/context.py",
+      "absolute_path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase0-v1\\rebuild_from_archive\\engine\\context.py",
+      "exists": true,
+      "size_bytes": 2033,
+      "line_count": 72,
+      "sha256": "1f468a9b7fc91ca8efdcd335f296d1cdcf01330ef4fa3b14aa37e9a718d455fe",
+      "git_status": ""
+    },
+    {
+      "path": "rebuild_from_archive/engine/order.py",
+      "absolute_path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase0-v1\\rebuild_from_archive\\engine\\order.py",
+      "exists": true,
+      "size_bytes": 5499,
+      "line_count": 174,
+      "sha256": "657a3f345f37f39811a79ced5c903a3bda67d3ba069732e447bbf3cef6d6bb9f",
+      "git_status": ""
+    },
+    {
+      "path": "rebuild_from_archive/engine/data_api.py",
+      "absolute_path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase0-v1\\rebuild_from_archive\\engine\\data_api.py",
+      "exists": true,
+      "size_bytes": 54846,
+      "line_count": 1156,
+      "sha256": "74b8a2b4507c8ada65cc0870fabae00250f1b8e568c8d64dd6b2e6fcc86a7a0e",
+      "git_status": ""
+    },
+    {
+      "path": "rebuild_from_archive/project_compat.py",
+      "absolute_path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase0-v1\\rebuild_from_archive\\project_compat.py",
+      "exists": true,
+      "size_bytes": 34868,
+      "line_count": 805,
+      "sha256": "bc0e2ae278ef5960cbf6a982ff616801c69c483bf7232a04190993401c0795e8",
+      "git_status": ""
+    },
+    {
+      "path": "rebuild_from_archive/jqdata_compat.py",
+      "absolute_path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase0-v1\\rebuild_from_archive\\jqdata_compat.py",
+      "exists": true,
+      "size_bytes": 1592,
+      "line_count": 52,
+      "sha256": "e45ee4932c4277cf30da2f16468c184673f0f22c75dfa531ed71b9b7d602c521",
+      "git_status": ""
+    },
+    {
+      "path": "rebuild_from_archive/compat/call_auction.py",
+      "absolute_path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase0-v1\\rebuild_from_archive\\compat\\call_auction.py",
+      "exists": true,
+      "size_bytes": 1169,
+      "line_count": 22,
+      "sha256": "50bdd33c8d52a71b14b92cce48b171bb229cd5ee8b6a0411a5e75739cf0e3252",
+      "git_status": ""
+    },
+    {
+      "path": "rebuild_from_archive/compat/market_data.py",
+      "absolute_path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase0-v1\\rebuild_from_archive\\compat\\market_data.py",
+      "exists": true,
+      "size_bytes": 3638,
+      "line_count": 93,
+      "sha256": "ad956d3a53f4b9712ed9385bd63925b2e6502e98d7ee080ad54289065e833b92",
+      "git_status": ""
+    },
+    {
+      "path": "rebuild_from_archive/compat/security_metadata.py",
+      "absolute_path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase0-v1\\rebuild_from_archive\\compat\\security_metadata.py",
+      "exists": true,
+      "size_bytes": 3034,
+      "line_count": 58,
+      "sha256": "c47c0eb15a177af4ce633f36e8f273f5c8175e0b42ac76cbd62efb1a8c674e1f",
+      "git_status": ""
+    },
+    {
+      "path": "coordination/local_native_l2/runs/FINAL_ACCEPTANCE_REPORT.json",
+      "absolute_path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase0-v1\\coordination\\local_native_l2\\runs\\FINAL_ACCEPTANCE_REPORT.json",
+      "exists": true,
+      "size_bytes": 20140,
+      "line_count": 590,
+      "sha256": "43ca30f9340ef93738bcc304e5263c9cce3c3ea65eb4064120b17ababe025f13",
+      "git_status": ""
+    },
+    {
+      "path": "coordination/optimization/motherboard_performance/REPORT.md",
+      "absolute_path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase0-v1\\coordination\\optimization\\motherboard_performance\\REPORT.md",
+      "exists": true,
+      "size_bytes": 7410,
+      "line_count": 151,
+      "sha256": "9efe588e25493b6299ff5e7a951110bc6413f098a978f895e0cb65d3910f8051",
+      "git_status": ""
+    },
+    {
+      "path": "codex_strategy_dissection/naked_branch_backtest_findings.md",
+      "absolute_path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase0-v1\\codex_strategy_dissection\\naked_branch_backtest_findings.md",
+      "exists": true,
+      "size_bytes": 3582,
+      "line_count": 100,
+      "sha256": "efb4c6c1ebc29210c034e0e0c766653675782f4c172153220a95dd91afa42e49",
+      "git_status": ""
+    },
+    {
+      "path": "D:\\Work Space\\HData\\scripts\\core\\hdata_reader.py",
+      "absolute_path": "D:\\Work Space\\HData\\scripts\\core\\hdata_reader.py",
+      "exists": true,
+      "size_bytes": 45449,
+      "line_count": 1084,
+      "sha256": "bbd4671ea342fcf206dfec5f4ada6da85dbcaf3df3a5bb7c3b1b1010f6d9e361",
+      "git_status": "external"
+    }
+  ]
+}

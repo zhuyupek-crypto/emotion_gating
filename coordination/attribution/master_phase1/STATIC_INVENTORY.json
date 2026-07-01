@@ -1,0 +1,1808 @@
+{
+  "motherboard_functions": [
+    {
+      "name": "_excluded_market_code",
+      "lineno": 41,
+      "end_lineno": 45
+    },
+    {
+      "name": "calc_chip_stats",
+      "lineno": 48,
+      "end_lineno": 85
+    },
+    {
+      "name": "initialize",
+      "lineno": 88,
+      "end_lineno": 213
+    },
+    {
+      "name": "prepare_all",
+      "lineno": 220,
+      "end_lineno": 358
+    },
+    {
+      "name": "calc_fb_perf",
+      "lineno": 361,
+      "end_lineno": 370
+    },
+    {
+      "name": "calc_fb_pct",
+      "lineno": 373,
+      "end_lineno": 378
+    },
+    {
+      "name": "_low_price_health_ok",
+      "lineno": 381,
+      "end_lineno": 388
+    },
+    {
+      "name": "_retreat_phase_for_low_price",
+      "lineno": 391,
+      "end_lineno": 402
+    },
+    {
+      "name": "_v227_shock_retreat_active",
+      "lineno": 405,
+      "end_lineno": 406
+    },
+    {
+      "name": "_update_v227_shock_cooldown",
+      "lineno": 409,
+      "end_lineno": 432
+    },
+    {
+      "name": "_v227_shock_cooldown_active",
+      "lineno": 435,
+      "end_lineno": 439
+    },
+    {
+      "name": "_v227_shock_new_buy_blocked",
+      "lineno": 442,
+      "end_lineno": 446
+    },
+    {
+      "name": "_log_info",
+      "lineno": 449,
+      "end_lineno": 452
+    },
+    {
+      "name": "_low_price_tilt_active",
+      "lineno": 455,
+      "end_lineno": 464
+    },
+    {
+      "name": "_low_price_multiplier",
+      "lineno": 467,
+      "end_lineno": 471
+    },
+    {
+      "name": "_apply_low_price_tilt",
+      "lineno": 474,
+      "end_lineno": 489
+    },
+    {
+      "name": "_v227_mode_and_scan",
+      "lineno": 492,
+      "end_lineno": 541
+    },
+    {
+      "name": "_update_board_heights",
+      "lineno": 544,
+      "end_lineno": 548
+    },
+    {
+      "name": "_scan_boards_for_prev",
+      "lineno": 551,
+      "end_lineno": 643
+    },
+    {
+      "name": "_scan_all",
+      "lineno": 646,
+      "end_lineno": 826
+    },
+    {
+      "name": "_score_with_left_pressure",
+      "lineno": 829,
+      "end_lineno": 862
+    },
+    {
+      "name": "_rzq_prepare",
+      "lineno": 869,
+      "end_lineno": 931
+    },
+    {
+      "name": "_zb_prepare",
+      "lineno": 938,
+      "end_lineno": 1014
+    },
+    {
+      "name": "_auction_yiqian_dynamic_value",
+      "lineno": 1021,
+      "end_lineno": 1052
+    },
+    {
+      "name": "_auction_yiqian_prepare",
+      "lineno": 1055,
+      "end_lineno": 1245
+    },
+    {
+      "name": "_auction_yiqian_batch_left_pressure",
+      "lineno": 1248,
+      "end_lineno": 1282
+    },
+    {
+      "name": "_auction_yiqian_left_pressure_ok",
+      "lineno": 1285,
+      "end_lineno": 1299
+    },
+    {
+      "name": "buy_auction_yiqian",
+      "lineno": 1302,
+      "end_lineno": 1411
+    },
+    {
+      "name": "_auction_yiqian_trailing_tolerance",
+      "lineno": 1414,
+      "end_lineno": 1418
+    },
+    {
+      "name": "sell_auction_yiqian",
+      "lineno": 1421,
+      "end_lineno": 1462
+    },
+    {
+      "name": "buy_v227_一进二",
+      "lineno": 1471,
+      "end_lineno": 1541
+    },
+    {
+      "name": "buy_v227_天蝎座",
+      "lineno": 1544,
+      "end_lineno": 1583
+    },
+    {
+      "name": "buy_rzq",
+      "lineno": 1586,
+      "end_lineno": 1689
+    },
+    {
+      "name": "buy_zb",
+      "lineno": 1692,
+      "end_lineno": 1788
+    },
+    {
+      "name": "sell_v227_morning",
+      "lineno": 1795,
+      "end_lineno": 1813
+    },
+    {
+      "name": "sell_rzq_slots",
+      "lineno": 1816,
+      "end_lineno": 1853
+    },
+    {
+      "name": "sell_zb_slots",
+      "lineno": 1856,
+      "end_lineno": 1899
+    },
+    {
+      "name": "check_stop_all",
+      "lineno": 1902,
+      "end_lineno": 2028
+    },
+    {
+      "name": "sell_v227_midday",
+      "lineno": 2031,
+      "end_lineno": 2054
+    },
+    {
+      "name": "sell_v227_afternoon",
+      "lineno": 2057,
+      "end_lineno": 2080
+    },
+    {
+      "name": "tag_leaders",
+      "lineno": 2083,
+      "end_lineno": 2102
+    },
+    {
+      "name": "_held_count_by",
+      "lineno": 2109,
+      "end_lineno": 2117
+    },
+    {
+      "name": "_clear_v227_sell_state",
+      "lineno": 2120,
+      "end_lineno": 2125
+    },
+    {
+      "name": "_clear_auction_yiqian_state",
+      "lineno": 2128,
+      "end_lineno": 2132
+    },
+    {
+      "name": "_log_v227_loss_exit",
+      "lineno": 2135,
+      "end_lineno": 2143
+    },
+    {
+      "name": "_is_pass_month",
+      "lineno": 2146,
+      "end_lineno": 2167
+    },
+    {
+      "name": "_win_rate",
+      "lineno": 2170,
+      "end_lineno": 2173
+    },
+    {
+      "name": "_core_win_rate",
+      "lineno": 2176,
+      "end_lineno": 2180
+    },
+    {
+      "name": "_win_scale",
+      "lineno": 2183,
+      "end_lineno": 2192
+    },
+    {
+      "name": "_record_trade",
+      "lineno": 2195,
+      "end_lineno": 2226
+    }
+  ],
+  "motherboard_run_daily": [
+    {
+      "lineno": 195,
+      "handler": "prepare_all",
+      "time": "9:05",
+      "line": "run_daily(prepare_all, '9:05')"
+    },
+    {
+      "lineno": 196,
+      "handler": "buy_auction_yiqian",
+      "time": "9:26",
+      "line": "run_daily(buy_auction_yiqian, '9:26')"
+    },
+    {
+      "lineno": 197,
+      "handler": "buy_v227_一进二",
+      "time": "9:26",
+      "line": "run_daily(buy_v227_一进二, '9:26')"
+    },
+    {
+      "lineno": 198,
+      "handler": "buy_rzq",
+      "time": "9:27",
+      "line": "run_daily(buy_rzq, '9:27')"
+    },
+    {
+      "lineno": 199,
+      "handler": "buy_zb",
+      "time": "9:28",
+      "line": "run_daily(buy_zb, '9:28')"
+    },
+    {
+      "lineno": 200,
+      "handler": "buy_v227_天蝎座",
+      "time": "9:30",
+      "line": "run_daily(buy_v227_天蝎座, '9:30')"
+    },
+    {
+      "lineno": 201,
+      "handler": "sell_v227_morning",
+      "time": "11:25",
+      "line": "run_daily(sell_v227_morning, '11:25')"
+    },
+    {
+      "lineno": 202,
+      "handler": "sell_auction_yiqian",
+      "time": "11:25",
+      "line": "run_daily(sell_auction_yiqian, '11:25')"
+    },
+    {
+      "lineno": 203,
+      "handler": "sell_rzq_slots",
+      "time": "11:28",
+      "line": "run_daily(sell_rzq_slots, '11:28')"
+    },
+    {
+      "lineno": 204,
+      "handler": "sell_zb_slots",
+      "time": "11:30",
+      "line": "run_daily(sell_zb_slots, '11:30')"
+    },
+    {
+      "lineno": 205,
+      "handler": "check_stop_all",
+      "time": "every_bar",
+      "line": "run_daily(check_stop_all, 'every_bar')"
+    },
+    {
+      "lineno": 206,
+      "handler": "sell_v227_midday",
+      "time": "13:01",
+      "line": "run_daily(sell_v227_midday, '13:01')"
+    },
+    {
+      "lineno": 207,
+      "handler": "sell_rzq_slots",
+      "time": "14:47",
+      "line": "run_daily(sell_rzq_slots, '14:47')"
+    },
+    {
+      "lineno": 208,
+      "handler": "sell_zb_slots",
+      "time": "14:48",
+      "line": "run_daily(sell_zb_slots, '14:48')"
+    },
+    {
+      "lineno": 209,
+      "handler": "sell_v227_afternoon",
+      "time": "14:50",
+      "line": "run_daily(sell_v227_afternoon, '14:50')"
+    },
+    {
+      "lineno": 210,
+      "handler": "sell_auction_yiqian",
+      "time": "14:50",
+      "line": "run_daily(sell_auction_yiqian, '14:50')"
+    },
+    {
+      "lineno": 211,
+      "handler": "sell_rzq_slots",
+      "time": "14:50",
+      "line": "run_daily(sell_rzq_slots, '14:50')"
+    },
+    {
+      "lineno": 212,
+      "handler": "sell_zb_slots",
+      "time": "14:52",
+      "line": "run_daily(sell_zb_slots, '14:52')"
+    },
+    {
+      "lineno": 213,
+      "handler": "tag_leaders",
+      "time": "14:55",
+      "line": "run_daily(tag_leaders, '14:55')"
+    }
+  ],
+  "motherboard_g_assignments": [
+    {
+      "name": "ipo_days",
+      "lineno": 99,
+      "line": "g.ipo_days = 250"
+    },
+    {
+      "name": "idx_code",
+      "lineno": 100,
+      "line": "g.idx_code = '000852.XSHG'"
+    },
+    {
+      "name": "v227_stop",
+      "lineno": 101,
+      "line": "g.v227_stop = -0.05"
+    },
+    {
+      "name": "rzq_stop",
+      "lineno": 102,
+      "line": "g.rzq_stop = -0.03    # v6: -3%（v5是-5%，收紧止损）"
+    },
+    {
+      "name": "yjj_candidates",
+      "lineno": 105,
+      "line": "g.yjj_candidates = []"
+    },
+    {
+      "name": "bear_candidates",
+      "lineno": 106,
+      "line": "g.bear_candidates = []"
+    },
+    {
+      "name": "yjj_yclose",
+      "lineno": 107,
+      "line": "g.yjj_yclose = {}"
+    },
+    {
+      "name": "market_mode",
+      "lineno": 108,
+      "line": "g.market_mode = 'bear'"
+    },
+    {
+      "name": "raw_market_mode",
+      "lineno": 109,
+      "line": "g.raw_market_mode = 'bear'"
+    },
+    {
+      "name": "last_prepare_year",
+      "lineno": 110,
+      "line": "g.last_prepare_year = None"
+    },
+    {
+      "name": "bull_sticky",
+      "lineno": 111,
+      "line": "g.bull_sticky = 0  # v29: bull惯性计数器"
+    },
+    {
+      "name": "prev_first_boards",
+      "lineno": 112,
+      "line": "g.prev_first_boards = []"
+    },
+    {
+      "name": "first_board_perf",
+      "lineno": 113,
+      "line": "g.first_board_perf = 0.0"
+    },
+    {
+      "name": "board_heights",
+      "lineno": 114,
+      "line": "g.board_heights = []"
+    },
+    {
+      "name": "stoploss_cooldown",
+      "lineno": 115,
+      "line": "g.stoploss_cooldown = 0"
+    },
+    {
+      "name": "leader_holds",
+      "lineno": 116,
+      "line": "g.leader_holds = {}"
+    },
+    {
+      "name": "leader_candidates_for_tag",
+      "lineno": 117,
+      "line": "g.leader_candidates_for_tag = []"
+    },
+    {
+      "name": "rzq_candidates",
+      "lineno": 120,
+      "line": "g.rzq_candidates = []"
+    },
+    {
+      "name": "rzq_yclose",
+      "lineno": 121,
+      "line": "g.rzq_yclose = {}"
+    },
+    {
+      "name": "dieting",
+      "lineno": 122,
+      "line": "g.dieting = []"
+    },
+    {
+      "name": "rzq_cooldown",
+      "lineno": 123,
+      "line": "g.rzq_cooldown = 0     # v5: rzq硬止损后冷却"
+    },
+    {
+      "name": "rzq_highs",
+      "lineno": 124,
+      "line": "g.rzq_highs = {}       # v30: 盈利保护"
+    },
+    {
+      "name": "zb_candidates",
+      "lineno": 127,
+      "line": "g.zb_candidates = []"
+    },
+    {
+      "name": "zb_yclose",
+      "lineno": 128,
+      "line": "g.zb_yclose = {}"
+    },
+    {
+      "name": "enable_zb",
+      "lineno": 129,
+      "line": "g.enable_zb = False"
+    },
+    {
+      "name": "zb_slots",
+      "lineno": 130,
+      "line": "g.zb_slots = 0"
+    },
+    {
+      "name": "enable_auction_yiqian",
+      "lineno": 133,
+      "line": "g.enable_auction_yiqian = False"
+    },
+    {
+      "name": "auction_yiqian_candidates",
+      "lineno": 134,
+      "line": "g.auction_yiqian_candidates = []"
+    },
+    {
+      "name": "auction_yiqian_yclose",
+      "lineno": 135,
+      "line": "g.auction_yiqian_yclose = {}"
+    },
+    {
+      "name": "auction_yiqian_kind",
+      "lineno": 136,
+      "line": "g.auction_yiqian_kind = {}"
+    },
+    {
+      "name": "auction_yiqian_prev_money",
+      "lineno": 137,
+      "line": "g.auction_yiqian_prev_money = {}"
+    },
+    {
+      "name": "auction_yiqian_prev_volume",
+      "lineno": 138,
+      "line": "g.auction_yiqian_prev_volume = {}"
+    },
+    {
+      "name": "auction_yiqian_avg_inc",
+      "lineno": 139,
+      "line": "g.auction_yiqian_avg_inc = {}"
+    },
+    {
+      "name": "auction_yiqian_inc4",
+      "lineno": 140,
+      "line": "g.auction_yiqian_inc4 = {}"
+    },
+    {
+      "name": "auction_yiqian_left_ok",
+      "lineno": 141,
+      "line": "g.auction_yiqian_left_ok = {}"
+    },
+    {
+      "name": "auction_yiqian_highs",
+      "lineno": 142,
+      "line": "g.auction_yiqian_highs = {}"
+    },
+    {
+      "name": "auction_yiqian_slots",
+      "lineno": 143,
+      "line": "g.auction_yiqian_slots = 0"
+    },
+    {
+      "name": "auction_yiqian_daily_value",
+      "lineno": 144,
+      "line": "g.auction_yiqian_daily_value = 0.30"
+    },
+    {
+      "name": "auction_yiqian_value_weak",
+      "lineno": 145,
+      "line": "g.auction_yiqian_value_weak = 0.30"
+    },
+    {
+      "name": "auction_yiqian_value_neutral",
+      "lineno": 146,
+      "line": "g.auction_yiqian_value_neutral = 0.20"
+    },
+    {
+      "name": "auction_yiqian_value_strong",
+      "lineno": 147,
+      "line": "g.auction_yiqian_value_strong = 0.10"
+    },
+    {
+      "name": "auction_yiqian_candidate_cap",
+      "lineno": 148,
+      "line": "g.auction_yiqian_candidate_cap = 40"
+    },
+    {
+      "name": "auction_yiqian_morning_take_floor",
+      "lineno": 149,
+      "line": "g.auction_yiqian_morning_take_floor = 0.015"
+    },
+    {
+      "name": "auction_yiqian_trailing_start",
+      "lineno": 150,
+      "line": "g.auction_yiqian_trailing_start = 0.03"
+    },
+    {
+      "name": "auction_yiqian_trailing_base_tol",
+      "lineno": 151,
+      "line": "g.auction_yiqian_trailing_base_tol = 0.02"
+    },
+    {
+      "name": "auction_yiqian_trailing_min_tol",
+      "lineno": 152,
+      "line": "g.auction_yiqian_trailing_min_tol = 0.005"
+    },
+    {
+      "name": "enable_v227",
+      "lineno": 155,
+      "line": "g.enable_v227 = True"
+    },
+    {
+      "name": "enable_rzq",
+      "lineno": 156,
+      "line": "g.enable_rzq = True"
+    },
+    {
+      "name": "v227_slots",
+      "lineno": 157,
+      "line": "g.v227_slots = 2"
+    },
+    {
+      "name": "rzq_slots",
+      "lineno": 158,
+      "line": "g.rzq_slots = 2"
+    },
+    {
+      "name": "total_slots",
+      "lineno": 159,
+      "line": "g.total_slots = 4"
+    },
+    {
+      "name": "owner",
+      "lineno": 160,
+      "line": "g.owner = {}"
+    },
+    {
+      "name": "buy_mode",
+      "lineno": 161,
+      "line": "g.buy_mode = {}  # v88: 记录每只持仓买入时的 market_mode"
+    },
+    {
+      "name": "bull_consec_loss",
+      "lineno": 164,
+      "line": "g.bull_consec_loss = 0"
+    },
+    {
+      "name": "bull_cooldown",
+      "lineno": 165,
+      "line": "g.bull_cooldown = 0  # 剩余冷却天数，>0 时禁 bull 新仓"
+    },
+    {
+      "name": "non_bull_consec_wins",
+      "lineno": 166,
+      "line": "g.non_bull_consec_wins = 0  # v91: 非bull模式连赢计数（用于消解bull连亏）"
+    },
+    {
+      "name": "bull_force_clear",
+      "lineno": 169,
+      "line": "g.bull_force_clear = False"
+    },
+    {
+      "name": "bull_release_confirm_pending",
+      "lineno": 170,
+      "line": "g.bull_release_confirm_pending = False"
+    },
+    {
+      "name": "bull_release_guard",
+      "lineno": 171,
+      "line": "g.bull_release_guard = False"
+    },
+    {
+      "name": "bull_release_confirm_pct",
+      "lineno": 172,
+      "line": "g.bull_release_confirm_pct = 0.60"
+    },
+    {
+      "name": "low_price_factor_enabled",
+      "lineno": 175,
+      "line": "g.low_price_factor_enabled = True"
+    },
+    {
+      "name": "low_price_ref",
+      "lineno": 176,
+      "line": "g.low_price_ref = 20.0"
+    },
+    {
+      "name": "low_price_weight",
+      "lineno": 177,
+      "line": "g.low_price_weight = 0.15"
+    },
+    {
+      "name": "low_price_min_win_rate",
+      "lineno": 178,
+      "line": "g.low_price_min_win_rate = 0.45"
+    },
+    {
+      "name": "v227_shock_cooldown_enabled",
+      "lineno": 181,
+      "line": "g.v227_shock_cooldown_enabled = True"
+    },
+    {
+      "name": "v227_shock_loss_threshold",
+      "lineno": 182,
+      "line": "g.v227_shock_loss_threshold = -0.048"
+    },
+    {
+      "name": "v227_shock_cooldown_days",
+      "lineno": 183,
+      "line": "g.v227_shock_cooldown_days = 1"
+    },
+    {
+      "name": "v227_shock_cooldown",
+      "lineno": 184,
+      "line": "g.v227_shock_cooldown = 0"
+    },
+    {
+      "name": "prev_portfolio_value",
+      "lineno": 185,
+      "line": "g.prev_portfolio_value = None"
+    },
+    {
+      "name": "recent_trades",
+      "lineno": 188,
+      "line": "g.recent_trades = deque(maxlen=WIN_WINDOW)  # 1=win, 0=loss"
+    },
+    {
+      "name": "recent_core_trades",
+      "lineno": 189,
+      "line": "g.recent_core_trades = deque(maxlen=WIN_WINDOW)  # v202: 非竞价主策略真实成交胜率"
+    },
+    {
+      "name": "fb_pct",
+      "lineno": 192,
+      "line": "g.fb_pct = 0.5"
+    },
+    {
+      "name": "fb_perf_history",
+      "lineno": 193,
+      "line": "g.fb_perf_history = deque(maxlen=FB_WINDOW)"
+    },
+    {
+      "name": "yjj_candidates",
+      "lineno": 221,
+      "line": "g.yjj_candidates = []"
+    },
+    {
+      "name": "bear_candidates",
+      "lineno": 222,
+      "line": "g.bear_candidates = []"
+    },
+    {
+      "name": "yjj_yclose",
+      "lineno": 223,
+      "line": "g.yjj_yclose = {}"
+    },
+    {
+      "name": "rzq_candidates",
+      "lineno": 224,
+      "line": "g.rzq_candidates = []"
+    },
+    {
+      "name": "rzq_yclose",
+      "lineno": 225,
+      "line": "g.rzq_yclose = {}"
+    },
+    {
+      "name": "zb_candidates",
+      "lineno": 226,
+      "line": "g.zb_candidates = []"
+    },
+    {
+      "name": "zb_yclose",
+      "lineno": 227,
+      "line": "g.zb_yclose = {}"
+    },
+    {
+      "name": "auction_yiqian_candidates",
+      "lineno": 228,
+      "line": "g.auction_yiqian_candidates = []"
+    },
+    {
+      "name": "auction_yiqian_yclose",
+      "lineno": 229,
+      "line": "g.auction_yiqian_yclose = {}"
+    },
+    {
+      "name": "auction_yiqian_kind",
+      "lineno": 230,
+      "line": "g.auction_yiqian_kind = {}"
+    },
+    {
+      "name": "auction_yiqian_prev_money",
+      "lineno": 231,
+      "line": "g.auction_yiqian_prev_money = {}"
+    },
+    {
+      "name": "auction_yiqian_prev_volume",
+      "lineno": 232,
+      "line": "g.auction_yiqian_prev_volume = {}"
+    },
+    {
+      "name": "auction_yiqian_avg_inc",
+      "lineno": 233,
+      "line": "g.auction_yiqian_avg_inc = {}"
+    },
+    {
+      "name": "auction_yiqian_inc4",
+      "lineno": 234,
+      "line": "g.auction_yiqian_inc4 = {}"
+    },
+    {
+      "name": "auction_yiqian_left_ok",
+      "lineno": 235,
+      "line": "g.auction_yiqian_left_ok = {}"
+    },
+    {
+      "name": "leader_candidates_for_tag",
+      "lineno": 236,
+      "line": "g.leader_candidates_for_tag = []"
+    },
+    {
+      "name": "bull_release_confirm_pending",
+      "lineno": 259,
+      "line": "g.bull_release_confirm_pending = False"
+    },
+    {
+      "name": "bull_release_guard",
+      "lineno": 260,
+      "line": "g.bull_release_guard = False"
+    },
+    {
+      "name": "last_prepare_year",
+      "lineno": 261,
+      "line": "g.last_prepare_year = current_year"
+    },
+    {
+      "name": "first_board_perf",
+      "lineno": 263,
+      "line": "g.first_board_perf = calc_fb_perf(context)"
+    },
+    {
+      "name": "fb_pct",
+      "lineno": 265,
+      "line": "g.fb_pct = calc_fb_pct()"
+    },
+    {
+      "name": "bull_release_guard",
+      "lineno": 274,
+      "line": "g.bull_release_guard = False"
+    },
+    {
+      "name": "market_mode",
+      "lineno": 276,
+      "line": "if g.market_mode == 'bull':"
+    },
+    {
+      "name": "bull_release_guard",
+      "lineno": 278,
+      "line": "g.bull_release_guard = True"
+    },
+    {
+      "name": "bull_release_confirm_pending",
+      "lineno": 280,
+      "line": "g.bull_release_confirm_pending = False"
+    },
+    {
+      "name": "bull_release_confirm_pending",
+      "lineno": 282,
+      "line": "g.bull_release_confirm_pending = False"
+    },
+    {
+      "name": "market_mode",
+      "lineno": 289,
+      "line": "if not _is_pass_month(context) and g.market_mode == 'bull':"
+    },
+    {
+      "name": "market_mode",
+      "lineno": 295,
+      "line": "if g.market_mode == 'bear':"
+    },
+    {
+      "name": "active",
+      "lineno": 296,
+      "line": "g.active = 'v227'       # 天蝎座专属"
+    },
+    {
+      "name": "market_mode",
+      "lineno": 297,
+      "line": "elif g.market_mode == 'cautious':"
+    },
+    {
+      "name": "active",
+      "lineno": 298,
+      "line": "g.active = 'v227'       # rzq cautious均亏-2793"
+    },
+    {
+      "name": "active",
+      "lineno": 300,
+      "line": "g.active = 'v227'       # XH档 rzq均亏-1230"
+    },
+    {
+      "name": "active",
+      "lineno": 302,
+      "line": "g.active = 'v227'       # v213: 冷却释放未确认，先不用 6-slot rzq+zb"
+    },
+    {
+      "name": "active",
+      "lineno": 304,
+      "line": "g.active = 'rzq+zb'     # v104: bull 默认 rzq 和 zb 并列"
+    },
+    {
+      "name": "active",
+      "lineno": 306,
+      "line": "g.active = 'v227'       # rzq 1/4/12月空仓，回退v227"
+    },
+    {
+      "name": "enable_v227",
+      "lineno": 308,
+      "line": "g.enable_v227 = (g.active == 'v227')"
+    },
+    {
+      "name": "enable_rzq",
+      "lineno": 309,
+      "line": "g.enable_rzq = (g.active == 'rzq+zb')"
+    },
+    {
+      "name": "enable_zb",
+      "lineno": 310,
+      "line": "g.enable_zb = (g.active == 'rzq+zb')"
+    },
+    {
+      "name": "zb_slots",
+      "lineno": 314,
+      "line": "g.v227_slots, g.rzq_slots, g.zb_slots = 2, 0, 0"
+    },
+    {
+      "name": "zb_slots",
+      "lineno": 316,
+      "line": "g.v227_slots, g.rzq_slots, g.zb_slots = 0, 3, 3"
+    },
+    {
+      "name": "auction_yiqian_daily_value",
+      "lineno": 319,
+      "line": "g.auction_yiqian_daily_value = _auction_yiqian_dynamic_value(context)"
+    },
+    {
+      "name": "enable_auction_yiqian",
+      "lineno": 320,
+      "line": "g.enable_auction_yiqian = g.auction_yiqian_daily_value > 0"
+    },
+    {
+      "name": "auction_yiqian_slots",
+      "lineno": 321,
+      "line": "g.auction_yiqian_slots = 1 if g.enable_auction_yiqian else 0"
+    },
+    {
+      "name": "prev_portfolio_value",
+      "lineno": 416,
+      "line": "g.prev_portfolio_value = current_value"
+    },
+    {
+      "name": "v227_shock_cooldown",
+      "lineno": 425,
+      "line": "g.v227_shock_cooldown = getattr(g, 'v227_shock_cooldown_days', 1)"
+    },
+    {
+      "name": "prev_portfolio_value",
+      "lineno": 432,
+      "line": "g.prev_portfolio_value = current_value"
+    },
+    {
+      "name": "market_mode",
+      "lineno": 500,
+      "line": "g.market_mode = 'bear'"
+    },
+    {
+      "name": "raw_market_mode",
+      "lineno": 524,
+      "line": "g.raw_market_mode = new_mode"
+    },
+    {
+      "name": "bull_sticky",
+      "lineno": 528,
+      "line": "g.bull_sticky = 2"
+    },
+    {
+      "name": "market_mode",
+      "lineno": 529,
+      "line": "g.market_mode = 'bull'"
+    },
+    {
+      "name": "market_mode",
+      "lineno": 532,
+      "line": "g.market_mode = 'bull'"
+    },
+    {
+      "name": "bull_sticky",
+      "lineno": 534,
+      "line": "g.bull_sticky = 0"
+    },
+    {
+      "name": "market_mode",
+      "lineno": 535,
+      "line": "g.market_mode = new_mode"
+    },
+    {
+      "name": "market_mode",
+      "lineno": 537,
+      "line": "if g.market_mode == 'bear':"
+    },
+    {
+      "name": "board_heights",
+      "lineno": 548,
+      "line": "g.board_heights = g.board_heights[-20:]"
+    },
+    {
+      "name": "prev_first_boards",
+      "lineno": 583,
+      "line": "g.prev_first_boards = fb"
+    },
+    {
+      "name": "_today_max_boards",
+      "lineno": 584,
+      "line": "g._today_max_boards = max_b"
+    },
+    {
+      "name": "market_mode",
+      "lineno": 586,
+      "line": "if bear_pool and g.market_mode == 'bear':"
+    },
+    {
+      "name": "bear_candidates",
+      "lineno": 598,
+      "line": "g.bear_candidates = _apply_low_price_tilt(g.bear_candidates, g.yjj_yclose)"
+    },
+    {
+      "name": "prev_first_boards",
+      "lineno": 627,
+      "line": "g.prev_first_boards = fb"
+    },
+    {
+      "name": "_today_max_boards",
+      "lineno": 628,
+      "line": "g._today_max_boards = max_b"
+    },
+    {
+      "name": "market_mode",
+      "lineno": 631,
+      "line": "if bear_pool and g.market_mode == 'bear':"
+    },
+    {
+      "name": "bear_candidates",
+      "lineno": 643,
+      "line": "g.bear_candidates = _apply_low_price_tilt(g.bear_candidates, g.yjj_yclose)"
+    },
+    {
+      "name": "market_mode",
+      "lineno": 695,
+      "line": "if g.market_mode == 'bull' and m > 20e8:"
+    },
+    {
+      "name": "market_mode",
+      "lineno": 740,
+      "line": "if g.market_mode == 'bull' and m[-1] > 20e8:"
+    },
+    {
+      "name": "prev_first_boards",
+      "lineno": 757,
+      "line": "g.prev_first_boards = first_boards"
+    },
+    {
+      "name": "_today_max_boards",
+      "lineno": 758,
+      "line": "g._today_max_boards = max_b"
+    },
+    {
+      "name": "yjj_candidates",
+      "lineno": 787,
+      "line": "g.yjj_candidates = kept"
+    },
+    {
+      "name": "yjj_candidates",
+      "lineno": 821,
+      "line": "g.yjj_candidates = kept_t"
+    },
+    {
+      "name": "market_mode",
+      "lineno": 823,
+      "line": "if g.yjj_candidates and g.market_mode == 'bull':"
+    },
+    {
+      "name": "yjj_candidates",
+      "lineno": 824,
+      "line": "g.yjj_candidates = _score_with_left_pressure(context, g.yjj_candidates, closes_raw)"
+    },
+    {
+      "name": "yjj_candidates",
+      "lineno": 826,
+      "line": "g.yjj_candidates = _apply_low_price_tilt(g.yjj_candidates, g.yjj_yclose)"
+    },
+    {
+      "name": "rzq_yclose",
+      "lineno": 930,
+      "line": "g.rzq_yclose = df_hl[df_hl['code'].isin(valid_codes)].set_index('code')['close'].to_dict()"
+    },
+    {
+      "name": "rzq_candidates",
+      "lineno": 931,
+      "line": "g.rzq_candidates = valid_codes"
+    },
+    {
+      "name": "zb_yclose",
+      "lineno": 1013,
+      "line": "g.zb_yclose = df_hl[df_hl['code'].isin(valid_codes)].set_index('code')['close'].to_dict()"
+    },
+    {
+      "name": "zb_candidates",
+      "lineno": 1014,
+      "line": "g.zb_candidates = valid_codes"
+    },
+    {
+      "name": "active",
+      "lineno": 1036,
+      "line": "if g.active == 'v227':"
+    },
+    {
+      "name": "active",
+      "lineno": 1039,
+      "line": "elif g.active == 'rzq+zb':"
+    },
+    {
+      "name": "market_mode",
+      "lineno": 1047,
+      "line": "if has_core_sample and g.market_mode == 'bull':"
+    },
+    {
+      "name": "auction_yiqian_candidates",
+      "lineno": 1083,
+      "line": "g.auction_yiqian_candidates = candidates"
+    },
+    {
+      "name": "auction_yiqian_yclose",
+      "lineno": 1084,
+      "line": "g.auction_yiqian_yclose = yclose"
+    },
+    {
+      "name": "auction_yiqian_kind",
+      "lineno": 1085,
+      "line": "g.auction_yiqian_kind = kind"
+    },
+    {
+      "name": "auction_yiqian_prev_money",
+      "lineno": 1086,
+      "line": "g.auction_yiqian_prev_money = prev_money"
+    },
+    {
+      "name": "auction_yiqian_prev_volume",
+      "lineno": 1087,
+      "line": "g.auction_yiqian_prev_volume = prev_volume"
+    },
+    {
+      "name": "auction_yiqian_avg_inc",
+      "lineno": 1088,
+      "line": "g.auction_yiqian_avg_inc = avg_inc_map"
+    },
+    {
+      "name": "auction_yiqian_inc4",
+      "lineno": 1089,
+      "line": "g.auction_yiqian_inc4 = inc4_map"
+    },
+    {
+      "name": "auction_yiqian_left_ok",
+      "lineno": 1090,
+      "line": "g.auction_yiqian_left_ok = left_ok"
+    },
+    {
+      "name": "auction_yiqian_candidates",
+      "lineno": 1234,
+      "line": "g.auction_yiqian_candidates = candidates"
+    },
+    {
+      "name": "auction_yiqian_yclose",
+      "lineno": 1235,
+      "line": "g.auction_yiqian_yclose = yclose"
+    },
+    {
+      "name": "auction_yiqian_kind",
+      "lineno": 1236,
+      "line": "g.auction_yiqian_kind = kind"
+    },
+    {
+      "name": "auction_yiqian_prev_money",
+      "lineno": 1237,
+      "line": "g.auction_yiqian_prev_money = prev_money"
+    },
+    {
+      "name": "auction_yiqian_prev_volume",
+      "lineno": 1238,
+      "line": "g.auction_yiqian_prev_volume = prev_volume"
+    },
+    {
+      "name": "auction_yiqian_avg_inc",
+      "lineno": 1239,
+      "line": "g.auction_yiqian_avg_inc = avg_inc_map"
+    },
+    {
+      "name": "auction_yiqian_inc4",
+      "lineno": 1240,
+      "line": "g.auction_yiqian_inc4 = inc4_map"
+    },
+    {
+      "name": "auction_yiqian_left_ok",
+      "lineno": 1241,
+      "line": "g.auction_yiqian_left_ok = _auction_yiqian_batch_left_pressure(candidates, context)"
+    },
+    {
+      "name": "market_mode",
+      "lineno": 1478,
+      "line": "if g.market_mode == 'cautious' and 0.4 <= g.fb_pct < 0.6:"
+    },
+    {
+      "name": "market_mode",
+      "lineno": 1482,
+      "line": "if g.market_mode == 'bull' and g.fb_pct < 0.2:"
+    },
+    {
+      "name": "market_mode",
+      "lineno": 1486,
+      "line": "if g.market_mode == 'bull' and g.bull_cooldown > 0:"
+    },
+    {
+      "name": "market_mode",
+      "lineno": 1489,
+      "line": "if g.market_mode == 'bear':"
+    },
+    {
+      "name": "market_mode",
+      "lineno": 1504,
+      "line": "if g.market_mode == 'bull':"
+    },
+    {
+      "name": "market_mode",
+      "lineno": 1509,
+      "line": "pos_pct = 1.00 if g.market_mode == 'bull' else 0.75  # v22: bear/cautious 0.65→0.75"
+    },
+    {
+      "name": "market_mode",
+      "lineno": 1591,
+      "line": "if g.market_mode == 'cautious' and 0.4 <= g.fb_pct < 0.6:"
+    },
+    {
+      "name": "market_mode",
+      "lineno": 1595,
+      "line": "if g.market_mode == 'bull' and 0.4 <= g.fb_pct < 0.6:"
+    },
+    {
+      "name": "market_mode",
+      "lineno": 1599,
+      "line": "if g.market_mode == 'bull' and g.bull_cooldown > 0:"
+    },
+    {
+      "name": "market_mode",
+      "lineno": 1698,
+      "line": "if g.market_mode == 'cautious' and 0.4 <= g.fb_pct < 0.6:"
+    },
+    {
+      "name": "market_mode",
+      "lineno": 1701,
+      "line": "if g.market_mode == 'bull' and g.bull_cooldown > 0:"
+    },
+    {
+      "name": "bull_force_clear",
+      "lineno": 1930,
+      "line": "g.bull_force_clear = False"
+    },
+    {
+      "name": "rzq_cooldown",
+      "lineno": 1981,
+      "line": "g.rzq_cooldown = 1"
+    },
+    {
+      "name": "stoploss_cooldown",
+      "lineno": 2137,
+      "line": "g.stoploss_cooldown = 3"
+    },
+    {
+      "name": "stoploss_cooldown",
+      "lineno": 2140,
+      "line": "g.stoploss_cooldown = 2"
+    },
+    {
+      "name": "bull_consec_loss",
+      "lineno": 2204,
+      "line": "g.bull_consec_loss = 0"
+    },
+    {
+      "name": "bull_cooldown",
+      "lineno": 2205,
+      "line": "g.bull_cooldown = 0"
+    },
+    {
+      "name": "bull_cooldown",
+      "lineno": 2210,
+      "line": "g.bull_cooldown = 5"
+    },
+    {
+      "name": "bull_release_confirm_pending",
+      "lineno": 2211,
+      "line": "g.bull_release_confirm_pending = True"
+    },
+    {
+      "name": "bull_force_clear",
+      "lineno": 2213,
+      "line": "g.bull_force_clear = True"
+    },
+    {
+      "name": "bull_consec_loss",
+      "lineno": 2219,
+      "line": "g.bull_consec_loss = max(0, g.bull_consec_loss - 1)"
+    },
+    {
+      "name": "non_bull_consec_wins",
+      "lineno": 2220,
+      "line": "g.non_bull_consec_wins = 0"
+    },
+    {
+      "name": "bull_cooldown",
+      "lineno": 2222,
+      "line": "g.bull_cooldown = 0"
+    },
+    {
+      "name": "non_bull_consec_wins",
+      "lineno": 2224,
+      "line": "g.non_bull_consec_wins = 0"
+    }
+  ],
+  "engine_core_functions": [
+    {
+      "name": "_constructor",
+      "lineno": 28,
+      "end_lineno": 29
+    },
+    {
+      "name": "__getitem__",
+      "lineno": 31,
+      "end_lineno": 37
+    },
+    {
+      "name": "_constructor",
+      "lineno": 42,
+      "end_lineno": 43
+    },
+    {
+      "name": "__getitem__",
+      "lineno": 45,
+      "end_lineno": 60
+    },
+    {
+      "name": "__init__",
+      "lineno": 65,
+      "end_lineno": 66
+    },
+    {
+      "name": "in_",
+      "lineno": 68,
+      "end_lineno": 69
+    },
+    {
+      "name": "__gt__",
+      "lineno": 71,
+      "end_lineno": 72
+    },
+    {
+      "name": "__ge__",
+      "lineno": 74,
+      "end_lineno": 75
+    },
+    {
+      "name": "__lt__",
+      "lineno": 77,
+      "end_lineno": 78
+    },
+    {
+      "name": "__le__",
+      "lineno": 80,
+      "end_lineno": 81
+    },
+    {
+      "name": "__eq__",
+      "lineno": 83,
+      "end_lineno": 84
+    },
+    {
+      "name": "__ne__",
+      "lineno": 86,
+      "end_lineno": 87
+    },
+    {
+      "name": "__init__",
+      "lineno": 91,
+      "end_lineno": 92
+    },
+    {
+      "name": "filter",
+      "lineno": 94,
+      "end_lineno": 96
+    },
+    {
+      "name": "order_by",
+      "lineno": 98,
+      "end_lineno": 99
+    },
+    {
+      "name": "limit",
+      "lineno": 101,
+      "end_lineno": 102
+    },
+    {
+      "name": "__init__",
+      "lineno": 108,
+      "end_lineno": 231
+    },
+    {
+      "name": "set_resume_state",
+      "lineno": 233,
+      "end_lineno": 235
+    },
+    {
+      "name": "_apply_resume_state",
+      "lineno": 237,
+      "end_lineno": 263
+    },
+    {
+      "name": "_capture_daily_state_snapshot",
+      "lineno": 265,
+      "end_lineno": 310
+    },
+    {
+      "name": "_wrapped_get_bars",
+      "lineno": 315,
+      "end_lineno": 322
+    },
+    {
+      "name": "_create_order",
+      "lineno": 327,
+      "end_lineno": 452
+    },
+    {
+      "name": "_has_zero_fee_override",
+      "lineno": 454,
+      "end_lineno": 459
+    },
+    {
+      "name": "_should_reject_jq_preopen_order",
+      "lineno": 461,
+      "end_lineno": 544
+    },
+    {
+      "name": "_apply_jq_preopen_duplicate_order_anomaly",
+      "lineno": 546,
+      "end_lineno": 617
+    },
+    {
+      "name": "_reserve_pre_open_buy_position",
+      "lineno": 619,
+      "end_lineno": 631
+    },
+    {
+      "name": "_release_pre_open_buy_position",
+      "lineno": 633,
+      "end_lineno": 643
+    },
+    {
+      "name": "_release_pre_open_buy_cash",
+      "lineno": 645,
+      "end_lineno": 650
+    },
+    {
+      "name": "_release_pre_open_buy_resources",
+      "lineno": 652,
+      "end_lineno": 654
+    },
+    {
+      "name": "order",
+      "lineno": 656,
+      "end_lineno": 658
+    },
+    {
+      "name": "order_target",
+      "lineno": 660,
+      "end_lineno": 681
+    },
+    {
+      "name": "order_target_value",
+      "lineno": 683,
+      "end_lineno": 699
+    },
+    {
+      "name": "order_value",
+      "lineno": 701,
+      "end_lineno": 730
+    },
+    {
+      "name": "cancel_order",
+      "lineno": 732,
+      "end_lineno": 759
+    },
+    {
+      "name": "_match_pending_orders",
+      "lineno": 761,
+      "end_lineno": 805
+    },
+    {
+      "name": "_cancel_all_pending_orders",
+      "lineno": 807,
+      "end_lineno": 810
+    },
+    {
+      "name": "_execute_trade",
+      "lineno": 812,
+      "end_lineno": 1083
+    },
+    {
+      "name": "rollover_day",
+      "lineno": 1085,
+      "end_lineno": 1087
+    },
+    {
+      "name": "set_order_cost",
+      "lineno": 1089,
+      "end_lineno": 1091
+    },
+    {
+      "name": "set_slippage",
+      "lineno": 1093,
+      "end_lineno": 1094
+    },
+    {
+      "name": "set_option",
+      "lineno": 1096,
+      "end_lineno": 1098
+    },
+    {
+      "name": "_get_instrument_type",
+      "lineno": 1100,
+      "end_lineno": 1109
+    },
+    {
+      "name": "wrapped_get_fundamentals",
+      "lineno": 1114,
+      "end_lineno": 1154
+    },
+    {
+      "name": "_wrap_pandas",
+      "lineno": 1159,
+      "end_lineno": 1164
+    },
+    {
+      "name": "_mock_modules",
+      "lineno": 1166,
+      "end_lineno": 1171
+    },
+    {
+      "name": "_get_trade_price",
+      "lineno": 1176,
+      "end_lineno": 1207
+    },
+    {
+      "name": "_apply_jq_minute_price_anomaly",
+      "lineno": 1209,
+      "end_lineno": 1218
+    },
+    {
+      "name": "_apply_jq_execution_price_anomaly",
+      "lineno": 1220,
+      "end_lineno": 1232
+    },
+    {
+      "name": "_apply_jq_order_amount_anomaly",
+      "lineno": 1234,
+      "end_lineno": 1258
+    },
+    {
+      "name": "_apply_jq_fill_amount_anomaly",
+      "lineno": 1260,
+      "end_lineno": 1273
+    },
+    {
+      "name": "_get_daily_snapshot_fast",
+      "lineno": 1275,
+      "end_lineno": 1317
+    },
+    {
+      "name": "_get_daily_trade_snapshot",
+      "lineno": 1319,
+      "end_lineno": 1348
+    },
+    {
+      "name": "info",
+      "lineno": 1353,
+      "end_lineno": 1355
+    },
+    {
+      "name": "run_daily",
+      "lineno": 1357,
+      "end_lineno": 1358
+    },
+    {
+      "name": "wrapped_history",
+      "lineno": 1363,
+      "end_lineno": 1433
+    },
+    {
+      "name": "wrapped_attribute_history",
+      "lineno": 1438,
+      "end_lineno": 1451
+    },
+    {
+      "name": "get_current_price",
+      "lineno": 1456,
+      "end_lineno": 1463
+    },
+    {
+      "name": "_get_daily_current_snapshot",
+      "lineno": 1465,
+      "end_lineno": 1494
+    },
+    {
+      "name": "_refresh_portfolio_prices",
+      "lineno": 1496,
+      "end_lineno": 1611
+    },
+    {
+      "name": "get_current_data",
+      "lineno": 1613,
+      "end_lineno": 1652
+    },
+    {
+      "name": "__init__",
+      "lineno": 1615,
+      "end_lineno": 1617
+    },
+    {
+      "name": "__getitem__",
+      "lineno": 1619,
+      "end_lineno": 1651
+    },
+    {
+      "name": "run",
+      "lineno": 1657,
+      "end_lineno": 1973
+    },
+    {
+      "name": "get_sort_time",
+      "lineno": 1687,
+      "end_lineno": 1697
+    }
+  ],
+  "order_functions": [
+    {
+      "name": "__init__",
+      "lineno": 9,
+      "end_lineno": 16
+    },
+    {
+      "name": "__init__",
+      "lineno": 22,
+      "end_lineno": 23
+    },
+    {
+      "name": "__init__",
+      "lineno": 29,
+      "end_lineno": 30
+    },
+    {
+      "name": "__init__",
+      "lineno": 35,
+      "end_lineno": 36
+    },
+    {
+      "name": "__repr__",
+      "lineno": 38,
+      "end_lineno": 39
+    },
+    {
+      "name": "__init__",
+      "lineno": 45,
+      "end_lineno": 47
+    },
+    {
+      "name": "__repr__",
+      "lineno": 49,
+      "end_lineno": 50
+    },
+    {
+      "name": "__init__",
+      "lineno": 60,
+      "end_lineno": 61
+    },
+    {
+      "name": "__eq__",
+      "lineno": 63,
+      "end_lineno": 68
+    },
+    {
+      "name": "__repr__",
+      "lineno": 70,
+      "end_lineno": 71
+    },
+    {
+      "name": "__init__",
+      "lineno": 75,
+      "end_lineno": 86
+    },
+    {
+      "name": "created_time",
+      "lineno": 89,
+      "end_lineno": 90
+    },
+    {
+      "name": "__bool__",
+      "lineno": 92,
+      "end_lineno": 93
+    },
+    {
+      "name": "__repr__",
+      "lineno": 95,
+      "end_lineno": 96
+    },
+    {
+      "name": "__init__",
+      "lineno": 102,
+      "end_lineno": 108
+    },
+    {
+      "name": "__repr__",
+      "lineno": 110,
+      "end_lineno": 111
+    },
+    {
+      "name": "get_trade_price",
+      "lineno": 114,
+      "end_lineno": 174
+    }
+  ],
+  "context_functions": [
+    {
+      "name": "__init__",
+      "lineno": 5,
+      "end_lineno": 10
+    },
+    {
+      "name": "__repr__",
+      "lineno": 12,
+      "end_lineno": 13
+    },
+    {
+      "name": "__init__",
+      "lineno": 16,
+      "end_lineno": 19
+    },
+    {
+      "name": "frozen_cash",
+      "lineno": 22,
+      "end_lineno": 23
+    },
+    {
+      "name": "frozen_cash",
+      "lineno": 26,
+      "end_lineno": 27
+    },
+    {
+      "name": "positions_value",
+      "lineno": 30,
+      "end_lineno": 35
+    },
+    {
+      "name": "total_value",
+      "lineno": 38,
+      "end_lineno": 39
+    },
+    {
+      "name": "__init__",
+      "lineno": 42,
+      "end_lineno": 46
+    },
+    {
+      "name": "current_dt",
+      "lineno": 49,
+      "end_lineno": 50
+    },
+    {
+      "name": "current_dt",
+      "lineno": 53,
+      "end_lineno": 59
+    },
+    {
+      "name": "__init__",
+      "lineno": 62,
+      "end_lineno": 63
+    },
+    {
+      "name": "__getattr__",
+      "lineno": 64,
+      "end_lineno": 65
+    },
+    {
+      "name": "__setattr__",
+      "lineno": 66,
+      "end_lineno": 70
+    }
+  ]
+}
