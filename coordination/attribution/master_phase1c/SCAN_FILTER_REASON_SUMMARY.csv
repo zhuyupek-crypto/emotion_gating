@@ -1,0 +1,6 @@
+branch,scan_terminal_state,scan_terminal_reason,count
+Auction,SOURCE_LIMITED,cache exposes prepared candidate only,501
+RZQ,PREPARED,entered prepared candidate list,61
+Scorpion,PREPARED,entered prepared candidate list,30
+YJJ,PREPARED,entered prepared candidate list,89
+ZB,PREPARED,entered prepared candidate list,228

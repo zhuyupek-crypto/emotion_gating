@@ -1,0 +1,28 @@
+{
+  "scan_run_events": 295,
+  "unique_trade_date_branch": 295,
+  "scan_status": {
+    "EXECUTED": 108,
+    "EXECUTED_EMPTY": 24,
+    "NOT_CALLED_BY_CONTROL_FLOW": 112,
+    "SOURCE_LIMITED": 51
+  },
+  "source_mode": {
+    "BILLBOARD_API": 47,
+    "DAILY_PRICE_COMPUTED": 26,
+    "NOT_APPLICABLE": 112,
+    "PROJECT_AUCTION_PREPARE_CACHE": 51,
+    "PROJECT_BOARD_SNAPSHOT": 59
+  },
+  "raw_pattern_events": 909,
+  "raw_terminal_states": {
+    "PREPARED": 408,
+    "SOURCE_LIMITED": 501
+  },
+  "record_types": {
+    "OBSERVED_RAW_PATTERN": 408,
+    "SOURCE_LIMITED_PREPARED_RECORD": 501
+  },
+  "not_called_raw_pattern_null_rate": 1.0,
+  "alignment_rows": 909
+}
