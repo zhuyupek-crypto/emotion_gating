@@ -1,0 +1,48 @@
+{
+  "generated_at": "2026-07-01T19:32:22.079397",
+  "start": "2023-01-01",
+  "end": "2023-03-31",
+  "branch": "codex/motherboard-attribution-phase1a-v1",
+  "commit": "bd209837585538a1bdf89991d6901add5e610702",
+  "formal_strategy_sha256": "621a9c968473d73dfa1699be0a16714790e4f93ab950957c0a3f88f4f34bcc8e",
+  "instrumented_strategy_sha256": "16a22f329f2169490fb92e08f9985019a453df190cedc75cfdcf1b709cf4c3df",
+  "schema_version": "0.2",
+  "artifacts": {
+    "SIGNAL_EVENT": {
+      "path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase1a-v1\\coordination\\attribution\\master_phase1a\\SIGNAL_EVENT.parquet",
+      "rows": 909,
+      "columns": 29,
+      "size_bytes": 35127,
+      "sha256": "5606ed98fd2262c62cdb63f53e93bf6004afb7dd7820f4ad5c0989aba4ab4c5c"
+    },
+    "DECISION_EVENT": {
+      "path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase1a-v1\\coordination\\attribution\\master_phase1a\\DECISION_EVENT.csv",
+      "rows": 954,
+      "columns": 27,
+      "size_bytes": 192816,
+      "sha256": "ed328f9314c3c2893daeb59690c903e861707e4b5182ab6b8ec6a88213752840"
+    },
+    "TRADE_OUTCOME": {
+      "path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase1a-v1\\coordination\\attribution\\master_phase1a\\TRADE_OUTCOME.parquet",
+      "rows": 45,
+      "columns": 27,
+      "size_bytes": 18213,
+      "sha256": "3342015db8497a9da091f3298361376f0979e093466b7cb715b645250f3783d4"
+    },
+    "HANDLER_RESOURCE_SNAPSHOT": {
+      "path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase1a-v1\\coordination\\attribution\\master_phase1a\\HANDLER_RESOURCE_SNAPSHOT.parquet",
+      "rows": 2242,
+      "columns": 19,
+      "size_bytes": 28319,
+      "sha256": "250bc23eb887e956cea2ad62b67519b83ff5d042495da7799cda0824f18390b0"
+    },
+    "ATOMIC_EVENT_WIDE": {
+      "path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase1a-v1\\coordination\\attribution\\master_phase1a\\ATOMIC_EVENT_WIDE.parquet",
+      "rows": 909,
+      "columns": 12,
+      "size_bytes": 13787,
+      "sha256": "3046f819312408dccacdb21ac2d014c60211fdce5c4a0eab56109769f127d185"
+    }
+  },
+  "command": "python research/run_motherboard_phase1a.py --start 2023-01-01 --end 2023-03-31"
+}

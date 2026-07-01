@@ -1,0 +1,20 @@
+{
+  "signal_events": 909,
+  "decision_events": 954,
+  "trade_outcomes": 45,
+  "handler_snapshots": 2242,
+  "mapped_buy_trades": 45,
+  "unmapped_buy_trades": 0,
+  "mapped_sell_allocations": 43,
+  "unmapped_sell_trades": 0,
+  "terminal_states": {
+    "FILLED": 45,
+    "ROUTED_OUT": 131,
+    "UNRESOLVED": 733
+  },
+  "buy_trade_mapping_rate": 1.0,
+  "sell_trace_unmapped_count": 0,
+  "order_to_handler_mapped": 87,
+  "engine_order_count": 87,
+  "order_to_handler_mapping_rate": 1.0
+}
