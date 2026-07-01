@@ -1,0 +1,12 @@
+﻿field,source_timestamp_max,required_availability_cutoff,pit_status,note
+date,target trading day T from annual daily calendar,T 09:05,PIT_SAFE_BUT_PRECOMPUTED,Physical historical availability is not proven by 2026 file mtimes.
+previous_date,T-1 trading date,T 09:05,PIT_SAFE_BUT_PRECOMPUTED,Physical historical availability is not proven by 2026 file mtimes.
+code,T-1 security universe and T-1 derived candidates,T 09:05,PIT_SAFE_BUT_PRECOMPUTED,Physical historical availability is not proven by 2026 file mtimes.
+kind,T-1/T-2/T-3/T-4 daily OHLCV and high_limit rules,T 09:05,PIT_SAFE_BUT_PRECOMPUTED,Physical historical availability is not proven by 2026 file mtimes.
+rank,same-day prepared candidate ordering by kind and T-1 money,T 09:05,PIT_SAFE_BUT_PRECOMPUTED,Physical historical availability is not proven by 2026 file mtimes.
+prev_close,T-1 daily close,T 09:05,PIT_SAFE_BUT_PRECOMPUTED,Physical historical availability is not proven by 2026 file mtimes.
+prev_money,T-1 daily money,T 09:05,PIT_SAFE_BUT_PRECOMPUTED,Physical historical availability is not proven by 2026 file mtimes.
+prev_volume,T-1 daily volume,T 09:05,PIT_SAFE_BUT_PRECOMPUTED,Physical historical availability is not proven by 2026 file mtimes.
+avg_inc,T-1 amount/volume/close derived auction proxy,T 09:05,PIT_SAFE_BUT_PRECOMPUTED,Physical historical availability is not proven by 2026 file mtimes.
+inc4,T-1 close versus T-4 close,T 09:05,PIT_SAFE_BUT_PRECOMPUTED,Physical historical availability is not proven by 2026 file mtimes.
+left_ok,historical high/volume through T-1,T 09:05,PIT_SAFE_BUT_PRECOMPUTED,Physical historical availability is not proven by 2026 file mtimes.

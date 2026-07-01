@@ -1,0 +1,13 @@
+{
+  "run_at": "2026-07-01T22:56:07.767137+00:00",
+  "cwd": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase1d-auction-cache-v1",
+  "git_commit": "52faf0b1df887ef7867cd7f2c2e7916a31939f8e",
+  "start": "2023-01-01",
+  "end": "2023-03-31",
+  "hdata_root": "D:\\work space\\hdata\\data\\processed",
+  "replay_path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase1d-auction-cache-v1\\research\\auction_cache_audit\\replay_cache\\auction_yiqian_prepare\\2023.parquet",
+  "phase1c_source_rows": 501,
+  "date_summary_rows": 51,
+  "mismatch_rows": 25,
+  "phase1c_facts_rewritten": false
+}

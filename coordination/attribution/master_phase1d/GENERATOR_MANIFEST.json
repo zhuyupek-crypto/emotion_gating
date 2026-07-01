@@ -1,0 +1,16 @@
+{
+  "generator": "rebuild_from_archive.project_preprocess.build_auction_yiqian_prepare",
+  "source": {
+    "file": "rebuild_from_archive/project_preprocess.py",
+    "start_line": 347,
+    "end_line": 508,
+    "sha256": "846eaea67bb05c5261a443e958f5a38b23d665ec765695848f9f1a77d47cca21"
+  },
+  "git_commit": "52faf0b1df887ef7867cd7f2c2e7916a31939f8e",
+  "default_hdata_root": "D:\\work space\\hdata\\data\\processed",
+  "default_cache_root": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase1d-auction-cache-v1\\project_cache\\features",
+  "cli_entry": "python rebuild_from_archive/project_preprocess.py 2023 --only auction-yq --hdata-root <hdata_root> --cache-root <cache_root>",
+  "candidate_cap_default": 40,
+  "ipo_days_default": 250,
+  "source_sha256": "846eaea67bb05c5261a443e958f5a38b23d665ec765695848f9f1a77d47cca21"
+}
