@@ -1,0 +1,2 @@
+schema_version,signal_id,code,reason_code,detail
+0.3,ZB|2023-03-30|600839.XSHG|ZB_PREPARED,600839.XSHG,DUPLICATE_POSITION,existing position owner=zb amount=79800

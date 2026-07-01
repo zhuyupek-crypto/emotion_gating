@@ -1,11 +1,9 @@
-﻿"""Phase 1A attribution observer."""
+﻿"""Phase 1B attribution observer."""
 
 from __future__ import annotations
 
 import json
 from collections import defaultdict
-from datetime import datetime
-from pathlib import Path
 from typing import Any
 
 from .schema import (
@@ -35,9 +33,7 @@ def _date(context) -> str:
 
 def _time(context) -> str:
     dt = getattr(context, "current_dt", None)
-    if dt is None:
-        return ""
-    return dt.strftime("%H:%M")
+    return "" if dt is None else dt.strftime("%H:%M")
 
 
 def _status_name(order) -> str | None:
@@ -52,26 +48,10 @@ def _code_from_candidate(item):
 class NullAttributionObserver:
     enabled = False
 
-    def set_current_handler(self, *args, **kwargs):
-        return None
-
-    def clear_current_handler(self):
-        return None
-
-    def snapshot_handler(self, *args, **kwargs):
-        return None
-
-    def observe_after_prepare(self, *args, **kwargs):
-        return None
-
-    def emit_order_intent(self, *args, **kwargs):
-        return None
-
-    def bind_order(self, *args, **kwargs):
-        return None
-
-    def emit_exit_intent(self, *args, **kwargs):
-        return None
+    def __getattr__(self, _name):
+        def _noop(*args, **kwargs):
+            return None
+        return _noop
 
     def finalize(self, *args, **kwargs):
         return {}
@@ -80,16 +60,24 @@ class NullAttributionObserver:
 class AttributionObserver:
     enabled = True
 
-    def __init__(self, strategy_commit: str = "unknown", strategy_sha256: str = "unknown"):
-        self.strategy_commit = strategy_commit
-        self.strategy_sha256 = strategy_sha256
+    def __init__(self, strategy_commit: str = "unknown", strategy_sha256: str = "unknown",
+                 formal_strategy_commit: str | None = None, formal_strategy_sha256: str | None = None,
+                 observer_commit: str | None = None):
+        self.formal_strategy_commit = formal_strategy_commit or strategy_commit
+        self.formal_strategy_sha256 = formal_strategy_sha256 or strategy_sha256
+        self.instrumented_strategy_commit = strategy_commit
+        self.instrumented_strategy_sha256 = strategy_sha256
+        self.observer_commit = observer_commit or strategy_commit
         self.signal_events: list[dict] = []
         self.decision_events: list[dict] = []
         self.trade_outcomes: list[dict] = []
         self.handler_snapshots: list[dict] = []
         self.order_intents: list[dict] = []
         self.exit_intents: list[dict] = []
-        self.signal_index: dict[tuple[str, str, str], str] = {}
+        self.loop_stop_events: list[dict] = []
+        self.position_block_events: list[dict] = []
+        self.order_none_events: list[dict] = []
+        self.signal_index: dict[tuple[str, str, str, str], str] = {}
         self.signals_by_id: dict[str, dict] = {}
         self.order_to_signal: dict[str, str] = {}
         self.order_to_branch: dict[str, str] = {}
@@ -118,21 +106,11 @@ class AttributionObserver:
     def _owners_payload(self, g):
         return json.dumps(getattr(g, "owner", {}) or {}, ensure_ascii=False, sort_keys=True)
 
-    def _pending_orders(self, context):
-        engine = getattr(getattr(context, "portfolio", None), "engine", None)
-        return [] if engine is None else list(getattr(engine, "_pending_orders", []) or [])
-
     def snapshot_handler(self, context, g, handler: str, time: str, stage: str):
-        pending = []
-        engine = getattr(self, "engine", None)
-        if engine is not None:
-            pending = list(getattr(engine, "_pending_orders", []) or [])
-        row = {
+        pending = list(getattr(getattr(self, "engine", None), "_pending_orders", []) or [])
+        self.handler_snapshots.append({
             "schema_version": SCHEMA_VERSION,
-            "date": _date(context),
-            "time": time,
-            "handler": handler,
-            "stage": stage,
+            "date": _date(context), "time": time, "handler": handler, "stage": stage,
             "available_cash": float(getattr(context.portfolio, "available_cash", 0.0)),
             "locked_cash": float(getattr(context.portfolio, "locked_cash", 0.0)),
             "portfolio_total_value": float(getattr(context.portfolio, "total_value", 0.0)),
@@ -156,19 +134,20 @@ class AttributionObserver:
                 branch: [_code_from_candidate(x) for x in (getattr(g, attr, []) or [])]
                 for branch, attr in BRANCH_CANDIDATE_ATTR.items()
             }, ensure_ascii=False),
-        }
-        self.handler_snapshots.append(row)
+        })
 
-    def _signal_id(self, branch: str, date: str, code: str) -> str:
-        return f"{branch}|{date}|{code}|{BRANCH_VARIANTS[branch]}"
+    def _signal_id(self, branch: str, date: str, code: str, signal_variant: str) -> str:
+        return f"{branch}|{date}|{code}|{signal_variant}"
 
-    def _ensure_signal(self, context, g, branch: str, code: str, rank=None, count=None, prepared=True):
+    def _ensure_signal(self, context, g, branch: str, code: str, rank=None, count=None,
+                       prepared=True, signal_variant: str | None = None):
         date = _date(context)
-        key = (date, branch, code)
+        variant = signal_variant or BRANCH_VARIANTS[branch]
+        key = (date, branch, code, variant)
         existing = self.signal_index.get(key)
         if existing:
             return existing
-        signal_id = self._signal_id(branch, date, code)
+        signal_id = self._signal_id(branch, date, code, variant)
         row = {
             "schema_version": SCHEMA_VERSION,
             "signal_id": signal_id,
@@ -176,14 +155,25 @@ class AttributionObserver:
             "signal_time": _time(context),
             "code": code,
             "branch": branch,
-            "signal_variant": BRANCH_VARIANTS[branch],
-            "strategy_commit": self.strategy_commit,
-            "strategy_sha256": self.strategy_sha256,
+            "signal_variant": variant,
+            "formal_strategy_commit": self.formal_strategy_commit,
+            "formal_strategy_sha256": self.formal_strategy_sha256,
+            "instrumented_strategy_commit": self.instrumented_strategy_commit,
+            "instrumented_strategy_sha256": self.instrumented_strategy_sha256,
+            "observer_commit": self.observer_commit,
             "observation_level": "PREPARED_CANDIDATE",
             "raw_pattern_hit": None,
             "prepared_candidate": bool(prepared),
+            "handler_reached": False,
+            "candidate_loop_reached": False,
             "handler_eligible": None,
             "branch_eligible": None,
+            "qualified_for_ranking": False,
+            "participated_in_ranking": False,
+            "selected_for_order": False,
+            "loop_stop_reason": None,
+            "terminal_reason_code": None,
+            "terminal_decision_seq": None,
             "raw_candidate_rank": rank,
             "final_candidate_rank": None,
             "branch_candidate_count": count,
@@ -191,12 +181,14 @@ class AttributionObserver:
             "market_mode": getattr(g, "market_mode", None),
             "raw_market_mode": getattr(g, "raw_market_mode", None),
             "active_route": getattr(g, "active", None),
-            "emotion_state": getattr(g, "market_mode", None),
-            "emotion_heat": getattr(g, "fb_pct", None),
-            "emotion_momentum": getattr(g, "first_board_perf", None),
+            "fb_pct": getattr(g, "fb_pct", None),
+            "first_board_perf": getattr(g, "first_board_perf", None),
+            "emotion_state": None,
+            "emotion_heat": None,
+            "emotion_momentum": None,
             "emotion_stress": None,
             "source_function": "prepare_all",
-            "source_path": "research/instrumented_strategies/motherboard_phase1a_observed.py",
+            "source_path": "research/instrumented_strategies/motherboard_phase1b_observed.py",
             "source_line": None,
             "branch_payload": "{}",
         }
@@ -204,6 +196,13 @@ class AttributionObserver:
         self.signals_by_id[signal_id] = row
         self.signal_index[key] = signal_id
         return signal_id
+
+    def signal_id_for(self, context, g, branch: str, code: str, signal_variant: str | None = None):
+        return self._ensure_signal(context, g, branch, code, prepared=False, signal_variant=signal_variant)
+
+    def signals_for_branch_date(self, context, branch: str):
+        date = _date(context)
+        return [r["signal_id"] for r in self.signal_events if r.get("trade_date") == date and r.get("branch") == branch]
 
     def observe_after_prepare(self, context, g):
         for branch, attr in BRANCH_CANDIDATE_ATTR.items():
@@ -213,29 +212,22 @@ class AttributionObserver:
                 code = _code_from_candidate(item)
                 signal_id = self._ensure_signal(context, g, branch, code, idx, count, prepared=True)
                 enabled = bool(getattr(g, BRANCH_ENABLE_ATTR[branch], False))
-                self.emit_decision(
-                    signal_id=signal_id,
-                    context=context,
-                    g=g,
-                    stage="ROUTE_GATE",
-                    name="branch_enabled",
-                    value=enabled,
-                    passed=enabled,
-                    reason_code=None if enabled else "ROUTE_DISABLED",
-                    detail=f"active={getattr(g, 'active', None)}",
-                    branch_enabled=enabled,
-                    branch_slots_total=getattr(g, BRANCH_SLOT_ATTR[branch], None),
-                    candidate_rank=idx,
-                )
+                seq = self.emit_decision(signal_id, context, g, "ROUTE_GATE", "branch_enabled", enabled,
+                                         enabled, None if enabled else "ROUTE_DISABLED",
+                                         f"active={getattr(g, 'active', None)}",
+                                         branch_enabled=enabled,
+                                         branch_slots_total=getattr(g, BRANCH_SLOT_ATTR[branch], None),
+                                         candidate_rank=idx)
                 if not enabled:
-                    self.set_terminal(signal_id, "ROUTED_OUT")
+                    self.set_terminal_once(signal_id, "ROUTED_OUT", "ROUTE_DISABLED", seq)
 
     def emit_decision(self, signal_id, context, g, stage, name, value, passed, reason_code=None, detail=None, **extra):
         self._decision_seq[signal_id] += 1
+        seq = self._decision_seq[signal_id]
         self.decision_events.append({
             "schema_version": SCHEMA_VERSION,
             "signal_id": signal_id,
-            "decision_seq": self._decision_seq[signal_id],
+            "decision_seq": seq,
             "decision_time": f"{_date(context)} {_time(context)}",
             "decision_stage": stage,
             "decision_name": name,
@@ -261,11 +253,100 @@ class AttributionObserver:
             "blocking_code": extra.get("blocking_code"),
             "blocking_order_id": extra.get("blocking_order_id"),
         })
+        return seq
 
-    def set_terminal(self, signal_id: str, terminal_state: str):
+    def _mark(self, signal_id: str, field: str, value=True):
         row = self.signals_by_id.get(signal_id)
-        if row and row.get("terminal_state") != "FILLED":
-            row["terminal_state"] = terminal_state
+        if row:
+            row[field] = value
+
+    def mark_handler_reached(self, context, branch: str):
+        for sid in self.signals_for_branch_date(context, branch):
+            self._mark(sid, "handler_reached", True)
+
+    def mark_candidate_loop_reached(self, signal_id):
+        self._mark(signal_id, "candidate_loop_reached", True)
+
+    def mark_handler_eligible(self, signal_id, value=True):
+        self._mark(signal_id, "handler_eligible", value)
+
+    def mark_branch_eligible(self, signal_id, value=True):
+        self._mark(signal_id, "branch_eligible", value)
+
+    def mark_qualified_for_ranking(self, signal_id, payload=None):
+        self._mark(signal_id, "qualified_for_ranking", True)
+        if payload is not None and signal_id in self.signals_by_id:
+            self.signals_by_id[signal_id]["branch_payload"] = json.dumps(payload, ensure_ascii=False)
+
+    def mark_ranked(self, signal_id, rank=None, score=None):
+        row = self.signals_by_id.get(signal_id)
+        if row:
+            row["participated_in_ranking"] = True
+            row["final_candidate_rank"] = rank
+            payload = {}
+            try:
+                payload = json.loads(row.get("branch_payload") or "{}")
+            except Exception:
+                payload = {}
+            if score is not None:
+                payload["score"] = score
+            row["branch_payload"] = json.dumps(payload, ensure_ascii=False)
+
+    def mark_selected_for_order(self, signal_id):
+        self._mark(signal_id, "selected_for_order", True)
+
+    def set_terminal_once(self, signal_id: str, terminal_state: str, reason_code=None, decision_seq=None):
+        row = self.signals_by_id.get(signal_id)
+        if not row:
+            return
+        old = row.get("terminal_state")
+        if old == "FILLED":
+            return
+        if old and old != "UNRESOLVED" and old != terminal_state:
+            raise RuntimeError(f"terminal conflict for {signal_id}: {old} -> {terminal_state}")
+        row["terminal_state"] = terminal_state
+        row["terminal_reason_code"] = reason_code
+        row["terminal_decision_seq"] = decision_seq
+
+    def emit_loop_stop(self, context, g, branch, handler, stop_type, stop_reason, candidate_index=None,
+                       bought_count=None, take=None, slots=None, affected_signal_ids=None):
+        affected = affected_signal_ids or []
+        row = {
+            "schema_version": SCHEMA_VERSION,
+            "branch": branch,
+            "date": _date(context),
+            "handler": handler,
+            "stop_type": stop_type,
+            "stop_reason": stop_reason,
+            "candidate_index": candidate_index,
+            "bought_count": bought_count,
+            "take": take,
+            "slots": slots,
+            "available_cash": float(getattr(context.portfolio, "available_cash", 0.0)),
+            "remaining_candidate_count": len(affected),
+            "affected_signal_ids": json.dumps(affected, ensure_ascii=False),
+        }
+        self.loop_stop_events.append(row)
+        for sid in affected:
+            sig = self.signals_by_id.get(sid)
+            if sig:
+                sig["loop_stop_reason"] = stop_reason
+                seq = self.emit_decision(sid, context, g, "LOOP_CONTROL", stop_type, stop_reason, False, stop_reason, handler)
+                term = "SLOT_BLOCKED" if stop_reason in ("SLOTS_FILLED", "TAKE_FILLED") else "NOT_EVALUATED_AFTER_STOP"
+                self.set_terminal_once(sid, term, stop_reason, seq)
+
+    def emit_block(self, signal_id, context, g, terminal, reason, stage="BRANCH_FILTER", detail=None, **extra):
+        seq = self.emit_decision(signal_id, context, g, stage, reason, False, False, reason, detail or reason, **extra)
+        self.set_terminal_once(signal_id, terminal, reason, seq)
+        if terminal == "POSITION_BLOCKED":
+            self.position_block_events.append({
+                "schema_version": SCHEMA_VERSION,
+                "signal_id": signal_id,
+                "code": self.signals_by_id.get(signal_id, {}).get("code"),
+                "reason_code": reason,
+                "detail": detail,
+            })
+        return seq
 
     def emit_order_intent(self, context, g, order_func: str, security: str, requested_value=None, requested_amount=None, style=None):
         handler = self.current_handler
@@ -275,12 +356,7 @@ class AttributionObserver:
             side = "sell"
         if requested_value is not None and requested_value <= 0:
             side = "sell"
-        if branch is None and side == "buy":
-            return None
-        if side == "buy":
-            signal_id = self._ensure_signal(context, g, branch, security, prepared=False)
-        else:
-            signal_id = None
+        signal_id = self.signal_id_for(context, g, branch, security) if branch and side == "buy" else None
         self._intent_seq += 1
         token = f"intent_{self._intent_seq}"
         intent = {
@@ -300,6 +376,7 @@ class AttributionObserver:
         self._intent_by_token[token] = intent
         self.order_intents.append(intent)
         if signal_id:
+            self.mark_selected_for_order(signal_id)
             self.emit_decision(signal_id, context, g, "ORDER_CREATION", "order_intent", order_func, True, selected_for_order=True)
         return token
 
@@ -323,11 +400,12 @@ class AttributionObserver:
         if order_id and signal_id:
             self.order_to_signal[order_id] = signal_id
         if signal_id and order is None:
-            self.set_terminal(signal_id, "ORDER_REJECTED")
+            self.order_none_events.append({"schema_version": SCHEMA_VERSION, "signal_id": signal_id, "reason_code": "UNKNOWN_ORDER_NONE"})
+            self.set_terminal_once(signal_id, "ORDER_NOT_CREATED", "UNKNOWN_ORDER_NONE")
         elif signal_id and status == "rejected":
-            self.set_terminal(signal_id, "ORDER_REJECTED")
+            self.set_terminal_once(signal_id, "ORDER_REJECTED", "ORDER_REJECTED")
 
-    def finalize(self, engine=None, out_dir: str | Path | None = None):
+    def finalize(self, engine=None, out_dir: str | None = None):
         if engine is not None:
             self.engine = engine
         open_lots = defaultdict(list)
@@ -340,7 +418,7 @@ class AttributionObserver:
                 if not signal_id:
                     self.unmapped_buy_trades.append(trade)
                     continue
-                self.set_terminal(signal_id, "FILLED")
+                self.set_terminal_once(signal_id, "FILLED", "FILLED")
                 order = getattr(engine, "orders", {}).get(order_id)
                 requested = abs(float(getattr(order, "amount", amount) or amount)) if order is not None else abs(amount)
                 filled = abs(float(getattr(order, "filled", amount) or amount)) if order is not None else abs(amount)
@@ -399,21 +477,21 @@ class AttributionObserver:
         return self.audit_summary()
 
     def audit_summary(self):
-        buy_trades = len([x for x in self.trade_outcomes if x.get("entry_amount", 0) > 0])
-        sell_traced = len(self.sell_trace_rows)
         states = defaultdict(int)
         for row in self.signal_events:
             states[row.get("terminal_state") or "UNRESOLVED"] += 1
+        total = len(self.signal_events)
+        unresolved = states.get("UNRESOLVED", 0)
         return {
-            "signal_events": len(self.signal_events),
+            "signal_events": total,
             "decision_events": len(self.decision_events),
             "trade_outcomes": len(self.trade_outcomes),
             "handler_snapshots": len(self.handler_snapshots),
-            "mapped_buy_trades": buy_trades,
+            "mapped_buy_trades": len([x for x in self.trade_outcomes if x.get("entry_amount", 0) > 0]),
             "unmapped_buy_trades": len(self.unmapped_buy_trades),
-            "mapped_sell_allocations": sell_traced,
+            "mapped_sell_allocations": len(self.sell_trace_rows),
             "unmapped_sell_trades": len(self.unmapped_sell_trades),
             "terminal_states": dict(sorted(states.items())),
+            "closure_rate": 1.0 - unresolved / max(1, total),
+            "unresolved": unresolved,
         }
-
-
