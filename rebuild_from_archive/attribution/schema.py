@@ -1,6 +1,6 @@
-﻿"""Attribution schema constants for motherboard Phase 1A."""
+﻿"""Attribution schema constants for motherboard Phase 1B."""
 
-SCHEMA_VERSION = "0.2"
+SCHEMA_VERSION = "0.3"
 
 BRANCH_VARIANTS = {
     "YJJ": "YJJ_PREPARED",
@@ -44,13 +44,16 @@ BRANCH_SLOT_ATTR = {
 
 TERMINAL_STATES = [
     "FILLED",
-    "FILTERED",
+    "BRANCH_FILTERED",
+    "MOTHERBOARD_GATED_OUT",
     "ROUTED_OUT",
     "RANKED_OUT",
     "SLOT_BLOCKED",
     "CASH_BLOCKED",
+    "POSITION_BLOCKED",
     "ORDER_NOT_CREATED",
     "ORDER_REJECTED",
     "DATA_INVALID",
+    "NOT_EVALUATED_AFTER_STOP",
     "UNRESOLVED",
 ]

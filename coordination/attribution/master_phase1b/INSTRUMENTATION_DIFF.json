@@ -1,0 +1,8 @@
+{
+  "formal_strategy": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase1b-v1\\母版-20260506-Clone.py",
+  "instrumented_strategy": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase1b-v1\\research\\instrumented_strategies\\motherboard_phase1b_observed.py",
+  "formal_sha256": "621a9c968473d73dfa1699be0a16714790e4f93ab950957c0a3f88f4f34bcc8e",
+  "instrumented_sha256": "369b5598d3c225b84c4472ce639ac5478d18a999c77334d639322e474beb3193",
+  "prelude_and_overrides_removed_match_formal": true,
+  "allowed_difference": "attribution prelude plus end-of-file buy-handler overrides only"
+}

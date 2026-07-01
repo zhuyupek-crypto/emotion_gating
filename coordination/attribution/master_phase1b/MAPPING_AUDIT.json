@@ -1,0 +1,26 @@
+{
+  "signal_events": 909,
+  "decision_events": 1687,
+  "trade_outcomes": 45,
+  "handler_snapshots": 2242,
+  "mapped_buy_trades": 45,
+  "unmapped_buy_trades": 0,
+  "mapped_sell_allocations": 43,
+  "unmapped_sell_trades": 0,
+  "terminal_states": {
+    "BRANCH_FILTERED": 362,
+    "CASH_BLOCKED": 23,
+    "FILLED": 45,
+    "MOTHERBOARD_GATED_OUT": 143,
+    "POSITION_BLOCKED": 1,
+    "ROUTED_OUT": 131,
+    "SLOT_BLOCKED": 204
+  },
+  "closure_rate": 1.0,
+  "unresolved": 0,
+  "buy_trade_mapping_rate": 1.0,
+  "sell_trace_unmapped_count": 0,
+  "order_to_handler_mapped": 87,
+  "engine_order_count": 87,
+  "order_to_handler_mapping_rate": 1.0
+}
