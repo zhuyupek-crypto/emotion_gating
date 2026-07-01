@@ -1,0 +1,10 @@
+{
+  "signal_events": 909,
+  "closed_events": 909,
+  "unresolved_events": 0,
+  "unresolved_rate": 0.0,
+  "duplicate_signal_keys": [],
+  "duplicate_signal_key_count": 0,
+  "all_have_terminal_state": true,
+  "all_have_v03_key": true
+}

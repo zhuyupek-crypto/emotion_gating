@@ -1,0 +1,6 @@
+branch,signal_events,prepared_candidate,handler_reached,candidate_loop_reached,handler_eligible,branch_eligible,qualified_for_ranking,participated_in_ranking,selected_for_order,filled,unresolved
+Auction,501,501,501,270,269,269,9,9,9,9,0
+RZQ,61,61,61,11,6,6,5,5,5,5,0
+Scorpion,30,30,30,30,1,1,0,0,1,1,0
+YJJ,89,89,89,27,14,14,0,0,14,12,0
+ZB,228,228,228,119,99,99,65,65,18,18,0

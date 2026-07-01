@@ -1,0 +1,12 @@
+{
+  "phase1b_dir": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase1b-v1\\coordination\\attribution\\master_phase1b",
+  "available": true,
+  "trades_equal": true,
+  "orders_equal": true,
+  "signal_set_source": "full",
+  "signal_keys_equal": true,
+  "phase1b_signal_keys": 909,
+  "phase1c_signal_keys": 909,
+  "phase1b_minus_phase1c_sample": [],
+  "phase1c_minus_phase1b_sample": []
+}

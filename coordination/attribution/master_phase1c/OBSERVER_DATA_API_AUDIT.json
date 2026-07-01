@@ -1,0 +1,13 @@
+{
+  "observer_forbidden_data_api_call_count": 0,
+  "hits": {
+    "history(": 0,
+    "attribute_history(": 0,
+    "get_price(": 0,
+    "get_fundamentals(": 0,
+    "get_billboard_list(": 0,
+    "get_call_auction(": 0,
+    "get_project_board_snapshot(": 0,
+    "get_project_auction_yiqian_prepare(": 0
+  }
+}

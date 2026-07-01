@@ -1,0 +1,109 @@
+{
+  "generated_at": "2026-07-01T21:10:23.198641",
+  "start": "2023-01-01",
+  "end": "2023-03-31",
+  "branch": "codex/motherboard-attribution-phase1c-v1",
+  "commit": "442c045d3e8ba20f566b44780f498652b84149ff",
+  "formal_strategy_commit": "442c045d3e8ba20f566b44780f498652b84149ff",
+  "formal_strategy_sha256": "621a9c968473d73dfa1699be0a16714790e4f93ab950957c0a3f88f4f34bcc8e",
+  "instrumented_strategy_commit": "442c045d3e8ba20f566b44780f498652b84149ff",
+  "instrumented_strategy_sha256": "5bccedf12c696c17217c81d877a3cd215e4e11abbc44369f69b872259ccfc513",
+  "observer_commit": "442c045d3e8ba20f566b44780f498652b84149ff",
+  "downstream_schema_version": "0.3",
+  "upstream_schema_version": "0.4",
+  "status": "PASS",
+  "artifacts": {
+    "SIGNAL_EVENT": {
+      "path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase1c-v1\\coordination\\attribution\\master_phase1c\\SIGNAL_EVENT.parquet",
+      "rows": 909,
+      "columns": 42,
+      "size_bytes": 49922,
+      "sha256": "116f5d67f970813d7453db52862f793f81aceddc141552ce4294be9eba035454"
+    },
+    "DECISION_EVENT": {
+      "path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase1c-v1\\coordination\\attribution\\master_phase1c\\DECISION_EVENT.csv",
+      "rows": 1687,
+      "columns": 27,
+      "size_bytes": 368413,
+      "sha256": "1bbb1650b9c5231096d528c5f35f9db71af74531571aef836f930f98587ffd85"
+    },
+    "TRADE_OUTCOME": {
+      "path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase1c-v1\\coordination\\attribution\\master_phase1c\\TRADE_OUTCOME.parquet",
+      "rows": 45,
+      "columns": 27,
+      "size_bytes": 18213,
+      "sha256": "125debe0b31f277fb7f010d105392f7fd7431b272a57946a5983d92375a056f3"
+    },
+    "HANDLER_RESOURCE_SNAPSHOT": {
+      "path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase1c-v1\\coordination\\attribution\\master_phase1c\\HANDLER_RESOURCE_SNAPSHOT.parquet",
+      "rows": 2242,
+      "columns": 19,
+      "size_bytes": 28319,
+      "sha256": "3730c1a9b9478828d33f8cee3607a69a9756beba9a626a9df967079184651583"
+    },
+    "ORDER_INTENT": {
+      "path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase1c-v1\\coordination\\attribution\\master_phase1c\\ORDER_INTENT.parquet",
+      "rows": 87,
+      "columns": 16,
+      "size_bytes": 14093,
+      "sha256": "ee20d92820d6295c355fa93b74aa753c7445c9c3e0cd96f349b0d36a9282cb0a"
+    },
+    "LOOP_STOP_EVENT": {
+      "path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase1c-v1\\coordination\\attribution\\master_phase1c\\LOOP_STOP_EVENT.parquet",
+      "rows": 8,
+      "columns": 13,
+      "size_bytes": 8730,
+      "sha256": "1f647fbe25b3e045682af9a0bcffa0dec08ad1fb9427676ccb7a0b4588d85e79"
+    },
+    "POSITION_BLOCK_AUDIT": {
+      "path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase1c-v1\\coordination\\attribution\\master_phase1c\\POSITION_BLOCK_AUDIT.parquet",
+      "rows": 1,
+      "columns": 5,
+      "size_bytes": 3634,
+      "sha256": "22528029879d678abc887641be60bdf2bf596a246e504362260721fc2eb97a38"
+    },
+    "ORDER_NONE_AUDIT": {
+      "path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase1c-v1\\coordination\\attribution\\master_phase1c\\ORDER_NONE_AUDIT.parquet",
+      "rows": 0,
+      "columns": 0,
+      "size_bytes": 636,
+      "sha256": "1e383cc9ffde614c9ecb02e65d7b1c8be5fa9aac7018019c475f695291a38855"
+    },
+    "ATOMIC_EVENT_WIDE": {
+      "path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase1c-v1\\coordination\\attribution\\master_phase1c\\ATOMIC_EVENT_WIDE.parquet",
+      "rows": 909,
+      "columns": 21,
+      "size_bytes": 20969,
+      "sha256": "ec4a65b44eca085a620303b598ecc2d381bec0a7134566d0acc09eb602647bd0"
+    },
+    "SCAN_RUN_EVENT": {
+      "path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase1c-v1\\coordination\\attribution\\master_phase1c\\SCAN_RUN_EVENT.parquet",
+      "rows": 295,
+      "columns": 25,
+      "size_bytes": 19799,
+      "sha256": "8062eb007224f119eb56a8f7be197ad866c89f28b5ca11165a89539b949c30bb"
+    },
+    "RAW_PATTERN_EVENT": {
+      "path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase1c-v1\\coordination\\attribution\\master_phase1c\\RAW_PATTERN_EVENT.parquet",
+      "rows": 909,
+      "columns": 21,
+      "size_bytes": 75541,
+      "sha256": "96ec67e3133c9e66071a0d9aae1d7a56e4571a3fc3cd0394b331779493546039"
+    },
+    "SCAN_DECISION_EVENT": {
+      "path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase1c-v1\\coordination\\attribution\\master_phase1c\\SCAN_DECISION_EVENT.parquet",
+      "rows": 909,
+      "columns": 13,
+      "size_bytes": 17961,
+      "sha256": "dd01a3da49d789615095abd1c3f7fc0d6eae638ba3c590bfd5d10e5c249d1a61"
+    },
+    "PATTERN_PREPARED_ALIGNMENT": {
+      "path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase1c-v1\\coordination\\attribution\\master_phase1c\\PATTERN_PREPARED_ALIGNMENT.parquet",
+      "rows": 909,
+      "columns": 10,
+      "size_bytes": 31793,
+      "sha256": "ab270e2eddd04a20c08c92686aa5dabd857205907bdf58b3dd0feaf6ea5a0a78"
+    }
+  },
+  "command": "python research/run_motherboard_phase1c.py --start 2023-01-01 --end 2023-03-31"
+}

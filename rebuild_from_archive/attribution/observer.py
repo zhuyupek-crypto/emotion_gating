@@ -495,3 +495,315 @@ class AttributionObserver:
             "closure_rate": 1.0 - unresolved / max(1, total),
             "unresolved": unresolved,
         }
+
+# === PHASE1C_UPSTREAM_EXTENSION_BEGIN ===
+def _phase1c_upstream_version():
+    try:
+        from .schema import UPSTREAM_SCHEMA_VERSION
+        return UPSTREAM_SCHEMA_VERSION
+    except Exception:
+        return "0.4"
+
+
+def _phase1c_branches():
+    try:
+        from .schema import BRANCHES
+        return BRANCHES
+    except Exception:
+        return ["YJJ", "Scorpion", "RZQ", "ZB", "Auction"]
+
+
+def _phase1c_prepared_attr(branch):
+    try:
+        from .schema import BRANCH_CANDIDATE_ATTR
+        return BRANCH_CANDIDATE_ATTR[branch]
+    except Exception:
+        return {
+            "YJJ": "yjj_candidates",
+            "Scorpion": "bear_candidates",
+            "RZQ": "rzq_candidates",
+            "ZB": "zb_candidates",
+            "Auction": "auction_yiqian_candidates",
+        }[branch]
+
+
+def _phase1c_signal_variant(branch):
+    try:
+        from .schema import BRANCH_VARIANTS
+        return BRANCH_VARIANTS[branch]
+    except Exception:
+        return branch.upper() + "_PREPARED"
+
+
+def _phase1c_json(payload):
+    try:
+        return json.dumps(payload or {}, ensure_ascii=False, sort_keys=True, default=str)
+    except Exception:
+        return "{}"
+
+
+def _phase1c_init(self):
+    if hasattr(self, "scan_run_events"):
+        return
+    self.scan_run_events = []
+    self.raw_pattern_events = []
+    self.scan_decision_events = []
+    self.pattern_prepared_alignment = []
+    self.scan_run_index = {}
+    self.raw_pattern_index = {}
+    self._scan_decision_seq = defaultdict(int)
+
+
+def _phase1c_pass_month(context):
+    try:
+        return bool(_is_pass_month(context))  # type: ignore[name-defined]
+    except Exception:
+        return None
+
+
+def _phase1c_start_scan_day(self, context, g):
+    _phase1c_init(self)
+    date = _date(context)
+    for branch in _phase1c_branches():
+        key = (date, branch)
+        if key in self.scan_run_index:
+            continue
+        scan_run_id = f"{branch}|{date}|MAIN"
+        row = {
+            "schema_version": _phase1c_upstream_version(),
+            "scan_run_id": scan_run_id,
+            "scan_subrun_id": None,
+            "trade_date": date,
+            "branch": branch,
+            "scanner_function": None,
+            "scanner_invoked": False,
+            "scan_status": "NOT_CALLED_BY_CONTROL_FLOW",
+            "control_flow_reason": "not called by motherboard control flow",
+            "source_mode": "NOT_APPLICABLE",
+            "source_path": None,
+            "source_timestamp": None,
+            "source_coverage": "NOT_RUN",
+            "market_mode": getattr(g, "market_mode", None),
+            "raw_market_mode": getattr(g, "raw_market_mode", None),
+            "active_route": getattr(g, "active", None),
+            "pass_month": _phase1c_pass_month(context),
+            "source_universe_count": None,
+            "raw_pattern_count": None,
+            "source_limited_prepared_record_count": 0,
+            "prepared_candidate_count": 0,
+            "error_type": None,
+            "error_detail": None,
+            "formal_strategy_commit": self.formal_strategy_commit,
+            "instrumented_strategy_commit": self.instrumented_strategy_commit,
+        }
+        self.scan_run_events.append(row)
+        self.scan_run_index[key] = row
+
+
+def _phase1c_scan_row(self, context, branch):
+    _phase1c_init(self)
+    key = (_date(context), branch)
+    row = self.scan_run_index.get(key)
+    if row is None:
+        self.start_scan_day(context, None)
+        row = self.scan_run_index[key]
+    return row
+
+
+def _phase1c_update_scan_run(self, context, g, branch, scanner_function=None, scanner_invoked=True,
+                             scan_status=None, control_flow_reason=None, source_mode=None,
+                             source_path=None, source_timestamp=None, source_coverage=None,
+                             source_universe_count=None, raw_pattern_count="__KEEP__",
+                             source_limited_prepared_record_count="__KEEP__", prepared_candidate_count=None,
+                             error_type=None, error_detail=None):
+    row = self._phase1c_scan_row(context, branch)
+    row["scanner_invoked"] = bool(scanner_invoked)
+    if scanner_function is not None:
+        row["scanner_function"] = scanner_function
+    if scan_status is not None:
+        row["scan_status"] = scan_status
+    elif scanner_invoked and row.get("scan_status") == "NOT_CALLED_BY_CONTROL_FLOW":
+        row["scan_status"] = "EXECUTED_EMPTY"
+    if control_flow_reason is not None:
+        row["control_flow_reason"] = control_flow_reason
+    if source_mode is not None:
+        row["source_mode"] = source_mode
+    if source_path is not None:
+        row["source_path"] = source_path
+    if source_timestamp is not None:
+        row["source_timestamp"] = str(source_timestamp)
+    if source_coverage is not None:
+        row["source_coverage"] = source_coverage
+    elif scanner_invoked and row.get("source_coverage") == "NOT_RUN":
+        row["source_coverage"] = "COMPLETE_ACTUAL_PATH"
+    if source_universe_count is not None:
+        row["source_universe_count"] = source_universe_count
+    if raw_pattern_count != "__KEEP__":
+        row["raw_pattern_count"] = raw_pattern_count
+    if source_limited_prepared_record_count != "__KEEP__":
+        row["source_limited_prepared_record_count"] = source_limited_prepared_record_count
+    if prepared_candidate_count is not None:
+        row["prepared_candidate_count"] = prepared_candidate_count
+    row["market_mode"] = getattr(g, "market_mode", None)
+    row["raw_market_mode"] = getattr(g, "raw_market_mode", None)
+    row["active_route"] = getattr(g, "active", None)
+    row["pass_month"] = _phase1c_pass_month(context)
+    if error_type is not None:
+        row["error_type"] = error_type
+    if error_detail is not None:
+        row["error_detail"] = str(error_detail)
+    return row
+
+
+def _phase1c_prepared_signal_id(self, context, branch, code):
+    return f"{branch}|{_date(context)}|{code}|{_phase1c_signal_variant(branch)}"
+
+
+def _phase1c_pattern_id(self, context, branch, code, pattern_variant):
+    return f"{branch}|{_date(context)}|{code}|{pattern_variant}"
+
+
+def _phase1c_emit_raw_pattern(self, context, g, branch, code, pattern_variant,
+                              record_type="OBSERVED_RAW_PATTERN", pattern_detected=True,
+                              source_mode=None, source_row_identity=None, source_coverage="COMPLETE_ACTUAL_PATH",
+                              payload=None, prepared_signal_id=None, survived_to_prepared=False,
+                              scan_terminal_state="UNRESOLVED", scan_terminal_reason=None,
+                              pattern_time=None, declared_pattern_variant=None):
+    _phase1c_init(self)
+    pattern_id = self.pattern_id_for(context, branch, code, pattern_variant)
+    if pattern_id in self.raw_pattern_index:
+        row = self.raw_pattern_index[pattern_id]
+        if prepared_signal_id is not None:
+            row["prepared_signal_id"] = prepared_signal_id
+        row["survived_to_prepared"] = bool(survived_to_prepared)
+        row["scan_terminal_state"] = scan_terminal_state
+        row["scan_terminal_reason"] = scan_terminal_reason
+        return pattern_id
+    scan_run = self._phase1c_scan_row(context, branch)
+    row = {
+        "schema_version": _phase1c_upstream_version(),
+        "record_type": record_type,
+        "pattern_id": pattern_id,
+        "scan_run_id": scan_run.get("scan_run_id"),
+        "trade_date": _date(context),
+        "code": code,
+        "branch": branch,
+        "pattern_variant": pattern_variant,
+        "declared_pattern_variant": declared_pattern_variant,
+        "pattern_time": pattern_time,
+        "source_mode": source_mode or scan_run.get("source_mode"),
+        "source_row_identity": source_row_identity,
+        "source_coverage": source_coverage,
+        "pattern_detected": pattern_detected,
+        "pattern_payload": _phase1c_json(payload),
+        "prepared_signal_id": prepared_signal_id,
+        "survived_to_prepared": bool(survived_to_prepared),
+        "scan_terminal_state": scan_terminal_state,
+        "scan_terminal_reason": scan_terminal_reason,
+        "formal_strategy_commit": self.formal_strategy_commit,
+        "instrumented_strategy_commit": self.instrumented_strategy_commit,
+    }
+    self.raw_pattern_events.append(row)
+    self.raw_pattern_index[pattern_id] = row
+    return pattern_id
+
+
+def _phase1c_emit_scan_decision(self, pattern_id, stage, name, value, passed, reason_code=None,
+                                reason_detail=None, all_failed_reasons=None, source_function=None, source_line=None):
+    _phase1c_init(self)
+    self._scan_decision_seq[pattern_id] += 1
+    self.scan_decision_events.append({
+        "schema_version": _phase1c_upstream_version(),
+        "pattern_id": pattern_id,
+        "decision_seq": self._scan_decision_seq[pattern_id],
+        "decision_stage": stage,
+        "decision_name": name,
+        "decision_value": value,
+        "passed": bool(passed),
+        "reason_code": reason_code,
+        "reason_detail": reason_detail,
+        "all_failed_reasons": _phase1c_json(all_failed_reasons or []),
+        "primary_reason_order": _phase1c_json(all_failed_reasons or []),
+        "source_function": source_function,
+        "source_line": source_line,
+    })
+
+
+def _phase1c_align_pattern(self, context, branch, code, pattern_variant, prepared_signal_id,
+                           status="ONE_TO_ONE", reason=None, prepared_variant=None):
+    _phase1c_init(self)
+    pattern_id = self.pattern_id_for(context, branch, code, pattern_variant)
+    self.pattern_prepared_alignment.append({
+        "schema_version": _phase1c_upstream_version(),
+        "pattern_id": pattern_id,
+        "prepared_signal_id": prepared_signal_id,
+        "trade_date": _date(context),
+        "code": code,
+        "branch": branch,
+        "pattern_variant": pattern_variant,
+        "prepared_variant": prepared_variant or _phase1c_signal_variant(branch),
+        "alignment_status": status,
+        "alignment_reason": reason,
+    })
+
+
+def _phase1c_finalize_scan_day(self, context, g):
+    _phase1c_init(self)
+    for branch in _phase1c_branches():
+        row = self._phase1c_scan_row(context, branch)
+        try:
+            count = len(getattr(g, _phase1c_prepared_attr(branch), []) or [])
+        except Exception:
+            count = 0
+        row["prepared_candidate_count"] = count
+        if row.get("scanner_invoked") and row.get("raw_pattern_count") is None and row.get("scan_status") not in ("SOURCE_LIMITED", "SOURCE_ERROR"):
+            observed = [r for r in self.raw_pattern_events if r.get("scan_run_id") == row.get("scan_run_id") and r.get("record_type") == "OBSERVED_RAW_PATTERN"]
+            row["raw_pattern_count"] = len(observed)
+            if row.get("scan_status") in (None, "EXECUTED_EMPTY") and observed:
+                row["scan_status"] = "EXECUTED"
+            elif row.get("scan_status") in (None, "EXECUTED") and not observed:
+                row["scan_status"] = "EXECUTED_EMPTY"
+
+
+def _phase1c_upstream_audit(self):
+    _phase1c_init(self)
+    total_scan = len(self.scan_run_events)
+    scan_status = defaultdict(int)
+    source_mode = defaultdict(int)
+    for row in self.scan_run_events:
+        scan_status[row.get("scan_status")] += 1
+        source_mode[row.get("source_mode")] += 1
+    raw_term = defaultdict(int)
+    record_type = defaultdict(int)
+    for row in self.raw_pattern_events:
+        raw_term[row.get("scan_terminal_state")] += 1
+        record_type[row.get("record_type")] += 1
+    not_called = [r for r in self.scan_run_events if r.get("scan_status") == "NOT_CALLED_BY_CONTROL_FLOW"]
+    null_ok = [r for r in not_called if r.get("raw_pattern_count") is None]
+    unique_keys = {(r.get("trade_date"), r.get("branch")) for r in self.scan_run_events}
+    return {
+        "scan_run_events": total_scan,
+        "unique_trade_date_branch": len(unique_keys),
+        "scan_status": dict(sorted(scan_status.items())),
+        "source_mode": dict(sorted(source_mode.items())),
+        "raw_pattern_events": len(self.raw_pattern_events),
+        "raw_terminal_states": dict(sorted(raw_term.items())),
+        "record_types": dict(sorted(record_type.items())),
+        "not_called_raw_pattern_null_rate": len(null_ok) / max(1, len(not_called)),
+        "alignment_rows": len(self.pattern_prepared_alignment),
+    }
+
+
+AttributionObserver._phase1c_init = _phase1c_init
+AttributionObserver.start_scan_day = _phase1c_start_scan_day
+AttributionObserver._phase1c_scan_row = _phase1c_scan_row
+AttributionObserver.update_scan_run = _phase1c_update_scan_run
+AttributionObserver.prepared_signal_id_for = _phase1c_prepared_signal_id
+AttributionObserver.pattern_id_for = _phase1c_pattern_id
+AttributionObserver.emit_raw_pattern = _phase1c_emit_raw_pattern
+AttributionObserver.emit_scan_decision = _phase1c_emit_scan_decision
+AttributionObserver.align_pattern_prepared = _phase1c_align_pattern
+AttributionObserver.finalize_scan_day = _phase1c_finalize_scan_day
+AttributionObserver.upstream_audit = _phase1c_upstream_audit
+# === PHASE1C_UPSTREAM_EXTENSION_END ===
+

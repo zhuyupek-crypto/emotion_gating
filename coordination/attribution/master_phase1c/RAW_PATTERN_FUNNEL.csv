@@ -1,0 +1,6 @@
+branch,raw_pattern_event_rows,observed_raw_pattern_count,source_limited_prepared_record_count,prepared_count,source_limited_count,unresolved_count,observed_pattern_parent_mapping_rate,source_record_parent_mapping_rate,source_limited_ratio
+Auction,501,0,501,0,501,0,,1.0,1.0
+RZQ,61,61,0,61,0,0,1.0,,0.0
+Scorpion,30,30,0,30,0,0,1.0,,0.0
+YJJ,89,89,0,89,0,0,1.0,,0.0
+ZB,228,228,0,228,0,0,1.0,,0.0

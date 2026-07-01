@@ -150,3 +150,54 @@ fill_status = FULL / PARTIAL
 ```
 
 No counterfactual EV or Alpha Matrix fields are produced in Phase 1B.
+
+# Phase 1C Upstream Extension
+
+Phase 1C adds upstream scan/source attribution using a split version strategy:
+
+```text
+upstream tables: schema_version = 0.4
+downstream Phase 1B tables: schema_version = 0.3
+```
+
+Downstream tables (`SIGNAL_EVENT`, `DECISION_EVENT`, `TRADE_OUTCOME`, `ATOMIC_EVENT_WIDE`, `HANDLER_RESOURCE_SNAPSHOT`) keep Phase 1B semantics unchanged.
+
+## SCAN_RUN_EVENT
+
+One main row exists for every `trade_date x branch`, initialized from `prepare_all` before scanner control flow. If a scanner is not called by the motherboard control flow:
+
+```text
+scanner_invoked = false
+scan_status = NOT_CALLED_BY_CONTROL_FLOW
+source_mode = NOT_APPLICABLE
+source_coverage = NOT_RUN
+raw_pattern_count = null
+prepared_candidate_count = 0
+```
+
+`raw_pattern_count = null` means the scanner did not run; it must not be interpreted as zero raw patterns.
+
+## RAW_PATTERN_EVENT
+
+`record_type` distinguishes complete observed raw patterns from source-limited prepared records:
+
+```text
+OBSERVED_RAW_PATTERN
+SOURCE_LIMITED_PREPARED_RECORD
+```
+
+Auction cache rows that only expose final prepared candidates must use:
+
+```text
+record_type = SOURCE_LIMITED_PREPARED_RECORD
+pattern_variant = AUCTION_CACHE_PREPARED_SOURCE
+pattern_detected = null
+source_coverage = PREPARED_ONLY
+scan_terminal_state = SOURCE_LIMITED
+```
+
+They do not count toward complete `raw_pattern_count`.
+
+## PATTERN_PREPARED_ALIGNMENT
+
+Prepared candidates from complete scan paths map to an observed raw-pattern parent. Prepared candidates from Auction cache paths map to a source-limited prepared record. Reports must keep these rates separate instead of merging them into one RAW_PATTERN mapping rate.
