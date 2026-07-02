@@ -1,0 +1,19 @@
+{
+  "label": "phase1c",
+  "worktree_root": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase1c-v1",
+  "current_commit": "52faf0b1df887ef7867cd7f2c2e7916a31939f8e",
+  "branch": "codex/motherboard-attribution-phase1c-v1",
+  "formal_strategy_sha256": "621a9c968473d73dfa1699be0a16714790e4f93ab950957c0a3f88f4f34bcc8e",
+  "instrumented_strategy_sha256": "5bccedf12c696c17217c81d877a3cd215e4e11abbc44369f69b872259ccfc513",
+  "engine_sha256": "0dd86bb0a000e6647e2dbd07abc480531c60fd47f1d21a2d1b0cc5eacca64100",
+  "data_api_sha256": "74b8a2b4507c8ada65cc0870fabae00250f1b8e568c8d64dd6b2e6fcc86a7a0e",
+  "compat_sha256": "bc0e2ae278ef5960cbf6a982ff616801c69c483bf7232a04190993401c0795e8",
+  "LOCALQUANT_DATA_ROOT": null,
+  "LOCALQUANT_HDATA_ROOT": null,
+  "DataAPI.data_root": "D:/work space/hdata/data/processed",
+  "EmotionGateJQCompat.project_root": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase1c-v1",
+  "python_version": "3.14.3 (tags/v3.14.3:323c59a, Feb  3 2026, 16:04:56) [MSC v.1944 64 bit (AMD64)]",
+  "platform": "Windows-10-10.0.19045-SP0",
+  "pandas_version": "3.0.1",
+  "numpy_version": "2.4.3"
+}

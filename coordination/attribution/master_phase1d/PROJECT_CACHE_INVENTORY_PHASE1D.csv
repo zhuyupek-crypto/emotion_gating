@@ -1,0 +1,6 @@
+﻿feature_name,relative_path,absolute_path,exists,size_bytes,row_count,date_min,date_max,sha256,git_tracked,git_ignored,historical_existence
+auction_yiqian_prepare,project_cache/features/auction_yiqian_prepare,D:\Work Space\他山之石\情绪门控\worktrees\motherboard-attribution-phase1d-auction-cache-v1\project_cache\features\auction_yiqian_prepare,False,,,,,,False,False,HISTORICAL_EXISTENCE_UNKNOWN
+board_snapshot,project_cache/features/board_snapshot,D:\Work Space\他山之石\情绪门控\worktrees\motherboard-attribution-phase1d-auction-cache-v1\project_cache\features\board_snapshot,False,,,,,,False,False,HISTORICAL_EXISTENCE_UNKNOWN
+master_prepare_index,project_cache/features/master_prepare_index,D:\Work Space\他山之石\情绪门控\worktrees\motherboard-attribution-phase1d-auction-cache-v1\project_cache\features\master_prepare_index,False,,,,,,False,False,HISTORICAL_EXISTENCE_UNKNOWN
+first_seal_time,project_cache/features/first_seal_time,D:\Work Space\他山之石\情绪门控\worktrees\motherboard-attribution-phase1d-auction-cache-v1\project_cache\features\first_seal_time,False,,,,,,False,False,HISTORICAL_EXISTENCE_UNKNOWN
+call_auction_by_date,project_cache/features/call_auction_by_date,D:\Work Space\他山之石\情绪门控\worktrees\motherboard-attribution-phase1d-auction-cache-v1\project_cache\features\call_auction_by_date,False,,,,,,False,False,HISTORICAL_EXISTENCE_UNKNOWN
