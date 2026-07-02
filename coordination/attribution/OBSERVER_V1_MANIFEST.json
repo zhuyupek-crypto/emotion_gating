@@ -1,10 +1,71 @@
 {
   "observer_contract_version": "1.0",
   "status": "PASS_AND_FREEZE",
-  "strategy_path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase1e-v1\\research\\instrumented_strategies\\motherboard_attribution_v1.py",
-  "strategy_sha256": "30761614fafffb2a1b88ebe88f0c1ab85e2d65cb8f006f92917a5da35b2e24be",
-  "schema_versions": {
-    "downstream": "0.3",
-    "upstream": "0.4"
-  }
+  "formal_strategy_sha256": "621a9c968473d73dfa1699be0a16714790e4f93ab950957c0a3f88f4f34bcc8e",
+  "instrumented_strategy_sha256": "30761614fafffb2a1b88ebe88f0c1ab85e2d65cb8f006f92917a5da35b2e24be",
+  "observer_schema_sha": {
+    "observer_py_sha256": "00cf71d3e6af54c720472e92c93d1ab2846ba94699494400af962bd8e617077a",
+    "schema_py_sha256": "6ea71c305fb0190e48621f085765a27eb26d4c6180d1afff0fec1ea754396690",
+    "downstream_schema_version": "0.3",
+    "upstream_schema_version": "0.4",
+    "contract_note": "Contract v1.0 is the combined downstream 0.3 + upstream 0.4 semantic contract."
+  },
+  "runtime_environment": "CODE_NATIVE_COMPUTED_ENVIRONMENT",
+  "data_root": "D:/work space/hdata/data/processed",
+  "forbidden_project_cache_features": [
+    "auction_yiqian_prepare",
+    "board_snapshot",
+    "master_prepare_index",
+    "first_seal_time",
+    "call_auction_by_date"
+  ],
+  "q1_hashes": {
+    "signal_key_sha256": "60cb1a92bcf14da9b9409a635ef3e29ba552de3133bdc588218c2126d979ebf5",
+    "terminal_state_sha256": "a24157da4db8a0c03afeff1d3021355ad9a38aeb5c3ff64f8ffed1bc8e4b9a9f",
+    "source_mode_sha256": "5e5d3d5f86856e82890f8e4238652b1177928b8a14cee14454a8ac6791ecca54"
+  },
+  "full_year_hashes": {
+    "signal_key_sha256": "2fee8ab8eb581a3a58c991bdbdb0bab5a47d18d0139464232a2d78f9025bf920",
+    "terminal_state_sha256": "318db96161b34ac1fa423cb34e4dc5da174cf073412deda6c76cd35ca236df0a",
+    "source_mode_sha256": "95b278b5f89076aeb8150a9ec1d651309416bc6c281d7914d9a697606ff0f5ec",
+    "raw_pattern_identity_sha256": "7e37fc3d9face7ff2abe0cb297433603ee3fb6c3470720bfeee4cd11b7136970",
+    "scan_run_identity_sha256": "45dccc14c15eda5518ad994e3e6eff40d31c847ccf54703017acbd26faadfd5d",
+    "order_lineage_sha256": "6488f771643bae71ab274b351c4dbbb0df27b2d5f6bf47bd1b42738561d69a09",
+    "trade_lineage_sha256": "4c92130234ee2898a388cf54ce94f9b23a96adc0371e9382ea83480074faeeff"
+  },
+  "supported_branches": [
+    "Auction",
+    "Scorpion",
+    "ZB",
+    "YJJ",
+    "RZQ"
+  ],
+  "terminal_states": [
+    "BRANCH_FILTERED",
+    "CASH_BLOCKED",
+    "DATA_INVALID",
+    "FILLED",
+    "MOTHERBOARD_GATED_OUT",
+    "POSITION_BLOCKED",
+    "RANKED_OUT",
+    "ROUTED_OUT",
+    "SLOT_BLOCKED"
+  ],
+  "source_modes": [
+    "AUCTION_PREPARE_COMPUTED",
+    "BILLBOARD_API",
+    "DAILY_PRICE_COMPUTED",
+    "NOT_APPLICABLE",
+    "PROJECT_AUCTION_PREPARE_CACHE",
+    "PROJECT_BOARD_SNAPSHOT"
+  ],
+  "evidence_scopes": [
+    "PREPARED_PARENT_ONLY"
+  ],
+  "known_limitations": [
+    "Independent emotion panel is not wired; emotion_* fields are empty.",
+    "Phase 1 validates 2023 only; 2018-2025 formal matrix is not run.",
+    "Current facts are MASTER_ACTUAL, not bare-branch counterfactual returns.",
+    "Most branch raw evidence is PREPARED_PARENT_ONLY, not exhaustive pre-prepared rejection universe."
+  ]
 }

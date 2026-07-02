@@ -219,5 +219,8 @@
       "rebuild_from_archive/jqdata_compat.py": "e45ee4932c4277cf30da2f16468c184673f0f22c75dfa531ed71b9b7d602c521",
       "D:\\work space\\hdata\\scripts\\core\\hdata_reader.py": "bbd4671ea342fcf206dfec5f4ada6da85dbcaf3df3a5bb7c3b1b1010f6d9e361"
     }
-  }
+  },
+  "phase1_contract_document_closure": "PASS",
+  "phase1": "CLOSED",
+  "phase2": "READY"
 }
