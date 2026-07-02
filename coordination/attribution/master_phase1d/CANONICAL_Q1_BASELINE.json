@@ -1,0 +1,23 @@
+{
+  "status": "COMPUTED_ENVIRONMENT_CANONICALIZED",
+  "signal_event_count": 531,
+  "signal_event_sha256": "ae32adf7cee73cc95a35b53868ece830cfe4fcde362886df451daa9735a85ad5",
+  "signal_key_sha256": "60cb1a92bcf14da9b9409a635ef3e29ba552de3133bdc588218c2126d979ebf5",
+  "terminal_state_sha256": "a24157da4db8a0c03afeff1d3021355ad9a38aeb5c3ff64f8ffed1bc8e4b9a9f",
+  "runtime_environment": "CODE_NATIVE_COMPUTED_ENVIRONMENT",
+  "project_root": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase1d-auction-cache-v1",
+  "data_root": "D:/work space/hdata/data/processed",
+  "project_cache_snapshot": null,
+  "project_cache_files": [],
+  "formal_strategy_sha256": "621a9c968473d73dfa1699be0a16714790e4f93ab950957c0a3f88f4f34bcc8e",
+  "instrumented_strategy_sha256": "fdc72f3172d8a3d994a0c32b8669b0b36d0a9406562df4bdd4106d06aec60fd2",
+  "observer_version": "phase1d-env-closure-002",
+  "repeat_run_count": 2,
+  "repeatable": true,
+  "supersedes": [
+    "Phase 1C archived attribution candidate counts/signals: SUPERSEDED_FOR_ATTRIBUTION"
+  ],
+  "source_mode_sha256": "5e5d3d5f86856e82890f8e4238652b1177928b8a14cee14454a8ac6791ecca54",
+  "repeat_reference_signal_key_sha256": "60cb1a92bcf14da9b9409a635ef3e29ba552de3133bdc588218c2126d979ebf5",
+  "repeat_reference_terminal_state_sha256": "a24157da4db8a0c03afeff1d3021355ad9a38aeb5c3ff64f8ffed1bc8e4b9a9f"
+}

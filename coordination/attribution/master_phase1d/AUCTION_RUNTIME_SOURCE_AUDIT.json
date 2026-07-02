@@ -1,0 +1,15 @@
+{
+  "conclusion": "COMPUTED_PATH_CONFIRMED",
+  "date_count": 51,
+  "provider_called_count": 51,
+  "provider_return_none": 51,
+  "provider_return_empty_dataframe": 0,
+  "provider_return_non_empty_dataframe": 0,
+  "actual_prepare_path_counts": {
+    "COMPUTED_FALLBACK": 51
+  },
+  "source_mode_counts": {
+    "AUCTION_PREPARE_COMPUTED": 51
+  },
+  "classification_rate": 1.0
+}

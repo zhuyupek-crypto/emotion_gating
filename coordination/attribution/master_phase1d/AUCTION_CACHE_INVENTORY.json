@@ -1,0 +1,139 @@
+{
+  "locations": [
+    {
+      "location": "phase1d_worktree",
+      "path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase1d-auction-cache-v1\\project_cache\\features\\auction_yiqian_prepare",
+      "exists": false,
+      "file": "",
+      "year": "",
+      "rows": "",
+      "sha256": "",
+      "note": "no parquet files found"
+    },
+    {
+      "location": "main_workspace",
+      "path": "D:\\Work Space\\他山之石\\情绪门控\\project_cache\\features\\auction_yiqian_prepare",
+      "exists": true,
+      "file": "2020.parquet",
+      "year": "2020",
+      "rows": 2559,
+      "date_min": 20200102,
+      "date_max": 20201231,
+      "size_bytes": 119865,
+      "mtime": "2026-06-11T10:25:02.365447",
+      "sha256": "7255cc00ab382417ec91315d31f518c4710cc885a7c06ec973067696d0055149"
+    },
+    {
+      "location": "main_workspace",
+      "path": "D:\\Work Space\\他山之石\\情绪门控\\project_cache\\features\\auction_yiqian_prepare",
+      "exists": true,
+      "file": "2021.parquet",
+      "year": "2021",
+      "rows": 3560,
+      "date_min": 20210104,
+      "date_max": 20211231,
+      "size_bytes": 159647,
+      "mtime": "2026-06-11T14:08:44.803897",
+      "sha256": "2484220f61eba6e4217974c3dd1964373ff3784fd7d399c3b5387370693c992c"
+    },
+    {
+      "location": "main_workspace",
+      "path": "D:\\Work Space\\他山之石\\情绪门控\\project_cache\\features\\auction_yiqian_prepare",
+      "exists": true,
+      "file": "2024.parquet",
+      "year": "2024",
+      "rows": 3114,
+      "date_min": 20240102,
+      "date_max": 20241231,
+      "size_bytes": 129976,
+      "mtime": "2026-06-17T00:46:32.731567",
+      "sha256": "68bdc7564815e96284520710d6d27617e788b90b66d2d4bd63af0ff78139b8a3"
+    },
+    {
+      "location": "main_workspace",
+      "path": "D:\\Work Space\\他山之石\\情绪门控\\project_cache\\features\\auction_yiqian_prepare",
+      "exists": true,
+      "file": "2025.parquet",
+      "year": "2025",
+      "rows": 4502,
+      "date_min": 20250102,
+      "date_max": 20251231,
+      "size_bytes": 181792,
+      "mtime": "2026-06-23T08:47:09.234177",
+      "sha256": "8b38c850186091bf74fec716571a4cc64b3d50e68c012bf5f152f25263207aea"
+    },
+    {
+      "location": "main_workspace",
+      "path": "D:\\Work Space\\他山之石\\情绪门控\\project_cache\\features\\auction_yiqian_prepare",
+      "exists": true,
+      "file": "2026.parquet",
+      "year": "2026",
+      "rows": 1838,
+      "date_min": 20260105,
+      "date_max": 20260525,
+      "size_bytes": 81236,
+      "mtime": "2026-06-17T01:37:01.117788",
+      "sha256": "bdf7cf469f3fd0fb72a81377b537ebc25a43516a9340c414cc021048725b933a"
+    },
+    {
+      "location": "sibling:motherboard-attribution-phase0-v1",
+      "path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase0-v1\\project_cache\\features\\auction_yiqian_prepare",
+      "exists": false,
+      "file": "",
+      "year": "",
+      "rows": "",
+      "sha256": "",
+      "note": "no parquet files found"
+    },
+    {
+      "location": "sibling:motherboard-attribution-phase1a-v1",
+      "path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase1a-v1\\project_cache\\features\\auction_yiqian_prepare",
+      "exists": false,
+      "file": "",
+      "year": "",
+      "rows": "",
+      "sha256": "",
+      "note": "no parquet files found"
+    },
+    {
+      "location": "sibling:motherboard-attribution-phase1b-v1",
+      "path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase1b-v1\\project_cache\\features\\auction_yiqian_prepare",
+      "exists": false,
+      "file": "",
+      "year": "",
+      "rows": "",
+      "sha256": "",
+      "note": "no parquet files found"
+    },
+    {
+      "location": "sibling:motherboard-attribution-phase1c-v1",
+      "path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase1c-v1\\project_cache\\features\\auction_yiqian_prepare",
+      "exists": false,
+      "file": "",
+      "year": "",
+      "rows": "",
+      "sha256": "",
+      "note": "no parquet files found"
+    },
+    {
+      "location": "sibling:performance-next-caches",
+      "path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\performance-next-caches\\project_cache\\features\\auction_yiqian_prepare",
+      "exists": false,
+      "file": "",
+      "year": "",
+      "rows": "",
+      "sha256": "",
+      "note": "no parquet files found"
+    },
+    {
+      "location": "sibling:scorpion-emotion-structure",
+      "path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\scorpion-emotion-structure\\project_cache\\features\\auction_yiqian_prepare",
+      "exists": false,
+      "file": "",
+      "year": "",
+      "rows": "",
+      "sha256": "",
+      "note": "no parquet files found"
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "behavior_parity": {
+    "B0_vs_I0": {
+      "trades_equal": true,
+      "orders_equal": true,
+      "equity_equal": true,
+      "state_equal": true,
+      "handler_profile_equal": true,
+      "final_value_ref": 1053321.5800000005,
+      "final_value_other": 1053321.5800000005,
+      "trade_count_ref": 87,
+      "trade_count_other": 87,
+      "order_count_ref": 87,
+      "order_count_other": 87
+    },
+    "B0_vs_I1": {
+      "trades_equal": true,
+      "orders_equal": true,
+      "equity_equal": true,
+      "state_equal": true,
+      "handler_profile_equal": true,
+      "final_value_ref": 1053321.5800000005,
+      "final_value_other": 1053321.5800000005,
+      "trade_count_ref": 87,
+      "trade_count_other": 87,
+      "order_count_ref": 87,
+      "order_count_other": 87
+    },
+    "all_behavior_equal": true
+  },
+  "signal_key_summary": {
+    "signal_key_count": 531,
+    "unique_signal_key_count": 531,
+    "all_have_terminal_state": true,
+    "terminal_state_counts": {
+      "BRANCH_FILTERED": 362,
+      "FILLED": 45,
+      "SLOT_BLOCKED": 35,
+      "MOTHERBOARD_GATED_OUT": 55,
+      "ROUTED_OUT": 10,
+      "CASH_BLOCKED": 23,
+      "POSITION_BLOCKED": 1
+    },
+    "phase1c_signal_key_count": 909,
+    "phase1c_signal_keys_equal": false
+  },
+  "observer_forbidden_data_api_call_count": 0,
+  "runtime_source_classification_rate": 1.0,
+  "phase1c_909_signal_keys_equal": false
+}

@@ -1,0 +1,6 @@
+﻿location,file,columns,missing_required_columns,extra_columns,duplicate_date_code,duplicate_date_rank,bad_kind_rows,max_rank,schema_status
+main_workspace,2020.parquet,date|previous_date|rank|code|kind|prev_money|prev_close|prev_volume|avg_inc|inc4|left_ok,,,0,0,0,40,PASS
+main_workspace,2021.parquet,date|previous_date|rank|code|kind|prev_money|prev_close|prev_volume|avg_inc|inc4|left_ok,,,0,0,0,40,PASS
+main_workspace,2024.parquet,date|previous_date|rank|code|kind|prev_money|prev_close|prev_volume|avg_inc|inc4|left_ok,,,0,0,0,40,PASS
+main_workspace,2025.parquet,date|previous_date|rank|code|kind|prev_money|prev_close|prev_volume|avg_inc|inc4|left_ok,,,0,0,0,40,PASS
+main_workspace,2026.parquet,date|previous_date|rank|code|kind|prev_money|prev_close|prev_volume|avg_inc|inc4|left_ok,,,0,0,0,40,PASS

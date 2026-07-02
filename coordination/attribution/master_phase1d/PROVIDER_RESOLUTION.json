@@ -1,0 +1,48 @@
+{
+  "resolved_at": "2026-07-01T22:56:02.990010+00:00",
+  "runtime_symbol": "get_project_auction_yiqian_prepare(context.current_dt)",
+  "namespace_binding": {
+    "owner": "EmotionGateJQCompat.namespace_entries",
+    "binding_kind": "lambda_wrapper",
+    "delegates_to": "engine.data_api.get_project_auction_yiqian_prepare",
+    "source": {
+      "file": "rebuild_from_archive/project_compat.py",
+      "start_line": 208,
+      "end_line": 224,
+      "sha256": "d7b80e4970edcf934482f1d31c3833b624f708dba51a00b72e2b001997a3155a"
+    },
+    "lambda_found_by_ast_parse": true
+  },
+  "data_api_method": {
+    "owner": "DataAPI.get_project_auction_yiqian_prepare",
+    "binding_kind": "compat_delegate",
+    "delegates_to": "compat.get_project_auction_yiqian_prepare(date)",
+    "source": {
+      "file": "rebuild_from_archive/engine/data_api.py",
+      "start_line": 833,
+      "end_line": 836,
+      "sha256": "7dfc096f249ae4d4bbcd5fa62ca65f3b521fe1474997ff1b3c284b5e782ed2e1"
+    }
+  },
+  "compat_method": {
+    "owner": "EmotionGateJQCompat.get_project_auction_yiqian_prepare",
+    "physical_feature_family": "auction_yiqian_prepare",
+    "loads_via": "_load_feature_year(self._auction_yiqian_cache, 'auction_yiqian_prepare', day.year)",
+    "post_load_behavior": "filters date, sorts by rank, recomputes left_ok when left-pressure API is available",
+    "source": {
+      "file": "rebuild_from_archive/project_compat.py",
+      "start_line": 672,
+      "end_line": 695,
+      "sha256": "c1b5e90ca5c863fcad2e17b9e6444d9bd7fcc0cd725facea04704ba8fff7ead2"
+    }
+  },
+  "instance_resolution": {
+    "compat_class": "rebuild_from_archive.project_compat.EmotionGateJQCompat",
+    "data_api_class": "rebuild_from_archive.engine.data_api.DataAPI",
+    "compat_cache_attr_present": true,
+    "compat_call_2023_01_03_return_type": "NoneType",
+    "compat_call_2023_01_03_rows": null,
+    "api_call_2023_01_03_return_type": "NoneType",
+    "api_call_2023_01_03_rows": null
+  }
+}
