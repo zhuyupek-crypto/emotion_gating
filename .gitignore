@@ -74,3 +74,6 @@ rebuild_from_archive/**/*.pyc
 
 
 coordination/attribution/master_phase1e/full_year_run/
+coordination/attribution/master_phase2a/input_snapshot/
+coordination/attribution/master_phase2a/full_detail/
+

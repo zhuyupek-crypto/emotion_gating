@@ -1,0 +1,11 @@
+﻿branch_a,branch_b,overlap_date_code_count,at_least_one_filled_count,both_not_filled_count
+Auction,YJJ,50,22,28
+Auction,Scorpion,41,12,29
+Auction,RZQ,1,0,1
+Auction,ZB,68,22,46
+YJJ,Scorpion,0,0,0
+YJJ,RZQ,0,0,0
+YJJ,ZB,0,0,0
+Scorpion,RZQ,0,0,0
+Scorpion,ZB,0,0,0
+RZQ,ZB,23,8,15

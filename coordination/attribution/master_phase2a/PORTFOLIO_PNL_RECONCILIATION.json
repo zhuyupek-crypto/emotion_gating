@@ -1,0 +1,15 @@
+{
+  "initial_value": 1000000.0,
+  "final_value": 1258307.590000002,
+  "portfolio_net_change": 258307.59000000195,
+  "closed_gross_pnl": 336630.0000000009,
+  "closed_commission": 30247.18,
+  "closed_tax": 50375.229999999996,
+  "closed_net_pnl": 256123.12000000087,
+  "open_position_cost": 385215.53,
+  "open_position_market_value": 387400.0,
+  "open_unrealized_pnl": 2184.469999999972,
+  "attributed_net_change": 258307.59000000084,
+  "reconciliation_residual": 1.1059455573558807e-09,
+  "reconciliation_pass": true
+}
