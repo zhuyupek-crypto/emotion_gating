@@ -1,0 +1,16 @@
+{
+  "phase": "Phase 2A",
+  "conclusion": "PASS_ACTUAL_BASELINE",
+  "created_at_utc": "2026-07-02T04:31:58.298240+00:00",
+  "git_commit": "21670f76aede63842225634d206c6fcd6bd1186d",
+  "input_snapshot_manifest_sha256": "d11127f5904e537c3b2233237a509fa9d9620c3259649720f18f68fd71eba4e1",
+  "signal_event_count": 2524,
+  "actual_order_count": 259,
+  "actual_trade_record_count": 259,
+  "buy_lot_count": 132,
+  "year_end_open_lot_count": 1,
+  "unfilled_candidate_future_return_calculation_count": 0,
+  "counterfactual_run_count": 0,
+  "optimization_experiment_count": 0,
+  "validation_issues": []
+}
