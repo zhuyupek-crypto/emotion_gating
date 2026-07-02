@@ -1,0 +1,43 @@
+{
+  "full_year_cases": [
+    {
+      "label": "B0_FULL_YEAR_formal_null",
+      "final_value": 1258307.590000002,
+      "trade_count": 259,
+      "order_count": 259,
+      "elapsed_sec": 1021.7821681499481
+    },
+    {
+      "label": "I0_FULL_YEAR_v1_null",
+      "final_value": 1258307.590000002,
+      "trade_count": 259,
+      "order_count": 259,
+      "elapsed_sec": 1105.4568483829498
+    },
+    {
+      "label": "I1_FULL_YEAR_A_v1_observer",
+      "final_value": 1258307.590000002,
+      "trade_count": 259,
+      "order_count": 259,
+      "elapsed_sec": 1101.9005329608917
+    },
+    {
+      "label": "I1_FULL_YEAR_B_v1_observer",
+      "final_value": 1258307.590000002,
+      "trade_count": 259,
+      "order_count": 259,
+      "elapsed_sec": 1025.6626687049866
+    }
+  ],
+  "event_volume": {
+    "signal_events": 2524,
+    "raw_pattern_events": 3895,
+    "scan_run_events": 1210,
+    "decision_events": 2625,
+    "order_intents": 259,
+    "trade_outcomes": 132,
+    "unresolved_events": 0,
+    "duplicate_signal_key_rows": 0,
+    "unmapped_trade_rows": 0
+  }
+}

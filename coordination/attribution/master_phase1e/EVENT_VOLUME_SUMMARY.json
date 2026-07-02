@@ -1,0 +1,11 @@
+{
+  "signal_events": 2524,
+  "raw_pattern_events": 3895,
+  "scan_run_events": 1210,
+  "decision_events": 2625,
+  "order_intents": 259,
+  "trade_outcomes": 132,
+  "unresolved_events": 0,
+  "duplicate_signal_key_rows": 0,
+  "unmapped_trade_rows": 0
+}

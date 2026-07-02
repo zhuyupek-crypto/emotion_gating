@@ -1,0 +1,55 @@
+{
+  "cases": [
+    {
+      "label": "B0_FULL_YEAR_formal_null",
+      "final_value": 1258307.590000002,
+      "trade_count": 259,
+      "order_count": 259,
+      "elapsed_sec": 1021.7821681499481
+    },
+    {
+      "label": "I0_FULL_YEAR_v1_null",
+      "final_value": 1258307.590000002,
+      "trade_count": 259,
+      "order_count": 259,
+      "elapsed_sec": 1105.4568483829498
+    },
+    {
+      "label": "I1_FULL_YEAR_A_v1_observer",
+      "final_value": 1258307.590000002,
+      "trade_count": 259,
+      "order_count": 259,
+      "elapsed_sec": 1101.9005329608917
+    }
+  ],
+  "behavior_parity": {
+    "B0_vs_I0": {
+      "trades_equal": true,
+      "orders_equal": true,
+      "equity_equal": true,
+      "state_equal": true,
+      "handler_profile_equal": true,
+      "final_value_ref": 1258307.590000002,
+      "final_value_other": 1258307.590000002,
+      "trade_count_ref": 259,
+      "trade_count_other": 259,
+      "order_count_ref": 259,
+      "order_count_other": 259
+    },
+    "B0_vs_I1": {
+      "trades_equal": true,
+      "orders_equal": true,
+      "equity_equal": true,
+      "state_equal": true,
+      "handler_profile_equal": true,
+      "final_value_ref": 1258307.590000002,
+      "final_value_other": 1258307.590000002,
+      "trade_count_ref": 259,
+      "trade_count_other": 259,
+      "order_count_ref": 259,
+      "order_count_other": 259
+    },
+    "all_behavior_equal": true
+  },
+  "all_behavior_equal": true
+}

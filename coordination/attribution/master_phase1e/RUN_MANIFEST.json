@@ -1,0 +1,223 @@
+{
+  "status": "PASS_AND_FREEZE",
+  "generated_at": "2026-07-02T11:01:35.458574",
+  "q1": {
+    "q1_gate_passed": true,
+    "runtime_environment": "CODE_NATIVE_COMPUTED_ENVIRONMENT",
+    "observer_contract_version": "1.0",
+    "final_value": 1053321.5800000003,
+    "trade_count": 87,
+    "order_count": 87,
+    "signal_event_count": 531,
+    "branch_counts": {
+      "Auction": 270,
+      "Scorpion": 30,
+      "YJJ": 45,
+      "RZQ": 20,
+      "ZB": 166
+    },
+    "signal_key_sha256": "60cb1a92bcf14da9b9409a635ef3e29ba552de3133bdc588218c2126d979ebf5",
+    "terminal_state_sha256": "a24157da4db8a0c03afeff1d3021355ad9a38aeb5c3ff64f8ffed1bc8e4b9a9f",
+    "source_mode_sha256": "5e5d3d5f86856e82890f8e4238652b1177928b8a14cee14454a8ac6791ecca54",
+    "behavior_parity": {
+      "B0_vs_I0": {
+        "trades_equal": true,
+        "orders_equal": true,
+        "equity_equal": true,
+        "state_equal": true,
+        "handler_profile_equal": true,
+        "final_value_ref": 1053321.5800000003,
+        "final_value_other": 1053321.5800000003,
+        "trade_count_ref": 87,
+        "trade_count_other": 87,
+        "order_count_ref": 87,
+        "order_count_other": 87
+      },
+      "B0_vs_I1": {
+        "trades_equal": true,
+        "orders_equal": true,
+        "equity_equal": true,
+        "state_equal": true,
+        "handler_profile_equal": true,
+        "final_value_ref": 1053321.5800000003,
+        "final_value_other": 1053321.5800000003,
+        "trade_count_ref": 87,
+        "trade_count_other": 87,
+        "order_count_ref": 87,
+        "order_count_other": 87
+      },
+      "all_behavior_equal": true
+    },
+    "expected": {
+      "signal_event_count": 531,
+      "signal_key_sha256": "60cb1a92bcf14da9b9409a635ef3e29ba552de3133bdc588218c2126d979ebf5",
+      "terminal_state_sha256": "a24157da4db8a0c03afeff1d3021355ad9a38aeb5c3ff64f8ffed1bc8e4b9a9f",
+      "source_mode_sha256": "5e5d3d5f86856e82890f8e4238652b1177928b8a14cee14454a8ac6791ecca54",
+      "final_value": 1053321.5800000005,
+      "trade_count": 87,
+      "order_count": 87,
+      "branch_counts": {
+        "Auction": 270,
+        "ZB": 166,
+        "YJJ": 45,
+        "Scorpion": 30,
+        "RZQ": 20
+      }
+    },
+    "checks": {
+      "behavior_parity": true,
+      "final_value": true,
+      "trade_count": true,
+      "order_count": true,
+      "signal_event_count": true,
+      "branch_counts": true,
+      "signal_key_sha256": true,
+      "terminal_state_sha256": true,
+      "source_mode_sha256": true
+    }
+  },
+  "full_year_behavior_parity": {
+    "B0_vs_I0": {
+      "trades_equal": true,
+      "orders_equal": true,
+      "equity_equal": true,
+      "state_equal": true,
+      "handler_profile_equal": true,
+      "final_value_ref": 1258307.590000002,
+      "final_value_other": 1258307.590000002,
+      "trade_count_ref": 259,
+      "trade_count_other": 259,
+      "order_count_ref": 259,
+      "order_count_other": 259
+    },
+    "B0_vs_I1": {
+      "trades_equal": true,
+      "orders_equal": true,
+      "equity_equal": true,
+      "state_equal": true,
+      "handler_profile_equal": true,
+      "final_value_ref": 1258307.590000002,
+      "final_value_other": 1258307.590000002,
+      "trade_count_ref": 259,
+      "trade_count_other": 259,
+      "order_count_ref": 259,
+      "order_count_other": 259
+    },
+    "all_behavior_equal": true
+  },
+  "full_year_repeatability": {
+    "signal_key_sha256_a": "2fee8ab8eb581a3a58c991bdbdb0bab5a47d18d0139464232a2d78f9025bf920",
+    "signal_key_sha256_b": "2fee8ab8eb581a3a58c991bdbdb0bab5a47d18d0139464232a2d78f9025bf920",
+    "terminal_state_sha256_a": "318db96161b34ac1fa423cb34e4dc5da174cf073412deda6c76cd35ca236df0a",
+    "terminal_state_sha256_b": "318db96161b34ac1fa423cb34e4dc5da174cf073412deda6c76cd35ca236df0a",
+    "source_mode_sha256_a": "95b278b5f89076aeb8150a9ec1d651309416bc6c281d7914d9a697606ff0f5ec",
+    "source_mode_sha256_b": "95b278b5f89076aeb8150a9ec1d651309416bc6c281d7914d9a697606ff0f5ec",
+    "raw_pattern_identity_sha256_a": "7e37fc3d9face7ff2abe0cb297433603ee3fb6c3470720bfeee4cd11b7136970",
+    "raw_pattern_identity_sha256_b": "7e37fc3d9face7ff2abe0cb297433603ee3fb6c3470720bfeee4cd11b7136970",
+    "scan_run_identity_sha256_a": "45dccc14c15eda5518ad994e3e6eff40d31c847ccf54703017acbd26faadfd5d",
+    "scan_run_identity_sha256_b": "45dccc14c15eda5518ad994e3e6eff40d31c847ccf54703017acbd26faadfd5d",
+    "order_lineage_sha256_a": "6488f771643bae71ab274b351c4dbbb0df27b2d5f6bf47bd1b42738561d69a09",
+    "order_lineage_sha256_b": "6488f771643bae71ab274b351c4dbbb0df27b2d5f6bf47bd1b42738561d69a09",
+    "trade_lineage_sha256_a": "4c92130234ee2898a388cf54ce94f9b23a96adc0371e9382ea83480074faeeff",
+    "trade_lineage_sha256_b": "4c92130234ee2898a388cf54ce94f9b23a96adc0371e9382ea83480074faeeff",
+    "repeatable": true
+  },
+  "closure": {
+    "signal_events": 2524,
+    "closed_events": 2524,
+    "unresolved_events": 0,
+    "duplicate_signal_key_rows": 0,
+    "unmapped_trade_rows": 0,
+    "trade_lineage_mapping_rate": 1.0
+  },
+  "canonical_2023_baseline": {
+    "status": "PASS_AND_FREEZE",
+    "observer_contract_version": "1.0",
+    "runtime_environment": "CODE_NATIVE_COMPUTED_ENVIRONMENT",
+    "start": "2023-01-01",
+    "end": "2023-12-31",
+    "strategy_sha256": "30761614fafffb2a1b88ebe88f0c1ab85e2d65cb8f006f92917a5da35b2e24be",
+    "formal_strategy_sha256": "621a9c968473d73dfa1699be0a16714790e4f93ab950957c0a3f88f4f34bcc8e",
+    "signal_event_count": 2524,
+    "signal_key_sha256": "2fee8ab8eb581a3a58c991bdbdb0bab5a47d18d0139464232a2d78f9025bf920",
+    "terminal_state_sha256": "318db96161b34ac1fa423cb34e4dc5da174cf073412deda6c76cd35ca236df0a",
+    "source_mode_sha256": "95b278b5f89076aeb8150a9ec1d651309416bc6c281d7914d9a697606ff0f5ec",
+    "protected_files_unchanged": true
+  },
+  "runtime_environment": {
+    "runtime_environment": "CODE_NATIVE_COMPUTED_ENVIRONMENT",
+    "observer_contract_version": "1.0",
+    "downstream_schema_version": "0.3",
+    "upstream_schema_version": "0.4",
+    "worktree_root": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase1e-v1",
+    "branch": "codex/motherboard-attribution-phase1e-v1",
+    "commit": "c88e0d8518d7ae1bad72910eeb3ae970b723ae7c",
+    "data_root": "D:/work space/hdata/data/processed",
+    "hdata_reader_file": "D:\\work space\\hdata\\scripts\\core\\hdata_reader.py",
+    "python_version": "3.14.3 (tags/v3.14.3:323c59a, Feb  3 2026, 16:04:56) [MSC v.1944 64 bit (AMD64)]",
+    "platform": "Windows-10-10.0.19045-SP0",
+    "pandas_version": "3.0.1",
+    "env_LOCALQUANT_DATA_ROOT": null,
+    "env_LOCALQUANT_HDATA_ROOT": null,
+    "protected_sha_before": {
+      "母版-20260506-Clone.py": "621a9c968473d73dfa1699be0a16714790e4f93ab950957c0a3f88f4f34bcc8e",
+      "rebuild_from_archive/engine/core.py": "0dd86bb0a000e6647e2dbd07abc480531c60fd47f1d21a2d1b0cc5eacca64100",
+      "rebuild_from_archive/engine/data_api.py": "74b8a2b4507c8ada65cc0870fabae00250f1b8e568c8d64dd6b2e6fcc86a7a0e",
+      "rebuild_from_archive/project_compat.py": "bc0e2ae278ef5960cbf6a982ff616801c69c483bf7232a04190993401c0795e8",
+      "rebuild_from_archive/jqdata_compat.py": "e45ee4932c4277cf30da2f16468c184673f0f22c75dfa531ed71b9b7d602c521",
+      "D:\\work space\\hdata\\scripts\\core\\hdata_reader.py": "bbd4671ea342fcf206dfec5f4ada6da85dbcaf3df3a5bb7c3b1b1010f6d9e361"
+    },
+    "cache_precheck": {
+      "passed": true,
+      "checked": [
+        {
+          "feature": "auction_yiqian_prepare",
+          "path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase1e-v1\\project_cache\\features\\auction_yiqian_prepare",
+          "exists": false,
+          "file_count": 0
+        },
+        {
+          "feature": "board_snapshot",
+          "path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase1e-v1\\project_cache\\features\\board_snapshot",
+          "exists": false,
+          "file_count": 0
+        },
+        {
+          "feature": "master_prepare_index",
+          "path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase1e-v1\\project_cache\\features\\master_prepare_index",
+          "exists": false,
+          "file_count": 0
+        },
+        {
+          "feature": "first_seal_time",
+          "path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase1e-v1\\project_cache\\features\\first_seal_time",
+          "exists": false,
+          "file_count": 0
+        },
+        {
+          "feature": "call_auction_by_date",
+          "path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase1e-v1\\project_cache\\features\\call_auction_by_date",
+          "exists": false,
+          "file_count": 0
+        }
+      ],
+      "project_cache_files": []
+    },
+    "instrumentation_diff": {
+      "observer_contract_version": "1.0",
+      "strategy_path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase1e-v1\\research\\instrumented_strategies\\motherboard_attribution_v1.py",
+      "strategy_sha256": "30761614fafffb2a1b88ebe88f0c1ab85e2d65cb8f006f92917a5da35b2e24be",
+      "formal_strategy_sha256": "621a9c968473d73dfa1699be0a16714790e4f93ab950957c0a3f88f4f34bcc8e",
+      "normalized_formal_match_after_removing_observer_blocks": true,
+      "source": "research.run_motherboard_phase1d_closure.closure_strategy_code()"
+    },
+    "protected_sha_after": {
+      "母版-20260506-Clone.py": "621a9c968473d73dfa1699be0a16714790e4f93ab950957c0a3f88f4f34bcc8e",
+      "rebuild_from_archive/engine/core.py": "0dd86bb0a000e6647e2dbd07abc480531c60fd47f1d21a2d1b0cc5eacca64100",
+      "rebuild_from_archive/engine/data_api.py": "74b8a2b4507c8ada65cc0870fabae00250f1b8e568c8d64dd6b2e6fcc86a7a0e",
+      "rebuild_from_archive/project_compat.py": "bc0e2ae278ef5960cbf6a982ff616801c69c483bf7232a04190993401c0795e8",
+      "rebuild_from_archive/jqdata_compat.py": "e45ee4932c4277cf30da2f16468c184673f0f22c75dfa531ed71b9b7d602c521",
+      "D:\\work space\\hdata\\scripts\\core\\hdata_reader.py": "bbd4671ea342fcf206dfec5f4ada6da85dbcaf3df3a5bb7c3b1b1010f6d9e361"
+    }
+  }
+}

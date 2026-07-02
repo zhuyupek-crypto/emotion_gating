@@ -1,0 +1,10 @@
+{
+  "observer_contract_version": "1.0",
+  "status": "PASS_AND_FREEZE",
+  "strategy_path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase1e-v1\\research\\instrumented_strategies\\motherboard_attribution_v1.py",
+  "strategy_sha256": "30761614fafffb2a1b88ebe88f0c1ab85e2d65cb8f006f92917a5da35b2e24be",
+  "schema_versions": {
+    "downstream": "0.3",
+    "upstream": "0.4"
+  }
+}
