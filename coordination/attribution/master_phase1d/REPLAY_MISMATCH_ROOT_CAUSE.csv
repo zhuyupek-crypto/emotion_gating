@@ -1,0 +1,26 @@
+﻿date,code,field,replay_value,phase1c_value,root_cause,root_cause_detail,runtime_kind,runtime_avg_inc,runtime_prev_close,runtime_prev_money,runtime_prev_volume,runtime_left_ok,runtime_actual_prepare_path,replay_kind,replay_avg_inc
+20230105,000797.SZ,_membership,ABSENT,PRESENT,daily_data_difference,runtime computed candidate set differs from independent replay candidate set,rzq,0.003002413042023644,3.9,714649344.0,182694896.0,False,COMPUTED_FALLBACK,,
+20230105,000564.SZ,_membership,PRESENT,ABSENT,daily_data_difference,runtime computed candidate set differs from independent replay candidate set,,,,,,,,rzq,-0.001194298267364502
+20230116,600189.SH,_membership,ABSENT,PRESENT,daily_data_difference,runtime computed candidate set differs from independent replay candidate set,rzq,-0.00822108191405413,7.31,381924096.0,52679884.0,False,COMPUTED_FALLBACK,,
+20230117,601099.SH,_membership,PRESENT,ABSENT,daily_data_difference,runtime computed candidate set differs from independent replay candidate set,,,,,,,,rzq,0.0015056133270263672
+20230203,000735.SZ,_membership,PRESENT,ABSENT,daily_data_difference,runtime computed candidate set differs from independent replay candidate set,,,,,,,,rzq,-0.024379849433898926
+20230206,002097.SZ,kind,y2,rzq,daily_data_difference,runtime computed path payload differs from independent replay classification,rzq,-0.012014263511763157,6.88,556983872.0,81941424.0,True,COMPUTED_FALLBACK,y2,0.08678436279296875
+20230206,002097.SZ,avg_inc,0.08678436279296875,-0.012014263511763157,daily_data_difference,runtime computed path payload differs from independent replay classification,rzq,-0.012014263511763157,6.88,556983872.0,81941424.0,True,COMPUTED_FALLBACK,y2,0.08678436279296875
+20230206,603050.SH,_membership,ABSENT,PRESENT,daily_data_difference,runtime computed candidate set differs from independent replay candidate set,rzq,-0.02970477335909083,20.63,391994240.0,19582880.0,True,COMPUTED_FALLBACK,,
+20230206,000564.SZ,_membership,PRESENT,ABSENT,daily_data_difference,runtime computed candidate set differs from independent replay candidate set,,,,,,,,rzq,-0.015317916870117188
+20230206,600388.SH,_membership,PRESENT,ABSENT,daily_data_difference,runtime computed candidate set differs from independent replay candidate set,,,,,,,,rzq,-0.021446287631988525
+20230207,000070.SZ,_membership,ABSENT,PRESENT,daily_data_difference,runtime computed candidate set differs from independent replay candidate set,rzq,0.016712635001026488,8.09,733777664.0,89210864.0,False,COMPUTED_FALLBACK,,
+20230208,600819.SH,_membership,ABSENT,PRESENT,daily_data_difference,runtime computed candidate set differs from independent replay candidate set,rzq,-0.03560506761884896,7.8,577443648.0,76764440.0,False,COMPUTED_FALLBACK,,
+20230210,000564.SZ,_membership,PRESENT,ABSENT,daily_data_difference,runtime computed candidate set differs from independent replay candidate set,,,,,,,,rzq,-0.01873600482940674
+20230214,600984.SH,_membership,PRESENT,ABSENT,daily_data_difference,runtime computed candidate set differs from independent replay candidate set,,,,,,,,rzq,-0.012838661670684814
+20230215,002043.SZ,_membership,ABSENT,PRESENT,daily_data_difference,runtime computed candidate set differs from independent replay candidate set,rzq,-0.03169362780054097,14.97,1369549312.0,94480696.0,False,COMPUTED_FALLBACK,,
+20230221,600984.SH,_membership,ABSENT,PRESENT,daily_data_difference,runtime computed candidate set differs from independent replay candidate set,rzq,-0.016912968517827864,6.88,366128672.0,54131908.0,False,COMPUTED_FALLBACK,,
+20230221,603918.SH,_membership,ABSENT,PRESENT,daily_data_difference,runtime computed candidate set differs from independent replay candidate set,rzq,-0.01805974161746915,10.33,561400896.0,55346188.0,False,COMPUTED_FALLBACK,,
+20230227,600100.SH,_membership,PRESENT,ABSENT,daily_data_difference,runtime computed candidate set differs from independent replay candidate set,,,,,,,,rzq,-0.022388875484466553
+20230301,002875.SZ,_membership,ABSENT,PRESENT,daily_data_difference,runtime computed candidate set differs from independent replay candidate set,rzq,-0.0066064985255069875,18.79,768608384.0,41177220.0,True,,,
+20230308,000506.SZ,_membership,PRESENT,ABSENT,daily_data_difference,runtime computed candidate set differs from independent replay candidate set,,,,,,,,rzq,-0.0005218982696533203
+20230309,600246.SH,_membership,ABSENT,PRESENT,daily_data_difference,runtime computed candidate set differs from independent replay candidate set,rzq,-0.011638898276754683,6.1,379126336.0,62883756.0,False,COMPUTED_FALLBACK,,
+20230313,000564.SZ,_membership,PRESENT,ABSENT,daily_data_difference,runtime computed candidate set differs from independent replay candidate set,,,,,,,,rzq,0.0056029558181762695
+20230323,002131.SZ,_membership,PRESENT,ABSENT,daily_data_difference,runtime computed candidate set differs from independent replay candidate set,,,,,,,,rzq,-0.021877050399780273
+20230324,600804.SH,_membership,PRESENT,ABSENT,daily_data_difference,runtime computed candidate set differs from independent replay candidate set,,,,,,,,rzq,0.015932440757751465
+20230327,000070.SZ,_membership,ABSENT,PRESENT,daily_data_difference,runtime computed candidate set differs from independent replay candidate set,y2,0.07884300018779711,10.41,1685083648.0,165046064.0,True,,,
