@@ -1,0 +1,76 @@
+{
+  "runtime_environment": "CODE_NATIVE_COMPUTED_ENVIRONMENT",
+  "observer_contract_version": "1.0",
+  "downstream_schema_version": "0.3",
+  "upstream_schema_version": "0.4",
+  "worktree_root": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase1e-v1",
+  "branch": "codex/motherboard-attribution-phase1e-v1",
+  "commit": "c88e0d8518d7ae1bad72910eeb3ae970b723ae7c",
+  "data_root": "D:/work space/hdata/data/processed",
+  "hdata_reader_file": "D:\\work space\\hdata\\scripts\\core\\hdata_reader.py",
+  "python_version": "3.14.3 (tags/v3.14.3:323c59a, Feb  3 2026, 16:04:56) [MSC v.1944 64 bit (AMD64)]",
+  "platform": "Windows-10-10.0.19045-SP0",
+  "pandas_version": "3.0.1",
+  "env_LOCALQUANT_DATA_ROOT": null,
+  "env_LOCALQUANT_HDATA_ROOT": null,
+  "protected_sha_before": {
+    "母版-20260506-Clone.py": "621a9c968473d73dfa1699be0a16714790e4f93ab950957c0a3f88f4f34bcc8e",
+    "rebuild_from_archive/engine/core.py": "0dd86bb0a000e6647e2dbd07abc480531c60fd47f1d21a2d1b0cc5eacca64100",
+    "rebuild_from_archive/engine/data_api.py": "74b8a2b4507c8ada65cc0870fabae00250f1b8e568c8d64dd6b2e6fcc86a7a0e",
+    "rebuild_from_archive/project_compat.py": "bc0e2ae278ef5960cbf6a982ff616801c69c483bf7232a04190993401c0795e8",
+    "rebuild_from_archive/jqdata_compat.py": "e45ee4932c4277cf30da2f16468c184673f0f22c75dfa531ed71b9b7d602c521",
+    "D:\\work space\\hdata\\scripts\\core\\hdata_reader.py": "bbd4671ea342fcf206dfec5f4ada6da85dbcaf3df3a5bb7c3b1b1010f6d9e361"
+  },
+  "cache_precheck": {
+    "passed": true,
+    "checked": [
+      {
+        "feature": "auction_yiqian_prepare",
+        "path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase1e-v1\\project_cache\\features\\auction_yiqian_prepare",
+        "exists": false,
+        "file_count": 0
+      },
+      {
+        "feature": "board_snapshot",
+        "path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase1e-v1\\project_cache\\features\\board_snapshot",
+        "exists": false,
+        "file_count": 0
+      },
+      {
+        "feature": "master_prepare_index",
+        "path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase1e-v1\\project_cache\\features\\master_prepare_index",
+        "exists": false,
+        "file_count": 0
+      },
+      {
+        "feature": "first_seal_time",
+        "path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase1e-v1\\project_cache\\features\\first_seal_time",
+        "exists": false,
+        "file_count": 0
+      },
+      {
+        "feature": "call_auction_by_date",
+        "path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase1e-v1\\project_cache\\features\\call_auction_by_date",
+        "exists": false,
+        "file_count": 0
+      }
+    ],
+    "project_cache_files": []
+  },
+  "instrumentation_diff": {
+    "observer_contract_version": "1.0",
+    "strategy_path": "D:\\Work Space\\他山之石\\情绪门控\\worktrees\\motherboard-attribution-phase1e-v1\\research\\instrumented_strategies\\motherboard_attribution_v1.py",
+    "strategy_sha256": "30761614fafffb2a1b88ebe88f0c1ab85e2d65cb8f006f92917a5da35b2e24be",
+    "formal_strategy_sha256": "621a9c968473d73dfa1699be0a16714790e4f93ab950957c0a3f88f4f34bcc8e",
+    "normalized_formal_match_after_removing_observer_blocks": true,
+    "source": "research.run_motherboard_phase1d_closure.closure_strategy_code()"
+  },
+  "protected_sha_after": {
+    "母版-20260506-Clone.py": "621a9c968473d73dfa1699be0a16714790e4f93ab950957c0a3f88f4f34bcc8e",
+    "rebuild_from_archive/engine/core.py": "0dd86bb0a000e6647e2dbd07abc480531c60fd47f1d21a2d1b0cc5eacca64100",
+    "rebuild_from_archive/engine/data_api.py": "74b8a2b4507c8ada65cc0870fabae00250f1b8e568c8d64dd6b2e6fcc86a7a0e",
+    "rebuild_from_archive/project_compat.py": "bc0e2ae278ef5960cbf6a982ff616801c69c483bf7232a04190993401c0795e8",
+    "rebuild_from_archive/jqdata_compat.py": "e45ee4932c4277cf30da2f16468c184673f0f22c75dfa531ed71b9b7d602c521",
+    "D:\\work space\\hdata\\scripts\\core\\hdata_reader.py": "bbd4671ea342fcf206dfec5f4ada6da85dbcaf3df3a5bb7c3b1b1010f6d9e361"
+  }
+}

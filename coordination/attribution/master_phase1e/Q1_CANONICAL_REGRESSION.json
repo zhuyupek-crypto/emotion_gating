@@ -1,0 +1,75 @@
+{
+  "q1_gate_passed": true,
+  "runtime_environment": "CODE_NATIVE_COMPUTED_ENVIRONMENT",
+  "observer_contract_version": "1.0",
+  "final_value": 1053321.5800000003,
+  "trade_count": 87,
+  "order_count": 87,
+  "signal_event_count": 531,
+  "branch_counts": {
+    "Auction": 270,
+    "Scorpion": 30,
+    "YJJ": 45,
+    "RZQ": 20,
+    "ZB": 166
+  },
+  "signal_key_sha256": "60cb1a92bcf14da9b9409a635ef3e29ba552de3133bdc588218c2126d979ebf5",
+  "terminal_state_sha256": "a24157da4db8a0c03afeff1d3021355ad9a38aeb5c3ff64f8ffed1bc8e4b9a9f",
+  "source_mode_sha256": "5e5d3d5f86856e82890f8e4238652b1177928b8a14cee14454a8ac6791ecca54",
+  "behavior_parity": {
+    "B0_vs_I0": {
+      "trades_equal": true,
+      "orders_equal": true,
+      "equity_equal": true,
+      "state_equal": true,
+      "handler_profile_equal": true,
+      "final_value_ref": 1053321.5800000003,
+      "final_value_other": 1053321.5800000003,
+      "trade_count_ref": 87,
+      "trade_count_other": 87,
+      "order_count_ref": 87,
+      "order_count_other": 87
+    },
+    "B0_vs_I1": {
+      "trades_equal": true,
+      "orders_equal": true,
+      "equity_equal": true,
+      "state_equal": true,
+      "handler_profile_equal": true,
+      "final_value_ref": 1053321.5800000003,
+      "final_value_other": 1053321.5800000003,
+      "trade_count_ref": 87,
+      "trade_count_other": 87,
+      "order_count_ref": 87,
+      "order_count_other": 87
+    },
+    "all_behavior_equal": true
+  },
+  "expected": {
+    "signal_event_count": 531,
+    "signal_key_sha256": "60cb1a92bcf14da9b9409a635ef3e29ba552de3133bdc588218c2126d979ebf5",
+    "terminal_state_sha256": "a24157da4db8a0c03afeff1d3021355ad9a38aeb5c3ff64f8ffed1bc8e4b9a9f",
+    "source_mode_sha256": "5e5d3d5f86856e82890f8e4238652b1177928b8a14cee14454a8ac6791ecca54",
+    "final_value": 1053321.5800000005,
+    "trade_count": 87,
+    "order_count": 87,
+    "branch_counts": {
+      "Auction": 270,
+      "ZB": 166,
+      "YJJ": 45,
+      "Scorpion": 30,
+      "RZQ": 20
+    }
+  },
+  "checks": {
+    "behavior_parity": true,
+    "final_value": true,
+    "trade_count": true,
+    "order_count": true,
+    "signal_event_count": true,
+    "branch_counts": true,
+    "signal_key_sha256": true,
+    "terminal_state_sha256": true,
+    "source_mode_sha256": true
+  }
+}

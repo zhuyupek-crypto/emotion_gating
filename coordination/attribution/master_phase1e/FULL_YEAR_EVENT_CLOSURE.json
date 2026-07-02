@@ -1,0 +1,8 @@
+{
+  "signal_events": 2524,
+  "closed_events": 2524,
+  "unresolved_events": 0,
+  "duplicate_signal_key_rows": 0,
+  "unmapped_trade_rows": 0,
+  "trade_lineage_mapping_rate": 1.0
+}

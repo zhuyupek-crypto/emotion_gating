@@ -73,3 +73,4 @@ rebuild_from_archive/**/__pycache__/
 rebuild_from_archive/**/*.pyc
 
 
+coordination/attribution/master_phase1e/full_year_run/
